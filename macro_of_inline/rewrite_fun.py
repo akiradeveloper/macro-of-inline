@@ -131,6 +131,16 @@ class RenameVars(c_ast.NodeVisitor):
 		P("revert table")
 		self.cur_table = self.cur_table.prev_table
 
+class HasJump(c_ast.NodeVisitor):
+	def __init__(self):
+		self.result = False
+
+	def visit_Goto(self, n):
+		self.result = True
+
+	def visit_Label(self, n):
+		self.result = True
+
 class RewriteFun:
 	def __init__(self, func):
 		self.func = func
@@ -139,6 +149,13 @@ class RewriteFun:
 			self.func.show()
 
 		self.success = True
+
+		has_jump = HasJump()
+		has_jump.visit(self.func)
+		if has_jump.result:
+			self.success = False
+			return
+
 		if self.returnVoid():
 			self.success = False
 			return
@@ -294,6 +311,10 @@ inline void fun(int x)
 	if (1) {
 		return;
 	}
+	while (1) {
+		return;
+	}
+	return;
 }
 """
 
