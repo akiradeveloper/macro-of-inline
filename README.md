@@ -32,12 +32,12 @@ code for compilation.
 
 ## Todo
 
-- Translation of functions returns non-void value.
+- Translation of functions returns non-void value (I don't know if this is possible without expression statement).
 - Mode that doesn't need `cpp -E` preprocessing by text-searching the function definitions in the C-code.
 - Automated regressiong tests. 
 - More experience with actual projects (hope to hear your reports).
 
-## Fixme
+## Known Bugs
 
 ### Guard Clause
 If the function has guard clause that quit the function before the
@@ -46,19 +46,22 @@ macro-of-inline produces incorrect translation.
 We can reproduce this problem with this tiny example:
 
 Input:
-```
+
+```c
 inline void fun(int x)
 {
   if (1)
   {
     return;
   }
-
 }
+
+fun(x);
 ```
 
 Output:
-```
+
+```c
 #define fun(x) \
 do { \
   int eVdhzUIpUJRQosxr = x; \
@@ -68,6 +71,29 @@ do { \
   } \
  \
 } while(0)
+
+fun(x);
+```
+
+My idea now is to generate macro having exit label at the end of the block.
+Note that the label should be unique over the file contents. To do this 
+the macro is passed a random name for the label.
+
+To-Be:
+
+```c
+#define fun(exit_label, x) \
+do { \
+  int randvar = x; \
+  if (1) \
+  { \
+    goto exit_label; \
+  } \
+:exit_label: \
+  ; \
+} while (0)
+
+fun(randlabel, x);
 ```
 
 ## Developer
