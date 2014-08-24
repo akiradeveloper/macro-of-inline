@@ -1,0 +1,28 @@
+#!/usr/bin/env python
+
+import sys
+import argparse
+
+from macro_of_inline import rewrite_file
+
+parser = argparse.ArgumentParser(version="0.9", description="C Preprocessor to translate inline functions to equivalent macros")
+parser.add_argument("-i", metavar="INPUT", help="input (default:-). the input must be preprocessed by 'cpp -E' earlier", default="-")
+parser.add_argument("-o", metavar="OUTPUT", help="output (default:-)", default="-")
+args = parser.parse_args()
+
+if args.i == "-":
+	input_txt = sys.stdin.read()
+else:
+	f = open(args.i, "r")
+	input_txt = f.read()
+	f.close()
+
+runner = rewrite_file.RewriteFile(input_txt)
+output_txt = runner.run()
+
+if args.o == "-":
+	sys.stdout.write(output_txt)
+else:
+	f = open(args.o, "w")
+	f.write(output_txt)
+	f.close()
