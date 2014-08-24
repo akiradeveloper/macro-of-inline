@@ -135,6 +135,9 @@ class RewriteFun:
 	def __init__(self, func):
 		self.func = func
 
+		if DEBUG:
+			self.func.show()
+
 		self.success = True
 		if self.returnVoid():
 			self.success = False
@@ -298,6 +301,9 @@ testcase_void1 = r"""
 inline void fun(void)
 {
 	x = 1;
+	goto exit;
+exit:
+	;
 }
 """
 
