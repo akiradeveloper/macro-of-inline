@@ -285,6 +285,15 @@ testcase_3 = r"""
 inline int fun(int x) { return x; }
 """
 
+testcase_4 = r"""
+inline void fun(int x)
+{
+	if (1) {
+		return;
+	}
+}
+"""
+
 testcase_void1 = r"""
 inline void fun(void)
 {
@@ -317,6 +326,7 @@ if __name__ == "__main__":
 	# test(testcase)
 	test(testcase_2)
 	test(testcase_3)
+	test(testcase_4)
 	test(testcase_void1)
 	test(testcase_void2)
 	test(testcase_void3)

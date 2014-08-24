@@ -33,8 +33,42 @@ code for compilation.
 ## Todo
 
 - Translation of functions returns non-void value.
+- Mode that doesn't need `cpp -E` preprocessing by text-searching the function definitions in the C-code.
 - Automated regressiong tests. 
 - More experience with actual projects (hope to hear your reports).
+
+## Fixme
+
+### Guard Clause
+If the function has guard clause that quit the function before the
+end of the function body
+macro-of-inline produces incorrect translation.
+We can reproduce this problem with this tiny example:
+
+Input:
+```
+inline void fun(int x)
+{
+  if (1)
+  {
+    return;
+  }
+
+}
+```
+
+Output:
+```
+#define fun(x) \
+do { \
+  int eVdhzUIpUJRQosxr = x; \
+  if (1) \
+  { \
+    return; \
+  } \
+ \
+} while(0)
+```
 
 ## Developer
 
