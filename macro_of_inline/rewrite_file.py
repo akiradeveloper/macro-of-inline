@@ -1,5 +1,6 @@
 from pycparser import c_parser, c_ast
 
+import os
 import pycparser_ext
 import rewrite_fun
 
@@ -28,6 +29,7 @@ class RewriteFile:
 		macroizables = [] # (i, runner)
 		for i, n in enumerate(ast.ext):
 			if isinstance(n, c_ast.FuncDef):
+				# -ansi doesn't allow inline specifier
 				if 'inline' in n.decl.funcspec:
 					runner = rewrite_fun.RewriteFun(self.env, n)
 					runner.sanitizeNames()
@@ -51,8 +53,7 @@ inline void f2(int
   x) {   }
 %s
 
-
-inline int f3(void)
+int f3(void)
 {
   x = 3;
   f2(x);
@@ -64,9 +65,22 @@ int main()
   int x;
   f1();
   x = f3();
+  puts("OK");
   return 0;
 }
 """ % rewrite_fun.testcase
 
 if __name__ == "__main__":
-	print RewriteFile(testcase).run()
+	output = RewriteFile(testcase).run()
+
+	file_contents = r"""
+#include <stdio.h>
+%s
+""" % output
+	fn = "macro-of-inline-test.c"
+	f = open(fn, "w")
+	f.write(file_contents)
+	f.close()
+	# TODO Direct from stdio. Use gcc -xs -
+	os.system("gcc -ansi -pedantic %s && ./a.out" % fn)
+	print(output)
