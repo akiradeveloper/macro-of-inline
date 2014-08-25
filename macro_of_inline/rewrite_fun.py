@@ -21,7 +21,6 @@ def randstr(n):
 def newrandstr(names, n):
 	while True:
 		alias = randstr(n)
-		print(names)
 		if alias in names:
 			continue
 		else:
@@ -199,17 +198,8 @@ class RewriteFun:
 		if DEBUG:
 			self.func.show()
 
-		self.success = True
-
-		has_jump = HasJump()
-		has_jump.visit(self.func)
-		if has_jump.result:
-			self.success = False
-			return
-
-		if self.returnVoid():
-			self.success = False
-			return
+		self.success = None
+		self.success = self.canMacroize()
 
 		self.args = []
 		self.init_table = NameTable(env)
@@ -228,7 +218,7 @@ class RewriteFun:
 
 	def returnVoid(self):
 		# void f(...)
-		return not "void" in self.func.decl.type.type.type.names
+		return "void" in self.func.decl.type.type.type.names
 
 	def voidArgs(self):
 		args = self.func.decl.type.args
@@ -252,6 +242,20 @@ class RewriteFun:
 		# f(void)
 		if "void" in param.type.type.names:
 			return True
+
+	def canMacroize(self):
+		if self.success != None: # Lazy initialization
+			return self.success
+
+		has_jump = HasJump()
+		has_jump.visit(self.func)
+		if has_jump.result:
+			return False
+
+		if not self.returnVoid():
+			return False
+
+		return True
 
 	def renameFuncBody(self):
 		if not self.success:

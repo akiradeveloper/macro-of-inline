@@ -31,7 +31,8 @@ class RewriteFile:
 				if 'inline' in n.decl.funcspec:
 					runner = rewrite_fun.RewriteFun(self.env, n)
 					runner.sanitizeNames()
-					macroizables.append((i, runner))
+					if runner.canMacroize():
+						macroizables.append((i, runner))
 
 		LabelizeFuncCall(self.env, [runner.func.decl.name for i, runner in macroizables]).visit(ast)
 
@@ -55,11 +56,14 @@ inline int f3(void)
 {
   x = 3;
   f2(x);
+  return x;
 }
 
 int main()
 {
+  int x;
   f1();
+  x = f3();
   return 0;
 }
 """ % rewrite_fun.testcase
