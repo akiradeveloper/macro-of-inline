@@ -18,14 +18,26 @@ def P(s):
 def randstr(n):
 	return ''.join(random.choice(string.letters) for i in xrange(n))
 
+class Env:
+	def __init__(self):
+		self.rand_names = set()
+
 N = 16
 class NameTable:
-	def __init__(self):
+	def __init__(self, env):
 		self.table = {}
 		self.prev_table = None
+		self.env = env
 
 	def register(self, name):
-		alias = randstr(N)
+		while True:
+			alias = randstr(N)
+			print(self.env.rand_names)
+			if alias in self.env.rand_names:
+				continue
+			else:
+				self.env.rand_names.add(alias)
+				break
 		self.table[name] = Symbol(alias, overwritable=False)
 
 	def declare(self, name):
@@ -45,7 +57,7 @@ class NameTable:
 		new = {}
 		for name in self.table:
 			new[name] = Symbol(self.table[name].alias, overwritable=True)
-		nt = NameTable()
+		nt = NameTable(self.env)
 		nt.table = new
 		return nt
 	
@@ -176,7 +188,7 @@ PHASES = [
 
 class RewriteFun:
 
-	def __init__(self, func):
+	def __init__(self, env, func):
 		self.phase_no = 0
 		self.func = func
 
@@ -196,7 +208,7 @@ class RewriteFun:
 			return
 
 		self.args = []
-		self.init_table = NameTable()
+		self.init_table = NameTable(env)
 
 		params = []
 		if not self.voidArgs():
@@ -433,7 +445,7 @@ inline void fun(void (*f)(void))
 def test(testcase):
 	parser = c_parser.CParser()
 	ast = parser.parse(testcase)
-	rewrite_fun = RewriteFun(ast.ext[0])
+	rewrite_fun = RewriteFun(Env(), ast.ext[0])
 	rewrite_fun.renameFuncBody().show().renameArgs().show().insertDeclLines().show().insertGotoLabel().show().rewriteReturnToGoto().show().macroize().show()
 
 if __name__ == "__main__":

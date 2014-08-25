@@ -11,6 +11,7 @@ class LabelizeFuncCall(c_ast.NodeVisitor):
 class RewriteFile:
 	def __init__(self, text):
 		self.text = text
+		self.env = rewrite_fun.Env()
 
 	def run(self):
 		parser = c_parser.CParser()
@@ -21,7 +22,7 @@ class RewriteFile:
 		for i, n in enumerate(ast.ext):
 			if isinstance(n, c_ast.FuncDef):
 				if 'inline' in n.decl.funcspec:
-					runner = rewrite_fun.RewriteFun(n)
+					runner = rewrite_fun.RewriteFun(self.env, n)
 					runner.renameFuncBody().renameArgs().insertDeclLines().insertGotoLabel().rewriteReturnToGoto().macroize()
 					ast.ext[i] = runner.returnAST()
 
