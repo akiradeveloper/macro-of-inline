@@ -143,14 +143,29 @@ class HasJump(c_ast.NodeVisitor):
 	def visit_Label(self, n):
 		self.result = True
 
+GOTO_LABEL = "exit_func_compound"
+
 class InsertGotoLabel(c_ast.NodeVisitor):
 	def visit_Compound(self, n):
 		if not n.block_items:
 			n.block_items = []
-		n.block_items.append(c_ast.Label("exit_func_compound", c_ast.EmptyStatement()))
+		n.block_items.append(c_ast.Label(GOTO_LABEL, c_ast.EmptyStatement()))
 
+class RewriteReturnToGoto(c_ast.NodeVisitor):
+	def visit_Compound(self, n):
+		return_index = None
+		for (i, item) in enumerate(n.block_items):
+			if isinstance(item, c_ast.Return):
+				return_index = i
+		if return_index != None:
+			n.block_items[return_index] = c_ast.Goto(GOTO_LABEL)
+		c_ast.NodeVisitor.generic_visit(self, n)
+
+PHASES = ["rename variables", "insert decl lines", "insert goto label", "rewrite return to goto", "memoize"]
 class RewriteFun:
+
 	def __init__(self, func):
+		self.phase_no = 0
 		self.func = func
 
 		if DEBUG:
@@ -224,6 +239,7 @@ class RewriteFun:
 		visitor = RenameVars(self.init_table)
 		for x in block_items:
 			visitor.visit(x)
+
 		return self
 
 	def insertDeclLines(self):
@@ -242,13 +258,23 @@ class RewriteFun:
 				RewriteTypeDecl(alias).visit(decl)
 				decl.init = c_ast.ID(arg.node.name)
 				block_items.insert(0, decl)
+		self.phase_no += 1
 		return self
 
 	def insertGotoLabel(self):
+		if not self.success:
+			return self
+
 		InsertGotoLabel().visit(self.func)
+		self.phase_no += 1
 		return self
 
 	def rewriteReturnToGoto(self):
+		if not self.success:
+			return self
+
+		RewriteReturnToGoto().visit(self.func)
+		self.phase_no += 1
 		return self
 
 	def macroize(self):
@@ -269,6 +295,7 @@ do { \
 } while(0)
 """ % (fun_name, args, body)
 		self.func = pycparser_ext.Any(macro)
+		self.phase_no += 1
 		return self
 
 	def run(self):
@@ -278,6 +305,7 @@ do { \
 		return self.func
 
 	def show(self): 
+		P("\nafter phase: %s" % PHASES[self.phase_no])
 		generator = pycparser_ext.CGenerator()
 		print(generator.visit(self.func))
 		return self
@@ -362,13 +390,13 @@ def test(testcase):
 	parser = c_parser.CParser()
 	ast = parser.parse(testcase)
 	rewrite_fun = RewriteFun(ast.ext[0])
-	rewrite_fun.renameVars().show().insertDeclLines().show().insertGotoLabel().show().macroize().show()
+	rewrite_fun.renameVars().show().insertDeclLines().show().insertGotoLabel().show().rewriteReturnToGoto().show().macroize().show()
 
 if __name__ == "__main__":
 	# test(testcase)
-	test(testcase_2)
-	test(testcase_3)
+	# test(testcase_2)
+	# test(testcase_3)
 	test(testcase_4)
-	test(testcase_void1)
-	test(testcase_void2)
-	test(testcase_void3)
+	# test(testcase_void1)
+	# test(testcase_void2)
+	# test(testcase_void3)
