@@ -299,7 +299,7 @@ do { \
 		return self
 
 	def run(self):
-		self.renameVars().insertDeclLines().macroize()
+		self.renameVars().insertDeclLines().insertGotoLabel().rewriteReturnToGoto().macroize()
 
 	def returnAST(self):
 		return self.func
