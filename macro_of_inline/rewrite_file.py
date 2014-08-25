@@ -5,6 +5,11 @@ import rewrite_fun
 
 ASTMODE=True # temporary
 
+class LabelizeFuncCall(c_ast.NodeVisitor):
+	def visit_FuncCall(self, n):
+		n.show()
+		pass
+
 class RewriteFile:
 	def __init__(self, text):
 		self.text = text
@@ -14,6 +19,8 @@ class RewriteFile:
 	def byAST(self):
 		parser = c_parser.CParser()
 		ast = parser.parse(self.text)
+
+		LabelizeFuncCall().visit(ast)
 
 		for i, n in enumerate(ast.ext):
 			if isinstance(n, c_ast.FuncDef):
@@ -25,6 +32,7 @@ class RewriteFile:
 		generator = pycparser_ext.CGenerator()
 		return generator.visit(ast)
 
+	# (abondoned)
 	# Find the function definitions by text searching (e.g. regex)
 	# and replace the found by the translated function.
 	def byText(self):
@@ -48,6 +56,13 @@ void f2(int
 inline int f3(void)
 {
   x = 3;
+  f2(x);
+}
+
+int main()
+{
+  f1();
+  return 0;
 }
 """ % rewrite_fun.testcase
 

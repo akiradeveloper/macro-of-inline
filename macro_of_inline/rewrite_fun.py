@@ -77,7 +77,7 @@ class Arg:
 		query.visit(self.node)
 		return query.result
 
-	def shouldRename(self):
+	def shouldInsertDecl(self):
 		t = self.queryType()
 		return not (t == ArgType.fun or t == ArgType.array)
 
@@ -196,7 +196,7 @@ class RewriteFun:
 
 		for arg in self.args:
 			name = arg.node.name
-			if arg.shouldRename():
+			if arg.shouldInsertDecl():
 				self.init_table.declare(name)	
 			else:
 				self.init_table.table[name] = Symbol(name, False)
@@ -251,7 +251,7 @@ class RewriteFun:
 			return self
 
 		for arg in reversed(self.args):
-			if arg.shouldRename():
+			if arg.shouldInsertDecl():
 				decl = copy.deepcopy(arg.node)
 				alias = self.init_table.alias(arg.node.name)
 				decl.name = alias
