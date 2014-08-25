@@ -17,14 +17,19 @@ class RewriteFile:
 		parser = c_parser.CParser()
 		ast = parser.parse(self.text)
 
-		LabelizeFuncCall().visit(ast)
-
+		macroizables = [] # (i, runner)
 		for i, n in enumerate(ast.ext):
 			if isinstance(n, c_ast.FuncDef):
 				if 'inline' in n.decl.funcspec:
 					runner = rewrite_fun.RewriteFun(self.env, n)
-					runner.sanitizeNames().insertGotoLabel().rewriteReturnToGoto().macroize()
-					ast.ext[i] = runner.returnAST()
+					runner.sanitizeNames()
+					macroizables.append((i, runner))
+
+		LabelizeFuncCall().visit(ast)
+
+		for i, runner in macroizables:
+			runner.insertGotoLabel().rewriteReturnToGoto().macroize()
+			ast.ext[i] = runner.returnAST()
 
 		generator = pycparser_ext.CGenerator()
 		return generator.visit(ast)
