@@ -18,6 +18,17 @@ def P(s):
 def randstr(n):
 	return ''.join(random.choice(string.letters) for i in xrange(n))
 
+def newrandstr(names, n):
+	while True:
+		alias = randstr(N)
+		print(names)
+		if alias in names:
+			continue
+		else:
+			names.add(alias)
+			break
+	return alias
+
 class Env:
 	def __init__(self):
 		self.rand_names = set()
@@ -30,14 +41,7 @@ class NameTable:
 		self.env = env
 
 	def register(self, name):
-		while True:
-			alias = randstr(N)
-			print(self.env.rand_names)
-			if alias in self.env.rand_names:
-				continue
-			else:
-				self.env.rand_names.add(alias)
-				break
+		alias = newrandstr(self.env.rand_names, name)
 		self.table[name] = Symbol(alias, overwritable=False)
 
 	def declare(self, name):
