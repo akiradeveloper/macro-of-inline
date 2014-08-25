@@ -43,7 +43,10 @@ class RewriteFile:
 			ast.ext[i] = runner.returnAST()
 
 		generator = pycparser_ext.CGenerator()
-		return generator.visit(ast)
+		output = generator.visit(ast)
+
+		# Purge "^;\n" that is not allowed by ISO standard
+		return '\n'.join([line for line in output.splitlines() if line != ";"])
 
 testcase = r"""
 struct T { int x; };
