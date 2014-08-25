@@ -22,7 +22,7 @@ class RewriteFile:
 			if isinstance(n, c_ast.FuncDef):
 				if 'inline' in n.decl.funcspec:
 					runner = rewrite_fun.RewriteFun(n)
-					runner.run()
+					runner.renameFuncBody().renameArgs().insertDeclLines().insertGotoLabel().rewriteReturnToGoto().macroize()
 					ast.ext[i] = runner.returnAST()
 
 		generator = pycparser_ext.CGenerator()

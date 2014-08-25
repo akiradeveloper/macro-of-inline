@@ -166,7 +166,14 @@ class RewriteReturnToGoto(c_ast.NodeVisitor):
 			n.block_items[return_index] = c_ast.Goto(GOTO_LABEL)
 		c_ast.NodeVisitor.generic_visit(self, n)
 
-PHASES = ["rename variables", "insert decl lines", "insert goto label", "rewrite return to goto", "memoize"]
+PHASES = [
+	"rename function body",
+	"rename args",
+	"insert decl lines",
+	"insert goto label",
+	"rewrite return to goto",
+	"memoize"]
+
 class RewriteFun:
 
 	def __init__(self, func):
@@ -201,10 +208,7 @@ class RewriteFun:
 
 		for arg in self.args:
 			name = arg.node.name
-			if arg.shouldInsertDecl():
-				self.init_table.declare(name)	
-			else:
-				self.init_table.table[name] = Symbol(name, False)
+			self.init_table.declare(name)
 
 	def returnVoid(self):
 		# void f(...)
@@ -233,11 +237,7 @@ class RewriteFun:
 		if "void" in param.type.type.names:
 			return True
 
-	def renameVars(self):
-		"""
-		1) Rename all names in the function body
-		2) Rename arguments if they won't insert decl lines.
-		"""
+	def renameFuncBody(self):
 		if not self.success:
 			return self
 
@@ -251,15 +251,30 @@ class RewriteFun:
 
 		return self
 
+	def renameArgs(self):
+		if not self.success:
+			return self
+
+		for arg in self.args:
+			if not arg.shouldInsertDecl():
+				alias  = self.init_table.alias(arg.node.name)
+				arg.node.name = alias
+				f = RewriteTypeDecl(alias)
+				f.visit(arg.node)
+			
+		self.phase_no += 1
+		return self
+
 	def insertDeclLines(self):
 		"""
 		Insert decl lines (see. shouldInsertDecl)
-
 		{
 		  int randname1 = x;
 		  char randname2 = c;
 		  ...
 		}
+
+		After this phase the code is compilable
 		"""
 		if not self.success:
 			return self
@@ -286,6 +301,8 @@ class RewriteFun:
 		  GOTO_LABEL:
 		  ;
 		}
+
+		After this phase the code is compilable
 		"""
 		if not self.success:
 			return self
@@ -297,6 +314,8 @@ class RewriteFun:
 	def rewriteReturnToGoto(self):
 		"""
 		return -> goto GOTO_LABEL
+
+		After this phase the code is compilable
 		"""
 		if not self.success:
 			return self
@@ -325,9 +344,6 @@ do { \
 		self.func = pycparser_ext.Any(macro)
 		self.phase_no += 1
 		return self
-
-	def run(self):
-		self.renameVars().insertDeclLines().insertGotoLabel().rewriteReturnToGoto().macroize()
 
 	def returnAST(self):
 		return self.func
@@ -418,10 +434,10 @@ def test(testcase):
 	parser = c_parser.CParser()
 	ast = parser.parse(testcase)
 	rewrite_fun = RewriteFun(ast.ext[0])
-	rewrite_fun.renameVars().show().insertDeclLines().show().insertGotoLabel().show().rewriteReturnToGoto().show().macroize().show()
+	rewrite_fun.renameFuncBody().show().renameArgs().show().insertDeclLines().show().insertGotoLabel().show().rewriteReturnToGoto().show().macroize().show()
 
 if __name__ == "__main__":
-	# test(testcase)
+	test(testcase)
 	# test(testcase_2)
 	# test(testcase_3)
 	test(testcase_4)
