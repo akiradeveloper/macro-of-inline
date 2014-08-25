@@ -18,14 +18,29 @@ def P(s):
 def randstr(n):
 	return ''.join(random.choice(string.letters) for i in xrange(n))
 
+def newrandstr(names, n):
+	while True:
+		alias = randstr(n)
+		if alias in names:
+			continue
+		else:
+			names.add(alias)
+			break
+	return alias
+
+class Env:
+	def __init__(self):
+		self.rand_names = set()
+
 N = 16
 class NameTable:
-	def __init__(self):
+	def __init__(self, env):
 		self.table = {}
 		self.prev_table = None
+		self.env = env
 
 	def register(self, name):
-		alias = randstr(N)
+		alias = newrandstr(self.env.rand_names, N)
 		self.table[name] = Symbol(alias, overwritable=False)
 
 	def declare(self, name):
@@ -45,7 +60,7 @@ class NameTable:
 		new = {}
 		for name in self.table:
 			new[name] = Symbol(self.table[name].alias, overwritable=True)
-		nt = NameTable()
+		nt = NameTable(self.env)
 		nt.table = new
 		return nt
 	
@@ -61,8 +76,10 @@ ArgType = enum.Enum("ArgType", "other fun array")
 class QueryDeclType(c_ast.NodeVisitor):
 	def __init__(self):
 		self.result = ArgType.other
+
 	def visit_FuncDecl(self, node):
 		self.result = ArgType.fun
+
 	def visit_ArrayDecl(self, node):
 		self.result = ArgType.array
 
@@ -75,7 +92,12 @@ class Arg:
 		query.visit(self.node)
 		return query.result
 
-	def shouldRename(self):
+	def shouldInsertDecl(self):
+		"""
+		Need to insert decl lines.
+		except func decl (function pointer) and array decl (e.g. int xs[])
+		which are immutable through the function body.
+		"""
 		t = self.queryType()
 		return not (t == ArgType.fun or t == ArgType.array)
 
@@ -141,27 +163,46 @@ class HasJump(c_ast.NodeVisitor):
 	def visit_Label(self, n):
 		self.result = True
 
+GOTO_LABEL = "exit_func_compound"
+
+class InsertGotoLabel(c_ast.NodeVisitor):
+	def visit_Compound(self, n):
+		if not n.block_items:
+			n.block_items = []
+		n.block_items.append(c_ast.Label(GOTO_LABEL, c_ast.EmptyStatement()))
+
+class RewriteReturnToGoto(c_ast.NodeVisitor):
+	def visit_Compound(self, n):
+		return_index = None
+		for (i, item) in enumerate(n.block_items):
+			if isinstance(item, c_ast.Return):
+				return_index = i
+		if return_index != None:
+			n.block_items[return_index] = c_ast.Goto(GOTO_LABEL)
+		c_ast.NodeVisitor.generic_visit(self, n)
+
+PHASES = [
+	"rename function body",
+	"rename args",
+	"insert decl lines",
+	"insert goto label",
+	"rewrite return to goto",
+	"memoize"]
+
 class RewriteFun:
-	def __init__(self, func):
+
+	def __init__(self, env, func):
+		self.phase_no = 0
 		self.func = func
 
 		if DEBUG:
 			self.func.show()
 
-		self.success = True
-
-		has_jump = HasJump()
-		has_jump.visit(self.func)
-		if has_jump.result:
-			self.success = False
-			return
-
-		if self.returnVoid():
-			self.success = False
-			return
+		self.success = None
+		self.success = self.canMacroize()
 
 		self.args = []
-		self.init_table = NameTable()
+		self.init_table = NameTable(env)
 
 		params = []
 		if not self.voidArgs():
@@ -173,14 +214,11 @@ class RewriteFun:
 
 		for arg in self.args:
 			name = arg.node.name
-			if arg.shouldRename():
-				self.init_table.declare(name)	
-			else:
-				self.init_table.table[name] = Symbol(name, False)
+			self.init_table.declare(name)
 
 	def returnVoid(self):
 		# void f(...)
-		return not "void" in self.func.decl.type.type.type.names
+		return "void" in self.func.decl.type.type.type.names
 
 	def voidArgs(self):
 		args = self.func.decl.type.args
@@ -205,7 +243,21 @@ class RewriteFun:
 		if "void" in param.type.type.names:
 			return True
 
-	def renameVars(self):
+	def canMacroize(self):
+		if self.success != None: # Lazy initialization
+			return self.success
+
+		has_jump = HasJump()
+		has_jump.visit(self.func)
+		if has_jump.result:
+			return False
+
+		if not self.returnVoid():
+			return False
+
+		return True
+
+	def renameFuncBody(self):
 		if not self.success:
 			return self
 
@@ -216,9 +268,32 @@ class RewriteFun:
 		visitor = RenameVars(self.init_table)
 		for x in block_items:
 			visitor.visit(x)
+
+		return self
+
+	def renameArgs(self):
+		if not self.success:
+			return self
+
+		for arg in self.args:
+			if not arg.shouldInsertDecl():
+				alias  = self.init_table.alias(arg.node.name)
+				arg.node.name = alias
+				f = RewriteTypeDecl(alias)
+				f.visit(arg.node)
+			
+		self.phase_no += 1
 		return self
 
 	def insertDeclLines(self):
+		"""
+		Insert decl lines (see. shouldInsertDecl)
+		{
+		  int randname1 = x;
+		  char randname2 = c;
+		  ...
+		}
+		"""
 		if not self.success:
 			return self
 
@@ -227,13 +302,46 @@ class RewriteFun:
 			return self
 
 		for arg in reversed(self.args):
-			if arg.shouldRename():
+			if arg.shouldInsertDecl():
 				decl = copy.deepcopy(arg.node)
 				alias = self.init_table.alias(arg.node.name)
 				decl.name = alias
 				RewriteTypeDecl(alias).visit(decl)
 				decl.init = c_ast.ID(arg.node.name)
 				block_items.insert(0, decl)
+		self.phase_no += 1
+		return self
+
+	def sanitizeNames(self):
+		"""
+		Renames the identifiers by random sequence so that they never conflicts others.
+		"""
+		return self.renameFuncBody().renameArgs().insertDeclLines()
+
+	def insertGotoLabel(self):
+		"""
+		{
+		  ...
+		  GOTO_LABEL:
+		  ;
+		}
+		"""
+		if not self.success:
+			return self
+
+		InsertGotoLabel().visit(self.func)
+		self.phase_no += 1
+		return self
+
+	def rewriteReturnToGoto(self):
+		"""
+		return -> goto GOTO_LABEL
+		"""
+		if not self.success:
+			return self
+
+		RewriteReturnToGoto().visit(self.func)
+		self.phase_no += 1
 		return self
 
 	def macroize(self):
@@ -241,7 +349,7 @@ class RewriteFun:
 			return self
 
 		fun_name = self.func.decl.name
-		args = ', '.join(map(lambda arg: arg.node.name, self.args))
+		args = ', '.join([GOTO_LABEL] + map(lambda arg: arg.node.name, self.args))
 		generator = pycparser_ext.CGenerator()
 		body_contents = generator.visit(self.func.body).splitlines()[1:-1]
 		if not len(body_contents):
@@ -254,15 +362,14 @@ do { \
 } while(0)
 """ % (fun_name, args, body)
 		self.func = pycparser_ext.Any(macro)
+		self.phase_no += 1
 		return self
-
-	def run(self):
-		self.renameVars().insertDeclLines().macroize()
 
 	def returnAST(self):
 		return self.func
 
 	def show(self): 
+		P("\nafter phase: %s" % PHASES[self.phase_no])
 		generator = pycparser_ext.CGenerator()
 		print(generator.visit(self.func))
 		return self
@@ -346,14 +453,14 @@ inline void fun(void (*f)(void))
 def test(testcase):
 	parser = c_parser.CParser()
 	ast = parser.parse(testcase)
-	rewrite_fun = RewriteFun(ast.ext[0])
-	rewrite_fun.renameVars().show().insertDeclLines().show().macroize().show()
+	rewrite_fun = RewriteFun(Env(), ast.ext[0])
+	rewrite_fun.renameFuncBody().show().renameArgs().show().insertDeclLines().show().insertGotoLabel().show().rewriteReturnToGoto().show().macroize().show()
 
 if __name__ == "__main__":
-	# test(testcase)
-	test(testcase_2)
-	test(testcase_3)
+	test(testcase)
+	# test(testcase_2)
+	# test(testcase_3)
 	test(testcase_4)
-	test(testcase_void1)
+	# test(testcase_void1)
 	test(testcase_void2)
-	test(testcase_void3)
+	# test(testcase_void3)
