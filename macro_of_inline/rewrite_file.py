@@ -4,9 +4,16 @@ import pycparser_ext
 import rewrite_fun
 
 class LabelizeFuncCall(c_ast.NodeVisitor):
+	def __init__(self, env):
+		self.env = env
+
 	def visit_FuncCall(self, n):
-		n.show()
-		pass
+		if n.name.name in self.env.rand_names:
+			return
+		exit_label = rewrite_fun.newrandstr(self.env.rand_names, rewrite_fun.N)
+		if n.args == None:
+			n.args = c_ast.ExprList([])
+		n.args.exprs.insert(0, c_ast.ID(exit_label))
 
 class RewriteFile:
 	def __init__(self, text):
@@ -25,7 +32,7 @@ class RewriteFile:
 					runner.sanitizeNames()
 					macroizables.append((i, runner))
 
-		LabelizeFuncCall().visit(ast)
+		LabelizeFuncCall(self.env).visit(ast)
 
 		for i, runner in macroizables:
 			runner.insertGotoLabel().rewriteReturnToGoto().macroize()
