@@ -61,8 +61,10 @@ ArgType = enum.Enum("ArgType", "other fun array")
 class QueryDeclType(c_ast.NodeVisitor):
 	def __init__(self):
 		self.result = ArgType.other
+
 	def visit_FuncDecl(self, node):
 		self.result = ArgType.fun
+
 	def visit_ArrayDecl(self, node):
 		self.result = ArgType.array
 
@@ -140,6 +142,12 @@ class HasJump(c_ast.NodeVisitor):
 
 	def visit_Label(self, n):
 		self.result = True
+
+class InsertGotoLabel(c_ast.NodeVisitor):
+	def visit_Compound(self, n):
+		if not n.block_items:
+			n.block_items = []
+		n.block_items.append(c_ast.Label("exit_func_compound", c_ast.EmptyStatement()))
 
 class RewriteFun:
 	def __init__(self, func):
@@ -234,6 +242,13 @@ class RewriteFun:
 				RewriteTypeDecl(alias).visit(decl)
 				decl.init = c_ast.ID(arg.node.name)
 				block_items.insert(0, decl)
+		return self
+
+	def insertGotoLabel(self):
+		InsertGotoLabel().visit(self.func)
+		return self
+
+	def rewriteReturnToGoto(self):
 		return self
 
 	def macroize(self):
@@ -347,7 +362,7 @@ def test(testcase):
 	parser = c_parser.CParser()
 	ast = parser.parse(testcase)
 	rewrite_fun = RewriteFun(ast.ext[0])
-	rewrite_fun.renameVars().show().insertDeclLines().show().macroize().show()
+	rewrite_fun.renameVars().show().insertDeclLines().show().insertGotoLabel().show().macroize().show()
 
 if __name__ == "__main__":
 	# test(testcase)
