@@ -13,6 +13,7 @@ setup (
 		author = 'Akira Hayakawa',
 		maintainer = 'Akira Hayakawa',
 		author_email = 'ruby.wktk@gmail.com',
+		url = 'https://github.com/akiradeveloper/macro-of-inline',
 		platforms = ['Cross Platform'],
 		scripts= ['bin/macro-of-inline'],
 		packages = ['macro_of_inline'],
