@@ -3,8 +3,6 @@ from pycparser import c_parser, c_ast
 import pycparser_ext
 import rewrite_fun
 
-ASTMODE=True # temporary
-
 class LabelizeFuncCall(c_ast.NodeVisitor):
 	def visit_FuncCall(self, n):
 		n.show()
@@ -14,9 +12,7 @@ class RewriteFile:
 	def __init__(self, text):
 		self.text = text
 
-	# First rewrite the FuncDef AST nodes
-	# and generate the C-code
-	def byAST(self):
+	def run(self):
 		parser = c_parser.CParser()
 		ast = parser.parse(self.text)
 
@@ -31,18 +27,6 @@ class RewriteFile:
 
 		generator = pycparser_ext.CGenerator()
 		return generator.visit(ast)
-
-	# (abondoned)
-	# Find the function definitions by text searching (e.g. regex)
-	# and replace the found by the translated function.
-	def byText(self):
-		return self.text
-
-	def run(self):
-		if ASTMODE:
-			return self.byAST()
-		else:
-			return self.byText()
 
 testcase = r"""
 struct T { int x; };

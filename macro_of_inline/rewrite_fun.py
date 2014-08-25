@@ -78,6 +78,11 @@ class Arg:
 		return query.result
 
 	def shouldInsertDecl(self):
+		"""
+		Need to insert decl lines.
+		except func decl (function pointer) and array decl (e.g. int xs[])
+		which are immutable through the function body.
+		"""
 		t = self.queryType()
 		return not (t == ArgType.fun or t == ArgType.array)
 
@@ -229,6 +234,10 @@ class RewriteFun:
 			return True
 
 	def renameVars(self):
+		"""
+		1) Rename all names in the function body
+		2) Rename arguments if they won't insert decl lines.
+		"""
 		if not self.success:
 			return self
 
@@ -243,6 +252,15 @@ class RewriteFun:
 		return self
 
 	def insertDeclLines(self):
+		"""
+		Insert decl lines (see. shouldInsertDecl)
+
+		{
+		  int randname1 = x;
+		  char randname2 = c;
+		  ...
+		}
+		"""
 		if not self.success:
 			return self
 
@@ -262,6 +280,13 @@ class RewriteFun:
 		return self
 
 	def insertGotoLabel(self):
+		"""
+		{
+		  ...
+		  GOTO_LABEL:
+		  ;
+		}
+		"""
 		if not self.success:
 			return self
 
@@ -270,6 +295,9 @@ class RewriteFun:
 		return self
 
 	def rewriteReturnToGoto(self):
+		"""
+		return -> goto GOTO_LABEL
+		"""
 		if not self.success:
 			return self
 
