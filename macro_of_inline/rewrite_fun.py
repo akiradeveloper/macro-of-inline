@@ -285,8 +285,6 @@ class RewriteFun:
 		  char randname2 = c;
 		  ...
 		}
-
-		After this phase the code is compilable
 		"""
 		if not self.success:
 			return self
@@ -306,6 +304,12 @@ class RewriteFun:
 		self.phase_no += 1
 		return self
 
+	def sanitizeNames(self):
+		"""
+		Renames the identifiers by random sequence so that they never conflicts others.
+		"""
+		return self.renameFuncBody().renameArgs().insertDeclLines()
+
 	def insertGotoLabel(self):
 		"""
 		{
@@ -313,8 +317,6 @@ class RewriteFun:
 		  GOTO_LABEL:
 		  ;
 		}
-
-		After this phase the code is compilable
 		"""
 		if not self.success:
 			return self
@@ -326,8 +328,6 @@ class RewriteFun:
 	def rewriteReturnToGoto(self):
 		"""
 		return -> goto GOTO_LABEL
-
-		After this phase the code is compilable
 		"""
 		if not self.success:
 			return self
