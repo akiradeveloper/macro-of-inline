@@ -5,6 +5,35 @@ import pycparser_ext
 import rewrite_fun
 
 class LabelizeFuncCall(c_ast.NodeVisitor):
+	"""
+	Add random label all macro calls.
+
+	Passing macro a random label is required because
+	calling a macro twice causes duplication of label
+	if the label name is fixed within macro.
+
+	Consider the following code:
+
+	#define f() \
+	do { \
+	rand_label: \
+	; \
+	} while (0)
+
+	f();
+	f(); // duplication of rand_label
+
+	Instead, we define macros that is passed a label name
+	and give it a random label every different call:
+
+	#define f(rand_label) \
+	do { \
+	rand_label: \
+	} while (0)
+
+	f(rand_label_1);
+	f(rand_label_2);
+	"""
 	def __init__(self, env, macro_names):
 		self.env = env
 		self.macro_names = macro_names

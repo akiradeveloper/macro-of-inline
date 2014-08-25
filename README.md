@@ -34,7 +34,6 @@ code for compilation.
 
 - Automated regressiong tests. 
 - More experience with actual projects (hope to hear your reports).
-- Mode that doesn't need cpp -E preprocessing (But I have no idea...)
 
 ## Known Bugs
 
