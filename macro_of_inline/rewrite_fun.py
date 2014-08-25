@@ -282,7 +282,7 @@ class RewriteFun:
 			return self
 
 		fun_name = self.func.decl.name
-		args = ', '.join(map(lambda arg: arg.node.name, self.args))
+		args = ', '.join([GOTO_LABEL] + map(lambda arg: arg.node.name, self.args))
 		generator = pycparser_ext.CGenerator()
 		body_contents = generator.visit(self.func.body).splitlines()[1:-1]
 		if not len(body_contents):
@@ -398,5 +398,5 @@ if __name__ == "__main__":
 	# test(testcase_3)
 	test(testcase_4)
 	# test(testcase_void1)
-	# test(testcase_void2)
+	test(testcase_void2)
 	# test(testcase_void3)
