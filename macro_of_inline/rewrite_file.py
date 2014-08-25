@@ -4,11 +4,12 @@ import pycparser_ext
 import rewrite_fun
 
 class LabelizeFuncCall(c_ast.NodeVisitor):
-	def __init__(self, env):
+	def __init__(self, env, macro_names):
 		self.env = env
+		self.macro_names = macro_names
 
 	def visit_FuncCall(self, n):
-		if n.name.name in self.env.rand_names:
+		if not n.name.name in self.macro_names: # function pointer
 			return
 		exit_label = rewrite_fun.newrandstr(self.env.rand_names, rewrite_fun.N)
 		if n.args == None:
@@ -32,7 +33,7 @@ class RewriteFile:
 					runner.sanitizeNames()
 					macroizables.append((i, runner))
 
-		LabelizeFuncCall(self.env).visit(ast)
+		LabelizeFuncCall(self.env, [runner.func.decl.name for i, runner in macroizables]).visit(ast)
 
 		for i, runner in macroizables:
 			runner.insertGotoLabel().rewriteReturnToGoto().macroize()
@@ -45,7 +46,7 @@ testcase = r"""
 struct T { int x; };
 static int x = 0;
 inline void f1(void) { x = 1; }
-void f2(int
+inline void f2(int
   x) {   }
 %s
 
