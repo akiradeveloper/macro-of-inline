@@ -57,13 +57,17 @@ class RewriteFile:
 
 		macroizables = [] # (i, runner)
 		for i, n in enumerate(ast.ext):
-			if isinstance(n, c_ast.FuncDef):
-				# -ansi doesn't allow inline specifier
-				if 'inline' in n.decl.funcspec:
-					runner = rewrite_fun.RewriteFun(self.env, n)
-					runner.sanitizeNames()
-					if runner.canMacroize():
-						macroizables.append((i, runner))
+			if not isinstance(n, c_ast.FuncDef):
+				continue
+
+			# -ansi doesn't allow inline specifier
+			if not 'inline' in n.decl.funcspec:
+				continue
+
+			runner = rewrite_fun.RewriteFun(self.env, n)
+			runner.sanitizeNames()
+			if runner.canMacroize():
+				macroizables.append((i, runner))
 
 		LabelizeFuncCall(self.env, [runner.func.decl.name for i, runner in macroizables]).visit(ast)
 
