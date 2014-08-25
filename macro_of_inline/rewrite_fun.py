@@ -20,7 +20,7 @@ def randstr(n):
 
 def newrandstr(names, n):
 	while True:
-		alias = randstr(N)
+		alias = randstr(n)
 		print(names)
 		if alias in names:
 			continue
@@ -41,7 +41,7 @@ class NameTable:
 		self.env = env
 
 	def register(self, name):
-		alias = newrandstr(self.env.rand_names, name)
+		alias = newrandstr(self.env.rand_names, N)
 		self.table[name] = Symbol(alias, overwritable=False)
 
 	def declare(self, name):
