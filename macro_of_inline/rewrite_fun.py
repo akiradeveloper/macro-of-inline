@@ -157,50 +157,9 @@ class RenameVars(c_ast.NodeVisitor):
 		P("revert table")
 		self.cur_table = self.cur_table.prev_table
 
-class HasJump(c_ast.NodeVisitor):
-	def __init__(self):
-		self.result = False
-
-	def visit_Goto(self, n):
-		self.result = True
-
-	def visit_Label(self, n):
-		self.result = True
 
 GOTO_LABEL = "exit_func_compound"
 
-class InsertGotoLabel(c_ast.NodeVisitor):
-	def visit_Compound(self, n):
-		if not n.block_items:
-			n.block_items = []
-		n.block_items.append(c_ast.Label(GOTO_LABEL, c_ast.EmptyStatement()))
-
-class RewriteReturnToGoto(c_ast.NodeVisitor):
-	def visit_Compound(self, n):
-		return_index = None
-		for (i, item) in enumerate(n.block_items):
-			if isinstance(item, c_ast.Return):
-				return_index = i
-		if return_index != None:
-			n.block_items[return_index] = c_ast.Goto(GOTO_LABEL)
-		c_ast.NodeVisitor.generic_visit(self, n)
-
-class VoidParam(c_ast.NodeVisitor):
-	def __init__(self):
-		self.result = False
-
-	def visit_TypeDecl(self, n):
-		self.result = "void" in n.type.names
-
-class ReturnVoid(c_ast.NodeVisitor):
-	def __init__(self):
-		self.result = False
-
-	def visit_ParamList(self, n):
-		pass
-
-	def visit_TypeDecl(self, n):
-		self.result = "void" in n.type.names
 
 PHASES = [
 	"rename function body",
@@ -236,11 +195,28 @@ class RewriteFun:
 			name = arg.node.name
 			self.init_table.declare(name)
 
+	class ReturnVoid(c_ast.NodeVisitor):
+		def __init__(self):
+			self.result = False
+
+		def visit_ParamList(self, n):
+			pass
+
+		def visit_TypeDecl(self, n):
+			self.result = "void" in n.type.names
+
 	def returnVoid(self):
 		# void f(...)
-		f = ReturnVoid()
+		f = self.ReturnVoid()
 		f.visit(self.func.decl)
 		return f.result
+
+	class VoidParam(c_ast.NodeVisitor):
+		def __init__(self):
+			self.result = False
+
+		def visit_TypeDecl(self, n):
+			self.result = "void" in n.type.names
 
 	def voidArgs(self):
 		args = self.func.decl.type.args
@@ -262,15 +238,25 @@ class RewriteFun:
 			return False
 
 		# f(void)
-		f = VoidParam()
+		f = self.VoidParam()
 		f.visit(param)
 		return f.result
+
+	class HasJump(c_ast.NodeVisitor):
+		def __init__(self):
+			self.result = False
+
+		def visit_Goto(self, n):
+			self.result = True
+
+		def visit_Label(self, n):
+			self.result = True
 
 	def canMacroize(self):
 		if self.success != None: # Lazy initialization
 			return self.success
 
-		has_jump = HasJump()
+		has_jump = self.HasJump()
 		has_jump.visit(self.func)
 		if has_jump.result:
 			return False
@@ -341,6 +327,12 @@ class RewriteFun:
 		"""
 		return self.renameFuncBody().renameArgs().insertDeclLines()
 
+	class InsertGotoLabel(c_ast.NodeVisitor):
+		def visit_Compound(self, n):
+			if not n.block_items:
+				n.block_items = []
+			n.block_items.append(c_ast.Label(GOTO_LABEL, c_ast.EmptyStatement()))
+
 	def insertGotoLabel(self):
 		"""
 		{
@@ -352,9 +344,23 @@ class RewriteFun:
 		if not self.success:
 			return self
 
-		InsertGotoLabel().visit(self.func)
+		self.InsertGotoLabel().visit(self.func)
 		self.phase_no += 1
 		return self
+
+	class RewriteReturnToGoto(c_ast.NodeVisitor):
+		def visit_Compound(self, n):
+			"""
+			Visit a compound and rewrite "return" to "goto GOTO_LABEL".
+			We assume at most only one "return" exists in a compound.
+			"""
+			return_index = None
+			for (i, item) in enumerate(n.block_items):
+				if isinstance(item, c_ast.Return):
+					return_index = i
+			if return_index != None:
+				n.block_items[return_index] = c_ast.Goto(GOTO_LABEL)
+			c_ast.NodeVisitor.generic_visit(self, n)
 
 	def rewriteReturnToGoto(self):
 		"""
@@ -363,7 +369,8 @@ class RewriteFun:
 		if not self.success:
 			return self
 
-		RewriteReturnToGoto().visit(self.func)
+		self.func.show()
+		self.RewriteReturnToGoto().visit(self.func)
 		self.phase_no += 1
 		return self
 
@@ -504,10 +511,10 @@ if __name__ == "__main__":
 	# test(testcase)
 	# test(testcase_2)
 	# test(testcase_3)
-	# test(testcase_4)
+	test(testcase_4)
 	# test(testcase_5)
 	# test(testcase_6)
-	test(testcase_7)
+	# test(testcase_7)
 	# test(testcase_void1)
 	# test(testcase_void2)
 	# test(testcase_void3)

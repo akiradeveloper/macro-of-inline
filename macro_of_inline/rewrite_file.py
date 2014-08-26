@@ -4,7 +4,6 @@ import os
 import pycparser_ext
 import rewrite_fun
 
-
 class LabelizeFuncCall(c_ast.NodeVisitor):
 	"""
 	Add random label all macro calls.
