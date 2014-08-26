@@ -133,9 +133,13 @@ class RenameVars(c_ast.NodeVisitor):
 		c_ast.NodeVisitor.generic_visit(self, node)
 
 	def visit_StructRef(self, node):
-		alias = self.cur_table.alias(node.name.name)
-		P("StructRef: %s -> %s" % (node.name.name, alias))
-		node.name.name = alias
+		"""
+		StructRef = name.field
+
+		Dive into the "name" node for renaming because
+		"field" node will never be renamed.
+		"""
+		c_ast.NodeVisitor.generic_visit(self, node.name)
 
 	def visit_ID(self, node):
 		alias = self.cur_table.alias(node.name)
@@ -458,6 +462,10 @@ inline int ** fun_2(void) {}
 testcase_7 = r"""
 inline void fun(void)
 {
+	int a[3];
+	int xx[10];
+	x = a[0];
+	x = *(b + 0);
 	x = (&xx[0])->x;
 }
 """
@@ -500,7 +508,7 @@ if __name__ == "__main__":
 	# test(testcase_4)
 	# test(testcase_5)
 	# test(testcase_6)
-	# test(testcase_7)
+	test(testcase_7)
 	# test(testcase_void1)
 	# test(testcase_void2)
 	# test(testcase_void3)
