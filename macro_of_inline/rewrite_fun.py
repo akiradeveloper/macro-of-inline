@@ -322,25 +322,24 @@ class RewriteFun:
 		return self
 
 	def sanitizeNames(self):
-		"""
-		Renames the identifiers by random sequence so that they never conflicts others.
-		"""
 		return self.renameFuncBody().renameArgs().insertDeclLines()
 
 	class InsertGotoLabel(c_ast.NodeVisitor):
-		def visit_Compound(self, n):
-			if not n.block_items:
-				n.block_items = []
-			n.block_items.append(c_ast.Label(GOTO_LABEL, c_ast.EmptyStatement()))
-
-	def insertGotoLabel(self):
 		"""
+		Renames the identifiers by random sequence so that they never conflicts others.
+
 		{
 		  ...
 		  GOTO_LABEL:
 		  ;
 		}
 		"""
+		def visit_Compound(self, n):
+			if not n.block_items:
+				n.block_items = []
+			n.block_items.append(c_ast.Label(GOTO_LABEL, c_ast.EmptyStatement()))
+
+	def insertGotoLabel(self):
 		if not self.success:
 			return self
 
@@ -349,11 +348,14 @@ class RewriteFun:
 		return self
 
 	class RewriteReturnToGoto(c_ast.NodeVisitor):
+		"""
+		Visit a compound and rewrite "return" to "goto GOTO_LABEL".
+		We assume at most only one "return" exists in a compound.
+		"""
 		def visit_Compound(self, n):
-			"""
-			Visit a compound and rewrite "return" to "goto GOTO_LABEL".
-			We assume at most only one "return" exists in a compound.
-			"""
+			if not n.block_items:
+				n.block_items = []
+
 			return_index = None
 			for (i, item) in enumerate(n.block_items):
 				if isinstance(item, c_ast.Return):
@@ -363,9 +365,6 @@ class RewriteFun:
 			c_ast.NodeVisitor.generic_visit(self, n)
 
 	def rewriteReturnToGoto(self):
-		"""
-		return -> goto GOTO_LABEL
-		"""
 		if not self.success:
 			return self
 
