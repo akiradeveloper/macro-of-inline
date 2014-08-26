@@ -181,6 +181,13 @@ class RewriteReturnToGoto(c_ast.NodeVisitor):
 			n.block_items[return_index] = c_ast.Goto(GOTO_LABEL)
 		c_ast.NodeVisitor.generic_visit(self, n)
 
+class VoidParam(c_ast.NodeVisitor):
+	def __init__(self):
+		self.result = False
+
+	def visit_TypeDecl(self, n):
+		self.result = "void" in n.type.names
+
 PHASES = [
 	"rename function body",
 	"rename args",
@@ -218,7 +225,7 @@ class RewriteFun:
 
 	def returnVoid(self):
 		# void f(...)
-		return "void" in self.func.decl.type.type.type.names
+		return "void" in self.func.decl.type.type.type.names # FIXME returing pointer?
 
 	def voidArgs(self):
 		args = self.func.decl.type.args
@@ -240,8 +247,9 @@ class RewriteFun:
 			return False
 
 		# f(void)
-		if "void" in param.type.type.names:
-			return True
+		f = VoidParam()
+		f.visit(param)
+		return f.result
 
 	def canMacroize(self):
 		if self.success != None: # Lazy initialization
@@ -425,6 +433,10 @@ inline void fun(int x)
 }
 """
 
+testcase_5 = r"""
+inline void fun(int *x) {}
+"""
+
 testcase_void1 = r"""
 inline void fun(void)
 {
@@ -460,7 +472,8 @@ if __name__ == "__main__":
 	test(testcase)
 	# test(testcase_2)
 	# test(testcase_3)
-	test(testcase_4)
+	# test(testcase_4)
+	test(testcase_5)
 	# test(testcase_void1)
 	test(testcase_void2)
 	# test(testcase_void3)
