@@ -368,7 +368,6 @@ class RewriteFun:
 		if not self.success:
 			return self
 
-		self.func.show()
 		self.RewriteReturnToGoto().visit(self.func)
 		self.phase_no += 1
 		return self
