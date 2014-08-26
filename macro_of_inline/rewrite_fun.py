@@ -455,6 +455,13 @@ inline int * fun_1(void) {}
 inline int ** fun_2(void) {}
 """
 
+testcase_7 = r"""
+inline void fun(void)
+{
+	x = (&xx[0])->x;
+}
+"""
+
 testcase_void1 = r"""
 inline void fun(void)
 {
@@ -492,7 +499,8 @@ if __name__ == "__main__":
 	# test(testcase_3)
 	# test(testcase_4)
 	# test(testcase_5)
-	test(testcase_6)
+	# test(testcase_6)
+	# test(testcase_7)
 	# test(testcase_void1)
 	# test(testcase_void2)
 	# test(testcase_void3)
