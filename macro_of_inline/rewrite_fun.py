@@ -9,7 +9,7 @@ import enum
 
 Symbol = collections.namedtuple('Symbol', 'alias, overwritable')
 
-DEBUG=False
+DEBUG = False
 def P(s):
 	if not DEBUG:
 		return
@@ -188,6 +188,16 @@ class VoidParam(c_ast.NodeVisitor):
 	def visit_TypeDecl(self, n):
 		self.result = "void" in n.type.names
 
+class ReturnVoid(c_ast.NodeVisitor):
+	def __init__(self):
+		self.result = False
+
+	def visit_ParamList(self, n):
+		pass
+
+	def visit_TypeDecl(self, n):
+		self.result = "void" in n.type.names
+
 PHASES = [
 	"rename function body",
 	"rename args",
@@ -197,7 +207,6 @@ PHASES = [
 	"memoize"]
 
 class RewriteFun:
-
 	def __init__(self, env, func):
 		self.phase_no = 0
 		self.func = func
@@ -225,7 +234,10 @@ class RewriteFun:
 
 	def returnVoid(self):
 		# void f(...)
-		return "void" in self.func.decl.type.type.type.names # FIXME returing pointer?
+		f = ReturnVoid()
+		self.func.decl.show()
+		f.visit(self.func.decl)
+		return f.result
 
 	def voidArgs(self):
 		args = self.func.decl.type.args
@@ -434,7 +446,13 @@ inline void fun(int x)
 """
 
 testcase_5 = r"""
-inline void fun(int *x) {}
+inline void fun_1(int *x) {}
+inline void fun_2(int **x) {}
+"""
+
+testcase_6 = r"""
+inline int * fun_1(void) {}
+inline int ** fun_2(void) {}
 """
 
 testcase_void1 = r"""
@@ -469,11 +487,12 @@ def test(testcase):
 	rewrite_fun.renameFuncBody().show().renameArgs().show().insertDeclLines().show().insertGotoLabel().show().rewriteReturnToGoto().show().macroize().show()
 
 if __name__ == "__main__":
-	test(testcase)
+	# test(testcase)
 	# test(testcase_2)
 	# test(testcase_3)
 	# test(testcase_4)
-	test(testcase_5)
+	# test(testcase_5)
+	test(testcase_6)
 	# test(testcase_void1)
-	test(testcase_void2)
+	# test(testcase_void2)
 	# test(testcase_void3)
