@@ -239,7 +239,6 @@ class RewriteFun:
 	def returnVoid(self):
 		# void f(...)
 		f = ReturnVoid()
-		self.func.decl.show()
 		f.visit(self.func.decl)
 		return f.result
 
