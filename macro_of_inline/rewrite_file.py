@@ -4,6 +4,7 @@ import os
 import pycparser_ext
 import rewrite_fun
 
+
 class LabelizeFuncCall(c_ast.NodeVisitor):
 	"""
 	Add random label all macro calls.
@@ -19,7 +20,6 @@ class LabelizeFuncCall(c_ast.NodeVisitor):
 	rand_label: \
 	; \
 	} while (0)
-
 	f();
 	f(); // duplication of rand_label
 
@@ -30,7 +30,6 @@ class LabelizeFuncCall(c_ast.NodeVisitor):
 	do { \
 	rand_label: \
 	} while (0)
-
 	f(rand_label_1);
 	f(rand_label_2);
 	"""
@@ -38,8 +37,21 @@ class LabelizeFuncCall(c_ast.NodeVisitor):
 		self.env = env
 		self.macro_names = macro_names
 
+	class Name(c_ast.NodeVisitor):
+		"""
+		Get the name of the function called.
+		Usage: visit(FuncCall.name)
+		"""
+		def __init__(self):
+			self.result = ""
+
+		def visit_ID(self, n):
+			self.result = n.name
+
 	def visit_FuncCall(self, n):
-		if not n.name.name in self.macro_names: # function pointer
+		f = self.Name();
+		f.visit(n.name)
+		if not f.result in self.macro_names:
 			return
 		exit_label = rewrite_fun.newrandstr(self.env.rand_names, rewrite_fun.N)
 		if n.args == None:
