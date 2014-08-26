@@ -443,7 +443,8 @@ inline int fun(int x) { return x; }
 testcase_4 = r"""
 inline void fun(int x)
 {
-	if (1) {
+	struct T *t = tt + 0;
+	if (t->x) {
 		return;
 	}
 	while (1) {
@@ -510,10 +511,10 @@ if __name__ == "__main__":
 	# test(testcase)
 	# test(testcase_2)
 	# test(testcase_3)
-	# test(testcase_4)
+	test(testcase_4)
 	# test(testcase_5)
 	# test(testcase_6)
 	# test(testcase_7)
 	# test(testcase_void1)
-	test(testcase_void2)
+	# test(testcase_void2)
 	# test(testcase_void3)
