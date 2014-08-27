@@ -139,6 +139,7 @@ class RenameVars(c_ast.NodeVisitor):
 		Dive into the "name" node for renaming because
 		"field" node will never be renamed.
 		"""
+		self.visit(node.name)
 		c_ast.NodeVisitor.generic_visit(self, node.name)
 
 	def visit_ID(self, node):
@@ -448,6 +449,8 @@ inline void fun(int x)
 		return;
 	}
 	while (1) {
+		struct T *t;
+		y = t->x;
 		return;
 	}
 	return;
