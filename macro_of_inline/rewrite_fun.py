@@ -129,7 +129,7 @@ class RenameVars(c_ast.NodeVisitor):
 		alias = self.cur_table.alias(node.name)
 		P("Decl: %s -> %s" % (node.name, alias))
 		node.name = alias
-		RewriteTypeDecl(alias).visit(node)
+		RewriteTypeDecl(alias).visit(node.type)
 		c_ast.NodeVisitor.generic_visit(self, node)
 
 	def visit_StructRef(self, node):
@@ -141,6 +141,10 @@ class RenameVars(c_ast.NodeVisitor):
 		"""
 		self.visit(node.name)
 		c_ast.NodeVisitor.generic_visit(self, node.name)
+
+	def visit_Cast(self, node):
+		self.visit(node.expr)
+		c_ast.NodeVisitor.generic_visit(self, node.expr)
 
 	def visit_ID(self, node):
 		alias = self.cur_table.alias(node.name)

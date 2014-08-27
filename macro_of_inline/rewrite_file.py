@@ -126,6 +126,11 @@ inline void f7(struct T *t, int x)
 	t->x = x;
 }
 
+inline void f8(int x)
+{
+  int y = (int) x;
+}
+
 int main()
 {
   int x;
@@ -136,6 +141,7 @@ int main()
   f5(); f5();
   f6();
   f7(&t, y);
+  f8((int) x);
   puts("OK");
   return 0;
 }
