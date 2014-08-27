@@ -107,11 +107,16 @@ int f3(void)
   return x;
 }
 
+inline void f4() {}
+inline void f5() { f4(); f4(); }
+
 int main()
 {
   int x;
   f1();
   x = f3();
+  f5();
+  f5();
   puts("OK");
   return 0;
 }
