@@ -159,8 +159,7 @@ class RenameVars(c_ast.NodeVisitor):
 		self.cur_table = self.cur_table.prev_table
 
 
-GOTO_LABEL = "exit_func_compound"
-
+GOTO_LABEL = "exit"
 
 PHASES = [
 	"rename function body",
@@ -378,7 +377,7 @@ class RewriteFun:
 			return self
 
 		fun_name = self.func.decl.name
-		args = ', '.join([GOTO_LABEL] + map(lambda arg: arg.node.name, self.args))
+		args = ', '.join(["namespace"] + map(lambda arg: arg.node.name, self.args))
 		generator = pycparser_ext.CGenerator()
 		body_contents = generator.visit(self.func.body).splitlines()[1:-1]
 		if not len(body_contents):
