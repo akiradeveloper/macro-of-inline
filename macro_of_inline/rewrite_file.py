@@ -83,7 +83,7 @@ class RewriteFile:
 		LabelizeFuncCall(self.env, [runner.func.decl.name for i, runner in macroizables]).visit(ast)
 
 		for i, runner in macroizables:
-			runner.insertGotoLabel().rewriteReturnToGoto().macroize()
+			runner.insertGotoLabel().rewriteReturnToGoto().appendNamespaceToLabels().macroize()
 			ast.ext[i] = runner.returnAST()
 
 		generator = pycparser_ext.CGenerator()
@@ -91,6 +91,7 @@ class RewriteFile:
 
 		# Purge "^;\n" that is not allowed by ISO standard
 		return '\n'.join([line for line in output.splitlines() if line != ";"])
+
 
 testcase = r"""
 struct T { int x; };

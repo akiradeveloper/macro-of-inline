@@ -167,6 +167,7 @@ PHASES = [
 	"insert decl lines",
 	"insert goto label",
 	"rewrite return to goto",
+	"append namespace to labels",
 	"memoize"]
 
 class RewriteFun:
@@ -372,6 +373,21 @@ class RewriteFun:
 		self.phase_no += 1
 		return self
 
+	class AppendNamespaceToLables(c_ast.NodeVisitor):
+		def visit_Goto(self, n):
+			n.name = "namespace ## %s" % n.name
+
+		def visit_Label(self, n):
+			n.name = "namespace ## %s" % n.name
+
+	def appendNamespaceToLabels(self):
+		if not self.success:
+			return self
+
+		self.AppendNamespaceToLables().visit(self.func)
+		self.phase_no += 1
+		return self
+
 	def macroize(self):
 		if not self.success:
 			return self
@@ -446,6 +462,7 @@ inline void fun(int x)
 	struct T *t = tt + 0;
 	if (t->x) {
 		return;
+	} else {
 	}
 	while (1) {
 		struct T *t;
@@ -507,7 +524,7 @@ def test(testcase):
 	parser = c_parser.CParser()
 	ast = parser.parse(testcase)
 	rewrite_fun = RewriteFun(Env(), ast.ext[0])
-	rewrite_fun.renameFuncBody().show().renameArgs().show().insertDeclLines().show().insertGotoLabel().show().rewriteReturnToGoto().show().macroize().show()
+	rewrite_fun.renameFuncBody().show().renameArgs().show().insertDeclLines().show().insertGotoLabel().show().rewriteReturnToGoto().show().appendNamespaceToLabels().show().macroize().show()
 
 if __name__ == "__main__":
 	# test(testcase)
