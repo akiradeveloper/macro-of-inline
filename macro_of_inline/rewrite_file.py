@@ -35,6 +35,13 @@ class LabelizeFuncCall(c_ast.NodeVisitor):
 	def __init__(self, env, macro_names):
 		self.env = env
 		self.macro_names = macro_names
+		self.called_in_macro = False
+
+	def visit_FuncDef(self, n):
+		if n.decl.name in self.macro_names:
+			self.called_in_macro = True
+		c_ast.NodeVisitor.generic_visit(self, n)
+		self.called_in_macro = False
 
 	class Name(c_ast.NodeVisitor):
 		"""
@@ -52,10 +59,12 @@ class LabelizeFuncCall(c_ast.NodeVisitor):
 		f.visit(n.name)
 		if not f.result in self.macro_names:
 			return
-		exit_label = rewrite_fun.newrandstr(self.env.rand_names, rewrite_fun.N)
+		namespace = rewrite_fun.newrandstr(self.env.rand_names, rewrite_fun.N)
+		if self.called_in_macro:
+			namespace = "namespace ## %s" % namespace
 		if n.args == None:
 			n.args = c_ast.ExprList([])
-		n.args.exprs.insert(0, c_ast.ID(exit_label))
+		n.args.exprs.insert(0, c_ast.ID(namespace))
 
 class RewriteFile:
 	def __init__(self, text):
