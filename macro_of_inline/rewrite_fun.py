@@ -243,24 +243,9 @@ class RewriteFun:
 		f.visit(param)
 		return f.result
 
-	class HasJump(c_ast.NodeVisitor):
-		def __init__(self):
-			self.result = False
-
-		def visit_Goto(self, n):
-			self.result = True
-
-		def visit_Label(self, n):
-			self.result = True
-
 	def canMacroize(self):
 		if self.success != None: # Lazy initialization
 			return self.success
-
-		has_jump = self.HasJump()
-		has_jump.visit(self.func)
-		if has_jump.result:
-			return False
 
 		if not self.returnVoid():
 			return False
@@ -463,7 +448,9 @@ inline void fun(int x)
 	if (t->x) {
 		return;
 	} else {
+		goto label1;
 	}
+	label1:
 	while (1) {
 		struct T *t;
 		y = t->x;
