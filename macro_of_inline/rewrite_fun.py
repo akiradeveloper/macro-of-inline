@@ -357,11 +357,22 @@ class RewriteFun:
 				n.block_items = []
 			n.block_items.append(c_ast.Label(GOTO_LABEL, c_ast.EmptyStatement()))
 
+	class HasReturn(c_ast.NodeVisitor):
+		def __init__(self):
+			self.result = False
+
+		def visit_Return(self, n):
+			self.result = True
+
 	def insertGotoLabel(self):
 		if not self.success:
 			return self
 
-		self.InsertGotoLabel().visit(self.func)
+		f = self.HasReturn()
+		f.visit(self.func)
+		if f.result:
+			self.InsertGotoLabel().visit(self.func)
+
 		self.phase_no += 1
 		return self
 
@@ -556,11 +567,11 @@ if __name__ == "__main__":
 	# test(testcase)
 	# test(testcase_2)
 	# test(testcase_3)
-	# test(testcase_4)
+	test(testcase_4)
 	# test(testcase_5)
 	# test(testcase_6)
 	# test(testcase_7)
-	test(testcase_8)
+	# test(testcase_8)
 	# test(testcase_void1)
 	# test(testcase_void2)
 	# test(testcase_void3)
