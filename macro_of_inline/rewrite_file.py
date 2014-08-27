@@ -109,14 +109,15 @@ int f3(void)
 
 inline void f4() {}
 inline void f5() { f4(); f4(); }
+int f6() { f5(); f5(); }
 
 int main()
 {
   int x;
   f1();
   x = f3();
-  f5();
-  f5();
+  f5(); f5();
+  f6();
   puts("OK");
   return 0;
 }
