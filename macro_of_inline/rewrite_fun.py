@@ -173,6 +173,7 @@ PHASES = [
 class RewriteFun:
 	def __init__(self, env, func):
 		self.phase_no = 0
+		self.env = env
 		self.func = func
 
 		if DEBUG:
@@ -274,8 +275,7 @@ class RewriteFun:
 			if not arg.shouldInsertDecl():
 				alias  = self.init_table.alias(arg.node.name)
 				arg.node.name = alias
-				f = RewriteTypeDecl(alias)
-				f.visit(arg.node)
+				RewriteTypeDecl(alias).visit(arg.node)
 			
 		self.phase_no += 1
 		return self
@@ -283,10 +283,15 @@ class RewriteFun:
 	def insertDeclLines(self):
 		"""
 		Insert decl lines (see. shouldInsertDecl)
+		f(int x, char c)
 		{
-		  int randname1 = x;
-		  char randname2 = c;
 		  ...
+		}
+
+		f(int rand1, char rand2)
+		{
+		  int rand3 = rand1;
+		  int rand4 = rand2;
 		}
 		"""
 		if not self.success:
@@ -298,12 +303,18 @@ class RewriteFun:
 
 		for arg in reversed(self.args):
 			if arg.shouldInsertDecl():
+				newname = newrandstr(self.env.rand_names, N)
+
 				decl = copy.deepcopy(arg.node)
 				alias = self.init_table.alias(arg.node.name)
 				decl.name = alias
 				RewriteTypeDecl(alias).visit(decl)
-				decl.init = c_ast.ID(arg.node.name)
+				decl.init = c_ast.ID(newname)
 				block_items.insert(0, decl)
+
+				arg.node.name = newname
+				RewriteTypeDecl(newname).visit(arg.node)
+
 		self.phase_no += 1
 		return self
 
