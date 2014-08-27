@@ -498,6 +498,13 @@ inline void fun(void)
 }
 """
 
+testcase_8 = r"""
+inline void fun(int x)
+{
+  int y = (int) x;
+}
+"""
+
 testcase_void1 = r"""
 inline void fun(void)
 {
@@ -534,10 +541,11 @@ if __name__ == "__main__":
 	# test(testcase)
 	# test(testcase_2)
 	# test(testcase_3)
-	test(testcase_4)
+	# test(testcase_4)
 	# test(testcase_5)
 	# test(testcase_6)
 	# test(testcase_7)
+	test(testcase_8)
 	# test(testcase_void1)
 	# test(testcase_void2)
 	# test(testcase_void3)
