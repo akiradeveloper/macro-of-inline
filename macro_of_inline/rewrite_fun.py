@@ -267,6 +267,13 @@ class RewriteFun:
 
 		return self
 
+	def renameDecl(self, node, alias):
+		"""
+		int var -> int $alias
+		"""
+		node.name = alias
+		RewriteTypeDecl(alias).visit(node)
+
 	def renameArgs(self):
 		if not self.success:
 			return self
@@ -274,8 +281,7 @@ class RewriteFun:
 		for arg in self.args:
 			if not arg.shouldInsertDecl():
 				alias  = self.init_table.alias(arg.node.name)
-				arg.node.name = alias
-				RewriteTypeDecl(alias).visit(arg.node)
+				self.renameDecl(arg.node, alias)
 			
 		self.phase_no += 1
 		return self
@@ -305,15 +311,15 @@ class RewriteFun:
 			if arg.shouldInsertDecl():
 				newname = newrandstr(self.env.rand_names, N)
 
+				# Insert decl line
 				decl = copy.deepcopy(arg.node)
 				alias = self.init_table.alias(arg.node.name)
-				decl.name = alias
-				RewriteTypeDecl(alias).visit(decl)
+				self.renameDecl(decl, alias)
 				decl.init = c_ast.ID(newname)
 				block_items.insert(0, decl)
 
-				arg.node.name = newname
-				RewriteTypeDecl(newname).visit(arg.node)
+				# Rename the arg
+				self.renameDecl(arg.node, newname)
 
 		self.phase_no += 1
 		return self
