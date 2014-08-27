@@ -159,8 +159,7 @@ class RenameVars(c_ast.NodeVisitor):
 		self.cur_table = self.cur_table.prev_table
 
 
-GOTO_LABEL = "exit_func_compound"
-
+GOTO_LABEL = "exit"
 
 PHASES = [
 	"rename function body",
@@ -168,6 +167,7 @@ PHASES = [
 	"insert decl lines",
 	"insert goto label",
 	"rewrite return to goto",
+	"append namespace to labels",
 	"memoize"]
 
 class RewriteFun:
@@ -243,24 +243,9 @@ class RewriteFun:
 		f.visit(param)
 		return f.result
 
-	class HasJump(c_ast.NodeVisitor):
-		def __init__(self):
-			self.result = False
-
-		def visit_Goto(self, n):
-			self.result = True
-
-		def visit_Label(self, n):
-			self.result = True
-
 	def canMacroize(self):
 		if self.success != None: # Lazy initialization
 			return self.success
-
-		has_jump = self.HasJump()
-		has_jump.visit(self.func)
-		if has_jump.result:
-			return False
 
 		if not self.returnVoid():
 			return False
@@ -373,12 +358,27 @@ class RewriteFun:
 		self.phase_no += 1
 		return self
 
+	class AppendNamespaceToLables(c_ast.NodeVisitor):
+		def visit_Goto(self, n):
+			n.name = "namespace ## %s" % n.name
+
+		def visit_Label(self, n):
+			n.name = "namespace ## %s" % n.name
+
+	def appendNamespaceToLabels(self):
+		if not self.success:
+			return self
+
+		self.AppendNamespaceToLables().visit(self.func)
+		self.phase_no += 1
+		return self
+
 	def macroize(self):
 		if not self.success:
 			return self
 
 		fun_name = self.func.decl.name
-		args = ', '.join([GOTO_LABEL] + map(lambda arg: arg.node.name, self.args))
+		args = ', '.join(["namespace"] + map(lambda arg: arg.node.name, self.args))
 		generator = pycparser_ext.CGenerator()
 		body_contents = generator.visit(self.func.body).splitlines()[1:-1]
 		if not len(body_contents):
@@ -447,7 +447,10 @@ inline void fun(int x)
 	struct T *t = tt + 0;
 	if (t->x) {
 		return;
+	} else {
+		goto label1;
 	}
+	label1:
 	while (1) {
 		struct T *t;
 		y = t->x;
@@ -508,7 +511,7 @@ def test(testcase):
 	parser = c_parser.CParser()
 	ast = parser.parse(testcase)
 	rewrite_fun = RewriteFun(Env(), ast.ext[0])
-	rewrite_fun.renameFuncBody().show().renameArgs().show().insertDeclLines().show().insertGotoLabel().show().rewriteReturnToGoto().show().macroize().show()
+	rewrite_fun.renameFuncBody().show().renameArgs().show().insertDeclLines().show().insertGotoLabel().show().rewriteReturnToGoto().show().appendNamespaceToLabels().show().macroize().show()
 
 if __name__ == "__main__":
 	# test(testcase)
