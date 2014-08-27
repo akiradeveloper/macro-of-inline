@@ -121,13 +121,21 @@ inline void f4() {}
 inline void f5() { f4(); f4(); }
 int f6() { f5(); f5(); }
 
+inline void f7(struct T *t, int x)
+{
+	t->x = x;
+}
+
 int main()
 {
   int x;
+  int y;
+  struct T t;
   f1();
   x = f3();
   f5(); f5();
   f6();
+  f7(&t, y);
   puts("OK");
   return 0;
 }
