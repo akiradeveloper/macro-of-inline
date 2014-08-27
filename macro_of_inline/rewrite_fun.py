@@ -10,6 +10,11 @@ import enum
 Symbol = collections.namedtuple('Symbol', 'alias, overwritable')
 
 DEBUG = False
+
+# False -> $oldname -> $randstr
+# True -> ($oldname -> ($oldname_$randstr))
+VERBOSE = True
+
 def P(s):
 	if not DEBUG:
 		return
@@ -41,6 +46,8 @@ class NameTable:
 
 	def register(self, name):
 		alias = newrandstr(self.env.rand_names, N)
+		if VERBOSE:
+			alias = "%s_%s" % (name, alias)
 		self.table[name] = Symbol(alias, overwritable=False)
 
 	def declare(self, name):
@@ -316,8 +323,12 @@ class RewriteFun:
 				newname = newrandstr(self.env.rand_names, N)
 
 				# Insert decl line
+				oldname = arg.node.name
+				if VERBOSE:
+					newname = "%s_%s" % (oldname, newname)
+
 				decl = copy.deepcopy(arg.node)
-				alias = self.init_table.alias(arg.node.name)
+				alias = self.init_table.alias(oldname)
 				self.renameDecl(decl, alias)
 				decl.init = c_ast.ID(newname)
 				block_items.insert(0, decl)
