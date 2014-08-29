@@ -76,26 +76,26 @@ class Apply:
 	def __init__(self, f):
 		self.f = f
 
-	def ast_of(self, txt):
-		parser = c_parser.CParser()
-		return parser.parse(txt)
-
 	def on(self, filename):
-		txt = cpp(filename)
+		cpped_txt = cpp(filename)
+		includes = analyzeInclude(filename, cpped_txt)
 
-		includes = analyzeInclude(filename, txt)
+		fp = open(filename)
+		orig_txt_lines = fp.read().splitlines()
+		fp.close()
 		included_headers = []
-		included_code = ""
+		included_code = []
+		for lineno, code in	includes:
+			included_headers.append(orig_txt_lines[lineno - 1])
+			included_codes.append(code)
 
-		ast_a = ast_of(txt)
-		ast_b = ast_of(included_code)
+		ast_a = pycparser_ext.ast_of(cpped_txt)
+		ast_b = pycparser_ext.ast_of('\n'.join(included_codes))
 		ast_delete(ast_a, ast_b)
 
 		ast_a = f(ast_a)
 
-		generator = pycparser_ext.CGenerator()
-		contents = generator.visit(ast_a)
-
+		contents = pycparser_ext.CGenerator().visit(ast_a)
 		return """r
 %s
 %s
