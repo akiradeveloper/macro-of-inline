@@ -23,3 +23,10 @@ class CGenerator(c_generator.CGenerator):
 	"""
 	def visit_Any(self, n):
 		return n.text
+
+	@classmethod
+	def cleanUp(cls, txt):
+		"""
+		Purge "^;\n" that is not allowed by ISO standard
+		"""
+		return '\n'.join([line for line in txt.splitlines() if line != ";"])

@@ -182,6 +182,9 @@ PHASES = [
 	"memoize"]
 
 class RewriteFun:
+	"""
+	AST -> AST
+	"""
 	def __init__(self, env, func):
 		self.phase_no = 0
 		self.env = env

@@ -67,16 +67,16 @@ class LabelizeFuncCall(c_ast.NodeVisitor):
 		n.args.exprs.insert(0, c_ast.ID(namespace))
 
 class RewriteFile:
-	def __init__(self, text):
-		self.text = text
+	"""
+	AST -> AST
+	"""
+	def __init__(self, ast):
+		self.ast = ast
 		self.env = rewrite_fun.Env()
 
 	def run(self):
-		parser = c_parser.CParser()
-		ast = parser.parse(self.text)
-
 		macroizables = [] # (i, runner)
-		for i, n in enumerate(ast.ext):
+		for i, n in enumerate(self.ast.ext):
 			if not isinstance(n, c_ast.FuncDef):
 				continue
 
@@ -89,18 +89,27 @@ class RewriteFile:
 			if runner.canMacroize():
 				macroizables.append((i, runner))
 
-		LabelizeFuncCall(self.env, [runner.func.decl.name for i, runner in macroizables]).visit(ast)
+		LabelizeFuncCall(self.env, [runner.func.decl.name for i, runner in macroizables]).visit(self.ast)
 
 		for i, runner in macroizables:
 			runner.insertGotoLabel().rewriteReturnToGoto().appendNamespaceToLabels().macroize()
-			ast.ext[i] = runner.returnAST()
+			self.ast.ext[i] = runner.returnAST()
 
-		generator = pycparser_ext.CGenerator()
-		output = generator.visit(ast)
+		return self.ast
 
-		# Purge "^;\n" that is not allowed by ISO standard
-		return '\n'.join([line for line in output.splitlines() if line != ";"])
+class RewriteFileContents:
+	"""
+	File -> Text
+	"""
+	def __init__(self, filename):
+		self.filename = filename
 
+	def f(ast):
+		return RewriteFile(ast).run()
+
+	def run(self):
+		output = cpp.Apply(f).on(self.filename)
+		return pycparser_ext.CGenerator.cleanUp(output)
 
 testcase = r"""
 struct T { int x; };
@@ -148,12 +157,16 @@ int main()
 """ % rewrite_fun.testcase
 
 if __name__ == "__main__":
-	output = RewriteFile(testcase).run()
+	parser = c_parser.CParser()
+	output = RewriteFile(parser.parse(testcase)).run()
 
+	generator = pycparser_ext.CGenerator()
+	output = generator.visit(output)
 	file_contents = r"""
 #include <stdio.h>
 %s
-""" % output
+""" % pycparser_ext.CGenerator.cleanUp(output)
+
 	fn = "macro-of-inline-test.c"
 	f = open(fn, "w")
 	f.write(file_contents)
