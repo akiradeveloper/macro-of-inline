@@ -1,4 +1,8 @@
-from pycparser import c_ast, c_generator
+from pycparser import c_ast, c_parser, c_generator
+
+def ast_of(txt):
+	parser = c_parser.CParser()
+	return parser.parse(txt)
 
 class Any(c_ast.Node):
 	def __init__(self, text):

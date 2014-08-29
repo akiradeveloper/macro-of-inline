@@ -1,3 +1,7 @@
+from pycparser import c_ast
+import enum
+import pycparser_ext
+
 def cpp(filename):
 	pass
 
@@ -25,11 +29,42 @@ def analizeInclude(filename, txt):
 		elif current_result != None:
 			current_result.append(line)
 
+DeclType = enum.Enum("DeclType", "typedef funcdef struct decl")
+def type_and_name_of(n):
+	if isinstance(n, c_ast.Typedef):
+		return (DeclType.typedef, n.name)
+	elif isinstance(n, c_ast.FuncDef):
+		return (DeclType.funcdef, n.decl.name)
+	elif isinstance(n, c_ast.Decl):
+		if n.name != None:
+			return (DeclType.decl, n.name)
+		else:
+			return (DeclType.struct, n.type.name)
+
 def ast_delete(a, b):
 	"""
 	AST-level deletion
 	a -= b 
 	"""
+	t = {
+		DeclType.typedef : set(),
+		DeclType.funcdef : set(),
+		DeclType.struct  : set(),
+		DeclType.decl    : set(),
+	}
+
+	for n in b.ext:
+		(type, name) = type_and_name_of(n)
+		t[type].add(name)
+
+	delete_indices = []
+	for i, n in enumerate(a.ext):
+		(type, name) = type_and_name_of(n)
+		if name in t[type]:
+			delete_indices.append(i)
+
+	for i in reversed(delete_indices):
+		del(a.ext[i])
 
 class Apply:
 	"""
@@ -105,3 +140,33 @@ typedef long mylong;
 int main(void) { return 0; }
 """	
 	analizeInclude("main.c", testcase)
+
+a = r"""
+int x1;
+int x2;
+struct T1 { int x; };
+struct T2 { int x; };
+typedef int int1;
+typedef int int2;
+void f1() {}
+void f2() {}
+
+int main()
+{
+	return 0;
+}
+"""
+ast_a = pycparser_ext.ast_of(a)
+
+b = r"""
+int x1;
+struct T1 { int x; };
+typedef int int1;
+void f1() {}
+void f2();
+typedef struct T3 { int x; } t3;
+typedef int int1;
+"""
+ast_b = pycparser_ext.ast_of(b)
+
+ast_delete(ast_a, ast_b)
