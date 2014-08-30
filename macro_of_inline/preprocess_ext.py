@@ -7,7 +7,7 @@ def cpp(filename):
 	"""
 	File -> txt
 	"""
-	return pycparser.preprocess_file(filename, cpp_path='gcc', cpp_args=['-E'])
+	return pycparser.preprocess_file(filename, cpp_path='gcc', cpp_args=['-E', r'-I./macro_of_inline/fake_libc_include'])
 
 def analyzeInclude(filename, txt):
 	"""
@@ -34,7 +34,7 @@ def analyzeInclude(filename, txt):
 			current_result.append(line)
 	return result
 
-DeclType = enum.Enum("DeclType", "typedef funcdef struct decl")
+DeclType = enum.Enum("DeclType", "typedef funcdef struct decl any")
 def type_and_name_of(n):
 	if isinstance(n, c_ast.Typedef):
 		return (DeclType.typedef, n.name)
@@ -45,27 +45,30 @@ def type_and_name_of(n):
 			return (DeclType.decl, n.name)
 		else:
 			return (DeclType.struct, n.type.name)
+	elif isinstance(n, pycparser_ext.Any):
+		return (DeclType.any, n.text)
 
 def ast_delete(a, b):
 	"""
 	AST-level deletion
 	a -= b 
 	"""
-	t = {
+	diff_table = {
 		DeclType.typedef : set(),
 		DeclType.funcdef : set(),
 		DeclType.struct  : set(),
 		DeclType.decl    : set(),
+		DeclType.any     : set(),
 	}
 
 	for n in b.ext:
 		(type, name) = type_and_name_of(n)
-		t[type].add(name)
+		diff_table[type].add(name)
 
 	delete_indices = []
 	for i, n in enumerate(a.ext):
 		(type, name) = type_and_name_of(n)
-		if name in t[type]:
+		if name in diff_table[type]:
 			delete_indices.append(i)
 
 	for i in reversed(delete_indices):
@@ -83,11 +86,11 @@ class Apply:
 
 	def on(self, filename):
 		cpped_txt = cpp(filename)
-		print(cpped_txt)
+		# print(cpped_txt)
 
 		includes = analyzeInclude(filename, cpped_txt)
 
-		print(includes)
+		# print(includes)
 
 		fp = open(filename)
 		orig_txt_lines = fp.read().splitlines()
@@ -96,16 +99,20 @@ class Apply:
 		included_codes = []
 		for lineno, code in	includes:
 			included_headers.append(orig_txt_lines[lineno - 1])
-			included_codes.append(code)
+			included_codes.append('\n'.join(code))
+		# print(included_codes)
+		# print(included_headers)	
 
 		ast_a = pycparser_ext.ast_of(cpped_txt)
+		ast_a = self.f(ast_a)
+		# TODO Preprocess to remove macros that might be generated
+		# by the functor 'f'. But mostly, OK.
+
 		ast_b = pycparser_ext.ast_of('\n'.join(included_codes))
 		ast_delete(ast_a, ast_b)
 
-		ast_a = f(ast_a)
-
 		contents = pycparser_ext.CGenerator().visit(ast_a)
-		return """r
+		return """
 %s
 %s
 """ % ('\n'.join(included_headers), pycparser_ext.CGenerator.cleanUp(contents))

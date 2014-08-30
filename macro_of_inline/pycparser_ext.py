@@ -5,9 +5,14 @@ def ast_of(txt):
 	return parser.parse(txt)
 
 class Any(c_ast.Node):
+	"""
+	Any node contains any text representation.
+	"""
+	# FIXME This node is not complete so can't call show() method
+	# to an AST that contains Any node.
 	def __init__(self, text):
 		self.text = text
-	# attr_names = ('text',)
+	attr_names = ('text',)
 
 class CGenerator(c_generator.CGenerator):
 	"""
