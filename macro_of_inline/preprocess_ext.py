@@ -11,7 +11,7 @@ def cpp(filename):
 	"""
 	# TODO Use pkg_resources or something that fits more.
 	p = os.path.join(os.path.dirname(__file__), 'fake_libc_include')
-	return pycparser.preprocess_file(filename, cpp_path='gcc', cpp_args=['-E', r'-I%s' % p])
+	return pycparser.preprocess_file(filename, cpp_path='gcc', cpp_args=['-E', '-U__GNUC__', r'-I%s' % p])
 
 def analyzeInclude(filename, txt):
 	"""
