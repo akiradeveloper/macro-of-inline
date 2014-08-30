@@ -32,6 +32,7 @@ def analyzeInclude(filename, txt):
 				result.append((lineno, current_result))
 		elif current_result != None:
 			current_result.append(line)
+	return result
 
 DeclType = enum.Enum("DeclType", "typedef funcdef struct decl")
 def type_and_name_of(n):
@@ -92,7 +93,7 @@ class Apply:
 		orig_txt_lines = fp.read().splitlines()
 		fp.close()
 		included_headers = []
-		included_code = []
+		included_codes = []
 		for lineno, code in	includes:
 			included_headers.append(orig_txt_lines[lineno - 1])
 			included_codes.append(code)
