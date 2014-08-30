@@ -1,11 +1,15 @@
 from pycparser import c_ast
 import enum
+import pycparser
 import pycparser_ext
 
 def cpp(filename):
-	pass
+	"""
+	File -> txt
+	"""
+	return pycparser.preprocess_file(filename, cpp_path='gcc', cpp_args=['-E'])
 
-def analizeInclude(filename, txt):
+def analyzeInclude(filename, txt):
 	"""
 	txt -> [(header, txt)]
 	"""
@@ -78,7 +82,11 @@ class Apply:
 
 	def on(self, filename):
 		cpped_txt = cpp(filename)
+		print(cpped_txt)
+
 		includes = analyzeInclude(filename, cpped_txt)
+
+		print(includes)
 
 		fp = open(filename)
 		orig_txt_lines = fp.read().splitlines()
@@ -139,9 +147,9 @@ typedef long mylong;
 
 int main(void) { return 0; }
 """	
-	analizeInclude("main.c", testcase)
+	analyzeInclude("main.c", testcase)
 
-a = r"""
+	a = r"""
 int x1;
 int x2;
 struct T1 { int x; };
@@ -156,9 +164,9 @@ int main()
 	return 0;
 }
 """
-ast_a = pycparser_ext.ast_of(a)
+	ast_a = pycparser_ext.ast_of(a)
 
-b = r"""
+	b = r"""
 int x1;
 struct T1 { int x; };
 typedef int int1;
@@ -167,6 +175,6 @@ void f2();
 typedef struct T3 { int x; } t3;
 typedef int int1;
 """
-ast_b = pycparser_ext.ast_of(b)
+	ast_b = pycparser_ext.ast_of(b)
 
-ast_delete(ast_a, ast_b)
+	ast_delete(ast_a, ast_b)

@@ -2,6 +2,7 @@ from pycparser import c_parser, c_ast
 
 import os
 import pycparser_ext
+import cpp
 import rewrite_fun
 
 class LabelizeFuncCall(c_ast.NodeVisitor):
@@ -174,3 +175,5 @@ if __name__ == "__main__":
 	# TODO Direct from stdio. Use gcc -xs -
 	os.system("gcc -ansi -pedantic %s && ./a.out" % fn)
 	print(output)
+
+	output = RewriteFileContents("cpptest/main.c").run()
