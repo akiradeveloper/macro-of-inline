@@ -119,6 +119,7 @@ class Apply:
 		return """
 %s
 %s
+
 """ % ('\n'.join(included_headers), pycparser_ext.CGenerator.cleanUp(contents))
 
 if __name__ == "__main__":
