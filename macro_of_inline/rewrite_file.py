@@ -177,5 +177,5 @@ if __name__ == "__main__":
 	os.system("gcc -ansi -pedantic %s && ./a.out" % fn)
 	print(output)
 
-	output = RewriteFileContents("testproj/main.c").run()
+	output = RewriteFileContents("tests/proj/main.c").run()
 	print(output)

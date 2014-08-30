@@ -10,7 +10,7 @@ parser.add_argument("i", metavar="INFILE", help="input filename. It does _not_ n
 parser.add_argument("-o", metavar="OUTFILE", help="output (default:-)", default="-")
 args = parser.parse_args()
 
-runner = rewrite_file.RewriteFileContents(arg.i)
+runner = rewrite_file.RewriteFileContents(args.i)
 output_txt = runner.run()
 
 if args.o == "-":

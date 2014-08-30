@@ -17,6 +17,7 @@ setup (
 		platforms = ['Cross Platform'],
 		scripts= ['bin/macro-of-inline'],
 		packages = ['macro_of_inline'],
+		package_data = {'macro_of_inline' : ['fake_libc_include/**/*.h']},
 		install_requires = [
 			"pycparser",
 			"enum34",

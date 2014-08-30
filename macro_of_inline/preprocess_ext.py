@@ -1,4 +1,6 @@
 from pycparser import c_ast
+
+import os
 import enum
 import pycparser
 import pycparser_ext
@@ -7,7 +9,9 @@ def cpp(filename):
 	"""
 	File -> txt
 	"""
-	return pycparser.preprocess_file(filename, cpp_path='gcc', cpp_args=['-E', r'-I./macro_of_inline/fake_libc_include'])
+	# TODO Use pkg_resources or something that fits more.
+	p = os.path.join(os.path.dirname(__file__), 'fake_libc_include')
+	return pycparser.preprocess_file(filename, cpp_path='gcc', cpp_args=['-E', r'-I%s' % p])
 
 def analyzeInclude(filename, txt):
 	"""
