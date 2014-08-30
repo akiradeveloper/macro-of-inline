@@ -14,8 +14,6 @@ typedef int __int32_t;
 typedef int __uint32_t;
 typedef int __int_least32_t;
 typedef int __uint_least32_t;
-typedef int __int64_t;
-typedef int __uint64_t;
 typedef int _LOCK_T;
 typedef int _LOCK_RECURSIVE_T;
 typedef int _off_t;
@@ -136,5 +134,10 @@ typedef int uintmax_t;
 typedef _Bool bool;
 
 typedef int va_list;
+
+typedef int __int64_t;
+typedef int __uint64_t;
+typedef int stack_t;
+typedef int __sigset_t;
 
 #endif
