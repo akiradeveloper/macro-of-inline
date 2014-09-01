@@ -96,6 +96,9 @@ class RewriteFile:
 			runner.insertGotoLabel().rewriteReturnToGoto().appendNamespaceToLabels().macroize()
 			self.ast.ext[i] = runner.returnAST()
 
+		# TODO Apply preprocessor and shrink labels to fixed length
+		# Some compiler won't allow too-long lables.
+
 		return self.ast
 
 class RewriteFileContents:
@@ -104,9 +107,6 @@ class RewriteFileContents:
 	"""
 	def __init__(self, filename):
 		self.filename = filename
-
-	def f(ast):
-		return RewriteFile(ast).run()
 
 	def run(self):
 		f = lambda ast: RewriteFile(ast).run()
