@@ -13,7 +13,7 @@ DEBUG = False
 
 # False -> $oldname -> $randstr
 # True -> ($oldname -> ($oldname_$randstr))
-VERBOSE = True
+VERBOSE = False
 
 def P(s):
 	if not DEBUG:

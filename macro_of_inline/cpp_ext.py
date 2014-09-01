@@ -96,7 +96,7 @@ def ast_delete(a, b):
 	Assumes that header directives are listed
 	at the head of the target file.
 	"""
-	diff= ASTDiff()
+	diff = ASTDiff()
 
 	for n in b.ext:
 		diff.inc(n)
@@ -140,8 +140,6 @@ class Apply:
 
 		ast_a = pycparser_ext.ast_of(cpped_txt)
 		ast_a = self.f(ast_a)
-		# TODO Preprocess to remove macros that might be generated
-		# by the functor 'f'. But mostly, OK.
 
 		ast_b = pycparser_ext.ast_of('\n'.join(included_codes))
 		ast_delete(ast_a, ast_b)

@@ -78,6 +78,16 @@ class RewriteFile:
 		self.ast = ast
 		self.env = rewrite_fun.Env()
 
+
+	def applyPreprocess(self):
+		fn = "%s.c" % rewrite_fun.randstr(16)
+		fp = open(fn, "w")
+		fp.write(pycparser_ext.CGenerator().visit(self.ast))
+		fp.close()
+		# print(cpp_ext.cpp(fn))
+		self.ast = pycparser_ext.ast_of(cpp_ext.cpp(fn))
+		os.remove(fn)
+
 	class SerializeLabels(c_ast.NodeVisitor):
 		def __init__(self):
 			self.m = {} # string -> int
@@ -92,6 +102,9 @@ class RewriteFile:
 
 		def visit_Label(self, n):
 			self.do_visit(n)
+
+	def serializeLabels(self):
+		self.SerializeLabels().visit(self.ast)
 
 	def run(self):
 		macroizables = [] # (i, runner)
@@ -114,17 +127,11 @@ class RewriteFile:
 			runner.insertGotoLabel().rewriteReturnToGoto().appendNamespaceToLabels().macroize()
 			self.ast.ext[i] = runner.returnAST()
 
-		# TODO Apply preprocessor and shrink labels to fixed length
+		# Apply preprocessor and normalize labels to fixed length
 		# Some compiler won't allow too-long lables.
 		if SERIALIZE_LABEL:
-			fn = "%s.c" % rewrite_fun.randstr(16)
-			fp = open(fn, "w")
-			fp.write(pycparser_ext.CGenerator().visit(self.ast))
-			fp.close()
-			# print(cpp_ext.cpp(fn))
-			self.ast = pycparser_ext.ast_of(cpp_ext.cpp(fn))
-			self.SerializeLabels().visit(self.ast)
-			os.remove(fn)
+			self.applyPreprocess()
+			self.serializeLabels()
 
 		return self.ast
 
@@ -202,6 +209,7 @@ if __name__ == "__main__":
 	f.close()
 	# TODO Direct from stdio. Use gcc -xs -
 	os.system("gcc -ansi -pedantic %s && ./a.out" % fn)
+	os.remove(fn)
 	print(output)
 
 	output = RewriteFileContents("tests/proj/main.c").run()

@@ -26,6 +26,7 @@ $ macro-of-inline foo/bar/hoge.c -o foo/bar/hoge.c
 
 ## Limitation
 
+- In the target file, include directives are located at the head.
 - Only those returns void will be translated. For technical reason, those returns non-void values can't be translated correctly.
 - GCC-extension will be ignored (input file will be preprocessed with -U\_\_GNUC\_\_). This is a limitation of pycparser.
 
