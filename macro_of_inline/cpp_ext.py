@@ -42,11 +42,12 @@ def compare_asts(ast1, ast2):
 	if type(ast1) != type(ast2):
 		return False
 
-	# macro-of-inline add namespace argument if it's calling macro.
-	# Thus, pure AST comparator doesn't work as the FuncCalls aren't equal
-	# if only one of them is as a result of rewrite.
-	if isinstance(ast1, c_ast.FuncCall) and isinstance(ast2, c_ast.FuncCall):
-		return True
+	# In the function block, calls of inline function may be expanded.
+	# We shouldn't depend on the way they are expanded but only on the function name.
+	# At least, the function call is added a new argument "namespace" then
+	# we can't use pure equality of ASTs here.
+	if isinstance(ast1, c_ast.FuncDef) and isinstance(ast2, c_ast.FuncDef):
+		return ast1.decl.name == ast2.decl.name
 
 	if isinstance(ast1, tuple) and isinstance(ast2, tuple):
 		if ast1[0] != ast2[0]:
@@ -54,6 +55,7 @@ def compare_asts(ast1, ast2):
 		ast1 = ast1[1]
 		ast2 = ast2[1]
 		return compare_asts(ast1, ast2)
+
 	for attr in ast1.attr_names:
 		if getattr(ast1, attr) != getattr(ast2, attr):
 			return False

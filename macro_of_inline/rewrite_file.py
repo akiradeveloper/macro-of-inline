@@ -68,7 +68,7 @@ class LabelizeFuncCall(c_ast.NodeVisitor):
 		n.args.exprs.insert(0, c_ast.ID(namespace))
 
 # Buggy thus disabled
-SERIALIZE_LABEL = False
+SERIALIZE_LABEL = True
 
 class RewriteFile:
 	"""
