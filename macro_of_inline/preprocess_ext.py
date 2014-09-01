@@ -43,6 +43,8 @@ def analyzeInclude(filename, txt):
 def compare_asts(ast1, ast2):
 	if type(ast1) != type(ast2):
 		return False
+	if isinstance(ast1, c_ast.FuncCall) and isinstance(ast2, c_ast.FuncCall):
+		return True
 	if isinstance(ast1, tuple) and isinstance(ast2, tuple):
 		if ast1[0] != ast2[0]:
 			return False
