@@ -12,6 +12,8 @@ typedef struct S {
 	int z;
 } S_t;
 
+struct V { int x; };
+
 inline void inf_2() {}
 
 int main(void) { return 0; }

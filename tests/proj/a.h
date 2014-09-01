@@ -10,4 +10,6 @@ struct U {
 		int z;
 };
 
+struct V;
+
 inline void inf(void) {}

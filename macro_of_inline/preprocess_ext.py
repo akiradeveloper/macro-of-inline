@@ -169,6 +169,8 @@ struct T1 { int x; };
 struct T2 { int x; };
 typedef int int1;
 typedef int int2;
+struct f;
+void f1();
 void f1() {}
 void f2() {}
 
