@@ -4,6 +4,8 @@
 #include "f/g.h"
 #include <ucontext.h>
 
+int g_var = 0;
+
 typedef struct S {
 	int x;
 	int y;
