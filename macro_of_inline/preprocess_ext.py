@@ -38,41 +38,65 @@ def analyzeInclude(filename, txt):
 			current_result.append(line)
 	return result
 
-DeclType = enum.Enum("DeclType", "typedef funcdef struct decl any")
-def type_and_name_of(n):
-	if isinstance(n, c_ast.Typedef):
-		return (DeclType.typedef, n.name)
-	elif isinstance(n, c_ast.FuncDef):
-		return (DeclType.funcdef, n.decl.name)
-	elif isinstance(n, c_ast.Decl):
-		if n.name != None:
-			return (DeclType.decl, n.name)
-		else:
-			return (DeclType.struct, n.type.name)
-	elif isinstance(n, pycparser_ext.Any):
-		return (DeclType.any, n.text)
+# Copied from pycparser (tests/test_c_generator.py)
+# Hope this comparator be in the library code.
+def compare_asts(ast1, ast2):
+	if type(ast1) != type(ast2):
+		return False
+	if isinstance(ast1, tuple) and isinstance(ast2, tuple):
+		if ast1[0] != ast2[0]:
+			return False
+		ast1 = ast1[1]
+		ast2 = ast2[1]
+		return compare_asts(ast1, ast2)
+	for attr in ast1.attr_names:
+		if getattr(ast1, attr) != getattr(ast2, attr):
+			return False
+	for i, c1 in enumerate(ast1.children()):
+		if compare_asts(c1, ast2.children()[i]) == False:
+			return False
+	return True
+
+class ASTDiff:
+	def __init__(self):
+		self.asts = [] # [[ast, count]]
+
+	def inc(self, ast):
+		for e in self.asts:
+			if compare_asts(e[0], ast):
+				e[1] += 1
+				return
+		self.asts.append([ast, 1])
+
+	def dec(self, ast):
+		"""
+		Return true iff the ast exists (count > 0)
+		"""
+		for e in self.asts:
+			if compare_asts(e[0], ast):
+				if (e[1] > 0):
+					e[1] -= 1
+					return True
+				else:
+					return False
+		return False
 
 def ast_delete(a, b):
 	"""
 	AST-level deletion
 	a -= b 
+
+	Assumes that header directives are listed
+	at the head of the target file.
 	"""
-	diff_table = {
-		DeclType.typedef : set(),
-		DeclType.funcdef : set(),
-		DeclType.struct  : set(),
-		DeclType.decl    : set(),
-		DeclType.any     : set(),
-	}
+	diff= ASTDiff()
 
 	for n in b.ext:
-		(type, name) = type_and_name_of(n)
-		diff_table[type].add(name)
+		diff.inc(n)
 
 	delete_indices = []
 	for i, n in enumerate(a.ext):
-		(type, name) = type_and_name_of(n)
-		if name in diff_table[type]:
+		if diff.dec(n):
 			delete_indices.append(i)
 
 	for i in reversed(delete_indices):
