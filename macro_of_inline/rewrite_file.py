@@ -2,7 +2,7 @@ from pycparser import c_parser, c_ast
 
 import os
 import pycparser_ext
-import preprocess_ext
+import cpp_ext
 import rewrite_fun
 
 class LabelizeFuncCall(c_ast.NodeVisitor):
@@ -110,7 +110,7 @@ class RewriteFileContents:
 
 	def run(self):
 		f = lambda ast: RewriteFile(ast).run()
-		output = preprocess_ext.Apply(f).on(self.filename)
+		output = cpp_ext.Apply(f).on(self.filename)
 		return pycparser_ext.CGenerator.cleanUp(output)
 
 testcase = r"""
