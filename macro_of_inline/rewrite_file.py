@@ -67,8 +67,7 @@ class LabelizeFuncCall(c_ast.NodeVisitor):
 			n.args = c_ast.ExprList([])
 		n.args.exprs.insert(0, c_ast.ID(namespace))
 
-# Buggy thus disabled
-SERIALIZE_LABEL = True
+NORMALIZE_LABEL = True
 
 class RewriteFile:
 	"""
@@ -88,14 +87,15 @@ class RewriteFile:
 		self.ast = pycparser_ext.ast_of(cpp_ext.cpp(fn))
 		os.remove(fn)
 
-	class SerializeLabels(c_ast.NodeVisitor):
-		def __init__(self):
+	class NormalizeLabels(c_ast.NodeVisitor):
+		def __init__(self, env):
 			self.m = {} # string -> int
+			self.env = env
 
 		def do_visit(self, n):
 			if n.name not in self.m:
-				self.m[n.name] = len(self.m)
-			n.name = "label%d" % self.m[n.name]
+				self.m[n.name] = rewrite_fun.newrandstr(self.env.rand_names, rewrite_fun.N)
+			n.name = self.m[n.name]
 
 		def visit_Goto(self, n):
 			self.do_visit(n)
@@ -103,8 +103,8 @@ class RewriteFile:
 		def visit_Label(self, n):
 			self.do_visit(n)
 
-	def serializeLabels(self):
-		self.SerializeLabels().visit(self.ast)
+	def normalizeLabels(self):
+		self.NormalizeLabels(self.env).visit(self.ast)
 
 	def run(self):
 		macroizables = [] # (i, runner)
@@ -129,9 +129,9 @@ class RewriteFile:
 
 		# Apply preprocessor and normalize labels to fixed length
 		# Some compiler won't allow too-long lables.
-		if SERIALIZE_LABEL:
+		if NORMALIZE_LABEL:
 			self.applyPreprocess()
-			self.serializeLabels()
+			self.normalizeLabels()
 
 		return self.ast
 
