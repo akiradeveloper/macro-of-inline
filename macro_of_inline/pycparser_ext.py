@@ -8,10 +8,14 @@ class Any(c_ast.Node):
 	"""
 	Any node contains any text representation.
 	"""
-	# FIXME This node is not complete so can't call show() method
-	# to an AST that contains Any node.
-	def __init__(self, text):
+	def __init__(self, text, coord=None):
 		self.text = text
+		self.coord = coord
+
+	def children(self):
+		nodelist = []
+		return tuple(nodelist)
+
 	attr_names = ('text',)
 
 class CGenerator(c_generator.CGenerator):
