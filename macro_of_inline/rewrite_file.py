@@ -67,6 +67,9 @@ class LabelizeFuncCall(c_ast.NodeVisitor):
 			n.args = c_ast.ExprList([])
 		n.args.exprs.insert(0, c_ast.ID(namespace))
 
+# Buggy thus disabled
+SERIALIZE_LABEL = False
+
 class RewriteFile:
 	"""
 	AST -> AST
@@ -74,6 +77,21 @@ class RewriteFile:
 	def __init__(self, ast):
 		self.ast = ast
 		self.env = rewrite_fun.Env()
+
+	class SerializeLabels(c_ast.NodeVisitor):
+		def __init__(self):
+			self.m = {} # string -> int
+
+		def do_visit(self, n):
+			if n.name not in self.m:
+				self.m[n.name] = len(self.m)
+			n.name = "label%d" % self.m[n.name]
+
+		def visit_Goto(self, n):
+			self.do_visit(n)
+
+		def visit_Label(self, n):
+			self.do_visit(n)
 
 	def run(self):
 		macroizables = [] # (i, runner)
@@ -98,6 +116,15 @@ class RewriteFile:
 
 		# TODO Apply preprocessor and shrink labels to fixed length
 		# Some compiler won't allow too-long lables.
+		if SERIALIZE_LABEL:
+			fn = "%s.c" % rewrite_fun.randstr(16)
+			fp = open(fn, "w")
+			fp.write(pycparser_ext.CGenerator().visit(self.ast))
+			fp.close()
+			# print(cpp_ext.cpp(fn))
+			self.ast = pycparser_ext.ast_of(cpp_ext.cpp(fn))
+			self.SerializeLabels().visit(self.ast)
+			os.remove(fn)
 
 		return self.ast
 
@@ -128,7 +155,7 @@ int f3(void)
   return x;
 }
 
-inline void f4() {}
+inline void f4() { return; }
 inline void f5() { f4(); f4(); }
 int f6() { f5(); f5(); }
 
