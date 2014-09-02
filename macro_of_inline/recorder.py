@@ -1,27 +1,27 @@
 import pycparser_ext
+import cfg
 
 import os
 import shutil
 
-ROOTDIR = "record-macro-of-inline"
-
 class Recorder:
 
 	def __init__(self):
+		self.rec_dir = cfg.env.record_dir
 		self.file_rewrite_level = 0
 
 		self.current_fun_name = None
 		self.fun_rewrite_level = {}
 
-		if os.path.exists(ROOTDIR):
-			shutil.rmtree(ROOTDIR)
+		if os.path.exists(self.rec_dir):
+			shutil.rmtree(self.rec_dir)
 
-		if not os.path.exists(ROOTDIR):
-			os.makedirs(ROOTDIR)
+		if not os.path.exists(self.rec_dir):
+			os.makedirs(self.rec_dir)
 
 	def file_record(self, title, contents):
 		self.file_rewrite_level += 1
-		fn = "%s/%d-%s.txt" % (ROOTDIR, self.file_rewrite_level, title)
+		fn = "%s/%d-%s.txt" % (self.rec_dir, self.file_rewrite_level, title)
 		f = open(fn, "w")
 		f.write(contents)
 		f.close()
@@ -35,7 +35,7 @@ class Recorder:
 		if not fun_name in self.fun_rewrite_level:
 			self.fun_rewrite_level[fun_name] = 0
 
-		dn = "%s/%d-%d/%s" % (ROOTDIR, self.file_rewrite_level, self.file_rewrite_level + 1, fun_name)
+		dn = "%s/%d-%d/%s" % (self.rec_dir, self.file_rewrite_level, self.file_rewrite_level + 1, fun_name)
 		if not os.path.exists(dn):
 			os.makedirs(dn)
 
@@ -49,7 +49,9 @@ class Recorder:
 g_recorder = Recorder()
 
 def file_record(title, contents):
-	g_recorder.file_record(title, contents)
+	if cfg.env.record_enabled:
+		g_recorder.file_record(title, contents)
 
 def fun_record(title, ast):
-	g_recorder.fun_record(title, ast)
+	if cfg.env.record_enabled:
+		g_recorder.fun_record(title, ast)

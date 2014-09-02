@@ -3,14 +3,19 @@
 import sys
 import argparse
 
-from macro_of_inline import rewrite_file
-
+from macro_of_inline import cfg
 parser = argparse.ArgumentParser(version="0.9", description="C Preprocessor to translate inline functions to equivalent macros")
 parser.add_argument("i", metavar="INFILE", help="input filename. It does _not_ need to be preprocessed")
 parser.add_argument("-o", metavar="OUTFILE", help="output (default:-)", default="-")
-parser.add_argument("--record", metavar="DIR", help="recored the tracks of code translation", default="record-macro-of-inline")
+parser.add_argument("--record", nargs='?', metavar="DIR", help="record the tracks of code translation. specify a directory if you don't want to use the default directory (default:record-macro-of-inline)", const="record-macro-of-inline")
 args = parser.parse_args()
+if args.record:
+	cfg.env.record_enabled = True
+	cfg.env.record_dir = args.record
 
+# rewrite_file module imports recorder module and
+# recorder module shouldn't be imported before cfg.env is all set.
+from macro_of_inline import rewrite_file
 runner = rewrite_file.RewriteFileContents(args.i)
 output_txt = runner.run()
 

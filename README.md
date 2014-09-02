@@ -25,6 +25,7 @@ $ macro-of-inline foo/bar/hoge.c -o foo/bar/hoge.c
 ```
 
 To record the tracks of translation, add `--record` flag
+
 ```
 $macro-of-inline foo/bar/hoge.c --record
 ```

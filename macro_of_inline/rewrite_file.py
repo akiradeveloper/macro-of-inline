@@ -4,6 +4,7 @@ import os
 import recorder
 import pycparser_ext
 import cpp_ext
+import cfg
 import rewrite_fun
 
 class LabelizeFuncCall(c_ast.NodeVisitor):
@@ -34,8 +35,7 @@ class LabelizeFuncCall(c_ast.NodeVisitor):
 	f(rand_label_1);
 	f(rand_label_2);
 	"""
-	def __init__(self, env, macro_names):
-		self.env = env
+	def __init__(self, macro_names):
 		self.macro_names = macro_names
 		self.called_in_macro = False
 
@@ -61,7 +61,7 @@ class LabelizeFuncCall(c_ast.NodeVisitor):
 		f.visit(n.name)
 		if not f.result in self.macro_names:
 			return
-		namespace = rewrite_fun.newrandstr(self.env.rand_names, rewrite_fun.N)
+		namespace = rewrite_fun.newrandstr(cfg.env.rand_names, rewrite_fun.N)
 		if self.called_in_macro:
 			namespace = "namespace ## %s" % namespace
 		if n.args == None:
@@ -76,7 +76,6 @@ class RewriteFile:
 	"""
 	def __init__(self, ast):
 		self.ast = ast
-		self.env = rewrite_fun.Env()
 
 	def applyPreprocess(self):
 		fn = "%s.c" % rewrite_fun.randstr(16)
@@ -88,13 +87,12 @@ class RewriteFile:
 		os.remove(fn)
 
 	class NormalizeLabels(c_ast.NodeVisitor):
-		def __init__(self, env):
+		def __init__(self):
 			self.m = {} # string -> int
-			self.env = env
 
 		def do_visit(self, n):
 			if n.name not in self.m:
-				self.m[n.name] = rewrite_fun.newrandstr(self.env.rand_names, rewrite_fun.N)
+				self.m[n.name] = rewrite_fun.newrandstr(cfg.env.rand_names, rewrite_fun.N)
 			n.name = self.m[n.name]
 
 		def visit_Goto(self, n):
@@ -104,7 +102,7 @@ class RewriteFile:
 			self.do_visit(n)
 
 	def normalizeLabels(self):
-		self.NormalizeLabels(self.env).visit(self.ast)
+		self.NormalizeLabels().visit(self.ast)
 
 	def run(self):
 		macroizables = [] # (i, runner)
@@ -116,14 +114,14 @@ class RewriteFile:
 			if not 'inline' in n.decl.funcspec:
 				continue
 
-			runner = rewrite_fun.RewriteFun(self.env, n)
+			runner = rewrite_fun.RewriteFun(n)
 			runner.sanitizeNames()
 			if runner.canMacroize():
 				macroizables.append((i, runner))
 
 		recorder.file_record("sanitize_names", pycparser_ext.CGenerator().visit(self.ast))
 
-		LabelizeFuncCall(self.env, [runner.func.decl.name for i, runner in macroizables]).visit(self.ast)
+		LabelizeFuncCall([runner.func.decl.name for i, runner in macroizables]).visit(self.ast)
 
 		recorder.file_record("labelize_func_call", pycparser_ext.CGenerator().visit(self.ast))
 
