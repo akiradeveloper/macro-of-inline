@@ -1,6 +1,7 @@
 from pycparser import c_parser, c_ast
 
 import os
+import recorder
 import pycparser_ext
 import cpp_ext
 import rewrite_fun
@@ -121,17 +122,25 @@ class RewriteFile:
 			if runner.canMacroize():
 				macroizables.append((i, runner))
 
+		recorder.file_record("sanitize_names", pycparser_ext.CGenerator().visit(self.ast))
+
 		LabelizeFuncCall(self.env, [runner.func.decl.name for i, runner in macroizables]).visit(self.ast)
 
+		recorder.file_record("labelize_func_call", pycparser_ext.CGenerator().visit(self.ast))
+
 		for i, runner in macroizables:
-			runner.insertGotoLabel().rewriteReturnToGoto().appendNamespaceToLabels().macroize()
+			runner.insertGotoLabel().show().rewriteReturnToGoto().show().appendNamespaceToLabels().show().macroize().show()
 			self.ast.ext[i] = runner.returnAST()
+
+		recorder.file_record("macroize", pycparser_ext.CGenerator().visit(self.ast))
 
 		# Apply preprocessor and normalize labels to fixed length
 		# Some compiler won't allow too-long lables.
 		if NORMALIZE_LABEL:
 			self.applyPreprocess()
 			self.normalizeLabels()
+
+		recorder.file_record("normalize_labels", pycparser_ext.CGenerator().visit(self.ast))
 
 		return self.ast
 
