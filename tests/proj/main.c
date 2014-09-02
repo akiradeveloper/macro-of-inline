@@ -4,6 +4,25 @@
 #include "f/g.h"
 #include <ucontext.h>
 
+inline void f_guard(int x)
+{
+	int x = x;
+	if (!x)
+		return;
+}
+
+inline void ff(void)
+{
+	f_guard();
+	f_guard();
+}
+
+inline void fff(void)
+{
+	ff();
+	ff();
+}
+
 int g_var = 0;
 
 typedef struct S {
