@@ -290,6 +290,7 @@ class RewriteFun:
 		RewriteTypeDecl(alias).visit(node)
 
 	def renameArgs(self):
+		self.phase_no += 1
 		if not self.success:
 			return self
 
@@ -298,7 +299,6 @@ class RewriteFun:
 				alias  = self.init_table.alias(arg.node.name)
 				self.renameDecl(arg.node, alias)
 			
-		self.phase_no += 1
 		return self
 
 	def insertDeclLines(self):
@@ -315,6 +315,7 @@ class RewriteFun:
 		  int rand4 = rand2;
 		}
 		"""
+		self.phase_no += 1
 		if not self.success:
 			return self
 
@@ -340,7 +341,6 @@ class RewriteFun:
 				# Rename the arg
 				self.renameDecl(arg.node, newname)
 
-		self.phase_no += 1
 		return self
 
 	def sanitizeNames(self):
@@ -369,6 +369,7 @@ class RewriteFun:
 			self.result = True
 
 	def insertGotoLabel(self):
+		self.phase_no += 1
 		if not self.success:
 			return self
 
@@ -377,7 +378,6 @@ class RewriteFun:
 		if f.result:
 			self.InsertGotoLabel().visit(self.func)
 
-		self.phase_no += 1
 		return self
 
 	class RewriteReturnToGoto(c_ast.NodeVisitor):
@@ -398,11 +398,11 @@ class RewriteFun:
 			c_ast.NodeVisitor.generic_visit(self, n)
 
 	def rewriteReturnToGoto(self):
+		self.phase_no += 1
 		if not self.success:
 			return self
 
 		self.RewriteReturnToGoto().visit(self.func)
-		self.phase_no += 1
 		return self
 
 	class AppendNamespaceToLables(c_ast.NodeVisitor):
@@ -413,14 +413,15 @@ class RewriteFun:
 			n.name = "namespace ## %s" % n.name
 
 	def appendNamespaceToLabels(self):
+		self.phase_no += 1
 		if not self.success:
 			return self
 
 		self.AppendNamespaceToLables().visit(self.func)
-		self.phase_no += 1
 		return self
 
 	def macroize(self):
+		self.phase_no += 1
 		if not self.success:
 			return self
 
@@ -438,7 +439,6 @@ do { \
 } while(0)
 """ % (fun_name, args, body)
 		self.func = pycparser_ext.Any(macro)
-		self.phase_no += 1
 		return self
 
 	def returnAST(self):
