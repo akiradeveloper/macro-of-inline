@@ -1,6 +1,7 @@
 from pycparser import c_parser, c_ast
 
 import recorder
+import cfg
 import pycparser_ext
 import collections
 import string
@@ -34,19 +35,14 @@ def newrandstr(names, n):
 			break
 	return alias
 
-class Env:
-	def __init__(self):
-		self.rand_names = set()
-
 N = 16
 class NameTable:
-	def __init__(self, env):
+	def __init__(self):
 		self.table = {}
 		self.prev_table = None
-		self.env = env
 
 	def register(self, name):
-		alias = newrandstr(self.env.rand_names, N)
+		alias = newrandstr(cfg.env.rand_names, N)
 		if VERBOSE:
 			alias = "%s_%s" % (name, alias)
 		self.table[name] = Symbol(alias, overwritable=False)
@@ -68,7 +64,7 @@ class NameTable:
 		new = {}
 		for name in self.table:
 			new[name] = Symbol(self.table[name].alias, overwritable=True)
-		nt = NameTable(self.env)
+		nt = NameTable()
 		nt.table = new
 		return nt
 	
@@ -186,9 +182,8 @@ class RewriteFun:
 	"""
 	AST -> AST
 	"""
-	def __init__(self, env, func):
+	def __init__(self, func):
 		self.phase_no = 0
-		self.env = env
 		self.func = func
 
 		if DEBUG:
@@ -198,7 +193,7 @@ class RewriteFun:
 		self.success = self.canMacroize()
 
 		self.args = []
-		self.init_table = NameTable(env)
+		self.init_table = NameTable()
 
 		params = []
 		if not self.voidArgs():
@@ -325,7 +320,7 @@ class RewriteFun:
 
 		for arg in reversed(self.args):
 			if arg.shouldInsertDecl():
-				newname = newrandstr(self.env.rand_names, N)
+				newname = newrandstr(cfg.env.rand_names, N)
 
 				# Insert decl line
 				oldname = arg.node.name
@@ -562,7 +557,7 @@ inline void fun(void (*f)(void))
 def test(testcase):
 	parser = c_parser.CParser()
 	ast = parser.parse(testcase)
-	rewrite_fun = RewriteFun(Env(), ast.ext[0])
+	rewrite_fun = RewriteFun(ast.ext[0])
 	rewrite_fun.renameFuncBody().show().renameArgs().show().insertDeclLines().show().insertGotoLabel().show().rewriteReturnToGoto().show().appendNamespaceToLabels().show().macroize().show()
 
 if __name__ == "__main__":
