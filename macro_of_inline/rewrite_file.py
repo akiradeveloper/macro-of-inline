@@ -78,7 +78,6 @@ class RewriteFile:
 		self.ast = ast
 		self.env = rewrite_fun.Env()
 
-
 	def applyPreprocess(self):
 		fn = "%s.c" % rewrite_fun.randstr(16)
 		fp = open(fn, "w")

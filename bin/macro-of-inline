@@ -8,6 +8,7 @@ from macro_of_inline import rewrite_file
 parser = argparse.ArgumentParser(version="0.9", description="C Preprocessor to translate inline functions to equivalent macros")
 parser.add_argument("i", metavar="INFILE", help="input filename. It does _not_ need to be preprocessed")
 parser.add_argument("-o", metavar="OUTFILE", help="output (default:-)", default="-")
+parser.add_argument("--record", metavar="DIR", help="recored the tracks of code translation", default="record-macro-of-inline")
 args = parser.parse_args()
 
 runner = rewrite_file.RewriteFileContents(args.i)

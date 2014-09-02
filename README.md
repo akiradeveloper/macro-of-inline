@@ -24,6 +24,11 @@ will write to stdout and you can overwrite the file:
 $ macro-of-inline foo/bar/hoge.c -o foo/bar/hoge.c
 ```
 
+To record the tracks of translation, add `--record` flag
+```
+$macro-of-inline foo/bar/hoge.c --record
+```
+
 ## Limitation
 
 - In the target file, include directives are located at the head.
