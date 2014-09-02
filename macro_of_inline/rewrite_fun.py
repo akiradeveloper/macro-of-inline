@@ -1,5 +1,6 @@
 from pycparser import c_parser, c_ast
 
+import recorder
 import pycparser_ext
 import collections
 import string
@@ -173,12 +174,12 @@ class RenameVars(c_ast.NodeVisitor):
 GOTO_LABEL = "exit"
 
 PHASES = [
-	"rename function body",
-	"rename args",
-	"insert decl lines",
-	"insert goto label",
-	"rewrite return to goto",
-	"append namespace to labels",
+	"rename_function_body",
+	"rename_args",
+	"insert_decl_lines",
+	"insert_goto_label",
+	"rewrite_return_to_goto",
+	"append_namespace_to_labels",
 	"memoize"]
 
 class RewriteFun:
@@ -343,7 +344,7 @@ class RewriteFun:
 		return self
 
 	def sanitizeNames(self):
-		return self.renameFuncBody().renameArgs().insertDeclLines()
+		return self.renameFuncBody().show().renameArgs().show().insertDeclLines().show()
 
 	class InsertGotoLabel(c_ast.NodeVisitor):
 		"""
@@ -444,9 +445,7 @@ do { \
 		return self.func
 
 	def show(self): 
-		P("\nafter phase: %s" % PHASES[self.phase_no])
-		generator = pycparser_ext.CGenerator()
-		print(generator.visit(self.func))
+		recorder.fun_record(PHASES[self.phase_no], self.func)
 		return self
 
 testcase = r"""

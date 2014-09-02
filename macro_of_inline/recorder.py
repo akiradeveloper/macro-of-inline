@@ -3,16 +3,18 @@ import pycparser_ext
 import os
 import shutil
 
+ROOTDIR = "record-macro-of-inline"
+
 class Recorder:
-	ROOTDIR = "record-macro-of-inline"
 
 	def __init__(self):
 		self.file_rewrite_level = 0
 
 		self.current_fun_name = None
-		self.fun_write_level = {}
+		self.fun_rewrite_level = {}
 
-		shutil.rmtree(ROOTDIR)
+		if os.path.exists(ROOTDIR):
+			shutil.rmtree(ROOTDIR)
 
 		if not os.path.exists(ROOTDIR):
 			os.makedirs(ROOTDIR)
@@ -25,7 +27,7 @@ class Recorder:
 		f.close()
 
 	def fun_record(self, title, ast):
-		if not isinstance(ast, c_ast.Any)
+		if not isinstance(ast, pycparser_ext.Any):
 			self.current_fun_name = ast.decl.name
 
 		fun_name = self.current_fun_name

@@ -1,5 +1,6 @@
 from pycparser import c_ast
 
+import recorder
 import os
 import enum
 import pycparser
@@ -121,6 +122,7 @@ class Apply:
 
 	def on(self, filename):
 		cpped_txt = cpp(filename)
+		recorder.file_record("preprocessed", cpped_txt)
 		# print(cpped_txt)
 
 		includes = analyzeInclude(filename, cpped_txt)
@@ -143,13 +145,18 @@ class Apply:
 
 		ast_b = pycparser_ext.ast_of('\n'.join(included_codes))
 		ast_delete(ast_a, ast_b)
+		recorder.file_record("delete_included_decls", pycparser_ext.CGenerator().visit(ast_a))
 
 		contents = pycparser_ext.CGenerator().visit(ast_a)
-		return """
+
+		contents =  """
 %s
 %s
 
 """ % ('\n'.join(included_headers), pycparser_ext.CGenerator.cleanUp(contents))
+
+		recorder.file_record("union_header_directives", contents)
+		return contents
 
 if __name__ == "__main__":
 	testcase = r"""
