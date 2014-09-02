@@ -27,13 +27,13 @@ $ macro-of-inline foo/bar/hoge.c -o foo/bar/hoge.c
 To record the tracks of translation, add `--record` flag:
 
 ```
-$macro-of-inline foo/bar/hoge.c --record
+$ macro-of-inline foo/bar/hoge.c --record
 ```
 
 Type '-h' for help:
 
 ```
-$macro-of-inline -h
+$ macro-of-inline -h
 usage: macro-of-inline [-h] [-v] [-o OUTFILE] [--record [DIR]] INFILE
 
 C Preprocessor to translate inline functions to equivalent macros
