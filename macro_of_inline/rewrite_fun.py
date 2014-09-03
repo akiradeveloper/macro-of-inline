@@ -13,8 +13,8 @@ Symbol = collections.namedtuple('Symbol', 'alias, overwritable')
 
 DEBUG = False
 
-# False -> $oldname -> $randstr
-# True -> ($oldname -> ($oldname_$randstr))
+# False -> ($oldname -> $randstr)
+# True  -> ($oldname -> ($oldname_$randstr))
 VERBOSE = False
 
 def P(s):

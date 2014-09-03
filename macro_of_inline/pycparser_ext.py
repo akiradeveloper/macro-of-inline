@@ -32,7 +32,7 @@ class CGenerator(c_generator.CGenerator):
 
 	The semicolon (;) appended is not allowed by
 	strict ISO standard. '-pedantic' option of gcc compiler
-	can worn this.
+	can warn this.
 	"""
 	def visit_Any(self, n):
 		return n.text
