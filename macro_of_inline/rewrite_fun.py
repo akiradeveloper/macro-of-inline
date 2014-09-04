@@ -440,7 +440,8 @@ do { \
 		return self.func
 
 	def show(self): 
-		recorder.fun_record(PHASES[self.phase_no], self.func)
+		if self.canMacroize():
+			recorder.fun_record(PHASES[self.phase_no], self.func)
 		return self
 
 testcase = r"""
