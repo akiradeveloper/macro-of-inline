@@ -82,9 +82,10 @@ class RewriteFun:
 	Rewrite all functions
 	that may call the rewritten (non-void -> void) functions.
 	"""
-	def __init__(self, func, non_void_names):
+	def __init__(self, func, non_void_funs):
 		self.func = func
-		self.non_void_names = set(non_void_names)
+		self.non_void_funs = non_void_funs
+		self.non_void_names = set([rewrite_fun.Fun(n).name() for _, n in self.non_void_funs])
 
 	class DeclSplit(c_ast.NodeVisitor):
 		def visit_Compound(self, n):
@@ -138,8 +139,12 @@ class RewriteFun:
 				self.cur_compound.block_items.insert(self.cur_compound_index, c_ast.Assignment("=",
 						c_ast.ID(randvar),
 						old_expr))
-				# TODO insert decl
-				# self.cur_compound.block_items.insert(0, xxx)
+				func = (n for _, n in self.context.non_void_funs if rewrite_fun.Fun(n).name() == expr.name.name).next()
+				old_decl = copy.deepcopy(func.decl.type.type)
+				rewrite_fun.RewriteTypeDecl(randvar).visit(old_decl)
+				self.cur_compound.block_items.insert(0, c_ast.Decl(randvar,
+					[], [], [], old_decl, None, None))
+
 			c_ast.NodeVisitor.generic_visit(self, n)
 
 		def visit_Compound(self, n):
@@ -200,6 +205,8 @@ class RewriteFile:
 			if not rewrite_fun.Fun(n).returnVoid():
 				self.non_void_funs.append((i, n))
 
+		old_non_void_funs = copy.deepcopy(self.non_void_funs)
+
 		# rewrite definitions
 		for i, n in self.non_void_funs:
 			self.ast.ext[i] = VoidFun(n).run().returnAST()
@@ -208,7 +215,7 @@ class RewriteFile:
 		for i, n in enumerate(self.ast.ext):
 			if not isinstance(n, c_ast.FuncDef):
 				continue
-			self.ast.ext[i] = RewriteFun(n, [rewrite_fun.Fun(n).name() for _, n in self.non_void_funs]).run().returnAST()
+			self.ast.ext[i] = RewriteFun(n, old_non_void_funs).run().returnAST()
 
 		return self
 
@@ -252,7 +259,7 @@ int bar() {}
 
 if __name__ == "__main__":
 	ast = pycparser_ext.ast_of(test_file)
-	# ast.show()
+	ast.show()
 	ast = RewriteFile(ast).run().returnAST()
 	# ast.show()
 	print c_generator.CGenerator().visit(ast)
