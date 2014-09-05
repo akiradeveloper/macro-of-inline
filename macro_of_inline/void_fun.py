@@ -1,4 +1,5 @@
 from pycparser import c_ast, c_generator
+import copy
 import inspect
 import rewrite_fun
 import pycparser_ext
@@ -13,6 +14,12 @@ import pycparser_ext
 #       TypeDecl: f, []
 #         IdentifierType: ['void']
 
+        # Decl: t, [], [], []
+        #   PtrDecl: []
+        #     PtrDecl: []
+        #       TypeDecl: t, []
+        #         Struct: T
+
 class VoidFun(rewrite_fun.Fun):
 	"""
 	Rewrite function definitions
@@ -23,18 +30,26 @@ class VoidFun(rewrite_fun.Fun):
 	def __init__(self, func):
 		self.func = func
 
+	def addRetval(self):
+		rettype = copy.deepcopy(self.func.decl.type.type)
+		rewrite_fun.RewriteTypeDecl("retval").visit(rettype)
+		newarg = c_ast.Decl("retval", [], [], [], c_ast.PtrDecl([], rettype), None, None)
+		params = []
+		if not self.voidArgs():
+			params = self.func.decl.type.args.params
+		params.append(newarg)
+		self.func.decl.type.args.params = params
+		return self
+
 	def voidReturnValue(self):
 		self.func.decl.type.type = c_ast.TypeDecl(self.name(), [], c_ast.IdentifierType(["void"]))
 		return self
 
-	def addRetval(self):
-		return self
-	
 	def rewriteReturn(self):
 		return self
 
 	def run(self):		
-		return self.voidReturnValue().show().addRetval().show().rewriteReturn().show()
+		return self.addRetval().show().voidReturnValue().show().rewriteReturn().show()
 
 	def returnAST(self):
 		return self.func
@@ -90,5 +105,6 @@ inline struct T *f(int n)
 
 if __name__ == "__main__":
 	fun = pycparser_ext.ast_of(test_fun).ext[0]
+	fun.show()
 	ast = VoidFun(fun).run().returnAST()
 	print c_generator.CGenerator().visit(ast)
