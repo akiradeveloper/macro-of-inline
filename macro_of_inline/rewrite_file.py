@@ -115,9 +115,11 @@ class RewriteFile:
 				continue
 
 			runner = rewrite_fun.RewriteFun(n)
-			runner.sanitizeNames()
 			if runner.canMacroize():
 				macroizables.append((i, runner))
+
+		for i, runner in macroizables:
+			runner.sanitizeNames()
 
 		recorder.file_record("sanitize_names", pycparser_ext.CGenerator().visit(self.ast))
 
