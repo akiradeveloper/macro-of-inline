@@ -121,30 +121,35 @@ class RewriteFun:
 				# param_decl.show()
 				self.cur_table.register(param_decl.name)
 
+		def expandFuncCall(self, exprs, i):
+			expr = exprs[i]
+			if not isinstance(expr, c_ast.FuncCall):
+				return
+			unshadowed_names = self.context.non_void_names - self.cur_table.names
+			if not expr.name.name in unshadowed_names:
+				return
+			self.found = True
+			randvar = rewrite_fun.newrandstr(cfg.env.rand_names, rewrite_fun.N)
+			old_expr = copy.deepcopy(exprs[i])
+			exprs[i] = c_ast.ID(randvar)
+			self.cur_compound.block_items.insert(self.cur_compound_index, c_ast.Assignment("=",
+					c_ast.ID(randvar),
+					old_expr))
+			func = (m for _, m in self.context.non_void_funs if rewrite_fun.Fun(m).name() == expr.name.name).next()
+			old_decl = copy.deepcopy(func.decl.type.type)
+			rewrite_fun.RewriteTypeDecl(randvar).visit(old_decl)
+			self.cur_compound.block_items.insert(0, c_ast.Decl(randvar,
+				[], [], [], old_decl, None, None))
+
 		def onFuncCall(self, n):
 			if self.found:
 				return
 			if not n.args:
 				return
 			for i, expr in enumerate(n.args.exprs):
-				if not isinstance(expr, c_ast.FuncCall):
-					continue
-				unshadowed_names = self.context.non_void_names - self.cur_table.names
-				if not expr.name.name in unshadowed_names:
-					continue
-				self.found = True
-				randvar = rewrite_fun.newrandstr(cfg.env.rand_names, rewrite_fun.N)
-				old_expr = copy.deepcopy(n.args.exprs[i])
-				n.args.exprs[i] = c_ast.ID(randvar)
-				self.cur_compound.block_items.insert(self.cur_compound_index, c_ast.Assignment("=",
-						c_ast.ID(randvar),
-						old_expr))
-				func = (m for _, m in self.context.non_void_funs if rewrite_fun.Fun(m).name() == expr.name.name).next()
-				old_decl = copy.deepcopy(func.decl.type.type)
-				rewrite_fun.RewriteTypeDecl(randvar).visit(old_decl)
-				self.cur_compound.block_items.insert(0, c_ast.Decl(randvar,
-					[], [], [], old_decl, None, None))
-
+				self.expandFuncCall(n.args.exprs, i)
+				if self.found:
+					break
 			c_ast.NodeVisitor.generic_visit(self, n)
 
 		def visit_Compound(self, n):
