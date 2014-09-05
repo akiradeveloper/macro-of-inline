@@ -178,35 +178,7 @@ PHASES = [
 	"append_namespace_to_labels",
 	"memoize"]
 
-class RewriteFun:
-	"""
-	AST -> AST
-	"""
-	def __init__(self, func):
-		self.phase_no = 0
-		self.func = func
-
-		if DEBUG:
-			self.func.show()
-
-		self.success = None
-		self.success = self.canMacroize()
-
-		self.args = []
-		self.init_table = NameTable()
-
-		params = []
-		if not self.voidArgs():
-			params = func.decl.type.args.params	
-
-		for param_decl in params:
-			arg = Arg(param_decl)
-			self.args.append(arg)
-
-		for arg in self.args:
-			name = arg.node.name
-			self.init_table.declare(name)
-
+class Fun:
 	class ReturnVoid(c_ast.NodeVisitor):
 		def __init__(self):
 			self.result = False
@@ -253,6 +225,35 @@ class RewriteFun:
 		f = self.VoidParam()
 		f.visit(param)
 		return f.result
+
+class RewriteFun(Fun):
+	"""
+	AST -> AST
+	"""
+	def __init__(self, func):
+		self.phase_no = 0
+		self.func = func
+
+		if DEBUG:
+			self.func.show()
+
+		self.success = None
+		self.success = self.canMacroize()
+
+		self.args = []
+		self.init_table = NameTable()
+
+		params = []
+		if not self.voidArgs():
+			params = func.decl.type.args.params
+
+		for param_decl in params:
+			arg = Arg(param_decl)
+			self.args.append(arg)
+
+		for arg in self.args:
+			name = arg.node.name
+			self.init_table.declare(name)
 
 	def canMacroize(self):
 		if self.success != None: # Lazy initialization
