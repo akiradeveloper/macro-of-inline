@@ -6,6 +6,7 @@ import pycparser_ext
 import cpp_ext
 import cfg
 import rewrite_fun
+import void_fun
 
 class LabelizeFuncCall(c_ast.NodeVisitor):
 	"""
@@ -69,6 +70,7 @@ class LabelizeFuncCall(c_ast.NodeVisitor):
 		n.args.exprs.insert(0, c_ast.ID(namespace))
 
 NORMALIZE_LABEL = True
+MACROIZE_NON_VOID = True
 
 class RewriteFile:
 	"""
@@ -105,6 +107,10 @@ class RewriteFile:
 		self.NormalizeLabels().visit(self.ast)
 
 	def run(self):
+		if MACROIZE_NON_VOID:
+			void_runner = void_fun.RewriteFile(self.ast)
+			void_runner.rewriteNonVoidFuncs()
+
 		macroizables = [] # (i, runner)
 		for i, n in enumerate(self.ast.ext):
 			if not isinstance(n, c_ast.FuncDef):
@@ -122,6 +128,10 @@ class RewriteFile:
 			runner.sanitizeNames()
 
 		recorder.file_record("sanitize_names", pycparser_ext.CGenerator().visit(self.ast))
+
+		if MACROIZE_NON_VOID:
+			# void_runner.rewriteCallerFuncs()
+			pass
 
 		LabelizeFuncCall([runner.func.decl.name for i, runner in macroizables]).visit(self.ast)
 
@@ -183,6 +193,8 @@ inline void f8(int x)
 {
   int y = (int) x;
 }
+
+inline int f9(int x) { return x; }
 
 int main()
 {

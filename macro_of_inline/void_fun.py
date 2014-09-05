@@ -115,9 +115,9 @@ class RewriteFun:
 class RewriteFile:
 	def __init__(self, ast):
 		self.ast = ast
+		self.non_void_funs = []
 
-	def run(self):
-		non_void_funs = []
+	def rewriteNonVoidFuncs(self):
 		for i, n in enumerate(self.ast.ext):
 			if not isinstance(n, c_ast.FuncDef):
 				continue
@@ -126,18 +126,21 @@ class RewriteFile:
 				continue
 
 			if not rewrite_fun.Fun(n).returnVoid():
-				non_void_funs.append((i, n))
+				self.non_void_funs.append((i, n))
 
 		# rewrite definitions
-		for i, n in non_void_funs:
+		for i, n in self.non_void_funs:
 			self.ast.ext[i] = VoidFun(n).run().returnAST()
 
+		return self
+
+	def rewriteCallerFuncs(self):
 		# rewrite all functions
 		for i, n in enumerate(self.ast.ext):
 			if not isinstance(n, c_ast.FuncDef):
 				continue
+			self.ast.ext[i] = RewriteFun(n, [rewrite_fun.Fun(n).name() for _, n in self.non_void_funs]).run().returnAST()
 
-			self.ast.ext[i] = RewriteFun(n, [rewrite_fun.Fun(n).name() for _, n in non_void_funs]).run().returnAST()
 		return self
 
 	def returnAST(self):
@@ -160,7 +163,7 @@ inline int h1(int x) { return x; }
 int h2(int x) { return x; }
 inline int h3(int x) { return x; }
 
-int h()
+int foo()
 {
 	int x = f();
 	x += 1;
@@ -170,11 +173,14 @@ int h()
 	int p;
 	return g(x, f());
 }
+
+
+int bar() {}
 """
 
 if __name__ == "__main__":
 	ast = pycparser_ext.ast_of(test_file)
-	ast = RewriteFile(ast).run().returnAST()
+	ast = RewriteFile(ast).rewriteNonVoidFuncs().rewriteCallerFuncs().returnAST()
 	ast.show()
 	print c_generator.CGenerator().visit(ast)
 
