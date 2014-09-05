@@ -44,6 +44,7 @@ class VoidFun(rewrite_fun.Fun):
 						c_ast.UnaryOp("*", c_ast.ID("retval")), # lvalue
 						item.expr) # rvalue
 				n.block_items.append(c_ast.Return(None))
+			# FIXME ? call generic_visit()
 
 	def rewriteReturn(self):
 		self.ReturnToAssignment().visit(self.func)
@@ -86,6 +87,23 @@ class RewriteFun:
 				decl_var = copy.deepcopy(decl)
 				decl_var.init = None
 				n.block_items.insert(0, decl_var)
+
+	# class CollectFuncCallArgs(c_ast.NodeVisitor):
+	# 	def __init__(self):
+	# 		self.result = []
+    #
+	# class PopFuncCall(c_ast.NodeVisitor):
+	# 	def visit_Compound(self, n):
+	# 		func_call_args = []
+	# 		for i, item in enumerate(n.block_items) or []:
+	# 			f = CollectFuncCallArgs()
+	# 			f.visit(item)
+	# 			if len(f.result) > 0:
+	# 				func_call_args.append((i, f.result))
+	# 		for i, result in reversed(func_call_args):
+	# 			for fun in result:
+	# 				n.block_items.insert(i, Assignment("=",
+	# 					varname,
 
 	def run(self):
 		self.DeclSplit().visit(self.func)
@@ -138,14 +156,19 @@ test_file = r"""
 inline int f(void) { return 0; }
 inline int g(int a, int b) { return a * b; }
 
+inline int h1(int x) { return x; }
+int h2(int x) { return x; }
+inline int h3(int x) { return x; }
+
 int h()
 {
 	int x = f();
 	x += 1;
-	int y = g(x, f());
+	int y = g(z, g(y, f()));
 	int z = 2;
+	int hR = h1(h2(h3(0)));
 	int p;
-	return g(z, g(y, f()));
+	return g(x, f());
 }
 """
 
