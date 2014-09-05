@@ -4,22 +4,6 @@ import inspect
 import rewrite_fun
 import pycparser_ext
 
-# FuncDef: 
-#   Decl: f, [], [], ['inline']
-#     FuncDecl: 
-#       ParamList: 
-#         Decl: n, [], [], []
-#           TypeDecl: n, []
-#             IdentifierType: ['int']
-#       TypeDecl: f, []
-#         IdentifierType: ['void']
-
-        # Decl: t, [], [], []
-        #   PtrDecl: []
-        #     PtrDecl: []
-        #       TypeDecl: t, []
-        #         Struct: T
-
 class VoidFun(rewrite_fun.Fun):
 	"""
 	Rewrite function definitions
@@ -45,7 +29,24 @@ class VoidFun(rewrite_fun.Fun):
 		self.func.decl.type.type = c_ast.TypeDecl(self.name(), [], c_ast.IdentifierType(["void"]))
 		return self
 
+	class ReturnToAssignment(c_ast.NodeVisitor):
+		def visit_Compound(self, n):
+			if not n.block_items:
+				return
+
+			return_item = None
+			for i, item in enumerate(n.block_items):
+				if isinstance(item, c_ast.Return):
+					return_item = (i, item)
+			if return_item != None:
+				i, item = return_item
+				n.block_items[i] = c_ast.Assignment("=",
+						c_ast.UnaryOp("*", c_ast.ID("retval")), # lvalue
+						item.expr)
+				n.block_items.append(c_ast.Return(None))
+
 	def rewriteReturn(self):
+		self.ReturnToAssignment().visit(self.func)
 		return self
 
 	def run(self):		
@@ -99,7 +100,7 @@ inline struct T *f(int n)
 {
 	struct T *t = init_t();
 	t->x = n;
-	return t;
+	return g(t);
 }
 """
 
