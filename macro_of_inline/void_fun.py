@@ -1,4 +1,5 @@
 from pycparser import c_ast, c_generator
+import cfg
 import copy
 import inspect
 import rewrite_fun
@@ -60,13 +61,30 @@ class VoidFun(rewrite_fun.Fun):
 		self.func.show()
 		return self
 
+class SymbolTable:
+	def __init__(self):
+		self.names = set()
+		self.prev_table = None
+
+	def register(self, name):
+		self.names.add(name)
+
+	def clone(self):
+		st = SymbolTable()
+		st.names = copy.deepcopy(self.names)
+		return st
+
+	def show(self):
+		print(self.names)
+
 class RewriteFun:
 	"""
 	Rewrite all functions
 	that may call the rewritten (non-void -> void) functions.
 	"""
-	def __init__(self, func, names):
+	def __init__(self, func, non_void_names):
 		self.func = func
+		self.non_void_names = set(non_void_names)
 
 	class DeclSplit(c_ast.NodeVisitor):
 		def visit_Compound(self, n):
@@ -88,25 +106,79 @@ class RewriteFun:
 				decl_var.init = None
 				n.block_items.insert(0, decl_var)
 
-	# class CollectFuncCallArgs(c_ast.NodeVisitor):
-	# 	def __init__(self):
-	# 		self.result = []
-    #
-	# class PopFuncCall(c_ast.NodeVisitor):
-	# 	def visit_Compound(self, n):
-	# 		func_call_args = []
-	# 		for i, item in enumerate(n.block_items) or []:
-	# 			f = CollectFuncCallArgs()
-	# 			f.visit(item)
-	# 			if len(f.result) > 0:
-	# 				func_call_args.append((i, f.result))
-	# 		for i, result in reversed(func_call_args):
-	# 			for fun in result:
-	# 				n.block_items.insert(i, Assignment("=",
-	# 					varname,
+
+	class PopFuncCall(c_ast.NodeVisitor):
+		def __init__(self, context):
+			self.context = context
+			self.cur_table = SymbolTable()
+			self.found = False
+
+			if not self.context.func.decl.type.args:
+				return
+
+			for param_decl in self.context.func.decl.type.args.params or []:
+				# param_decl.show()
+				self.cur_table.register(param_decl.name)
+
+		def onFuncCall(self, n):
+			if self.found:
+				return
+			if not n.args:
+				return
+			for i, expr in enumerate(n.args.exprs):
+				if not isinstance(expr, c_ast.FuncCall):
+					continue
+				unshadowed_names = self.context.non_void_names - self.cur_table.names
+				if not expr.name.name in unshadowed_names:
+					continue
+				n.found = True
+				randvar = rewrite_fun.newrandstr(cfg.env.rand_names, rewrite_fun.N)
+				old_expr = copy.deepcopy(n.args.exprs[i])
+				n.args.exprs[i] = c_ast.ID(randvar)
+				self.cur_compound.block_items.insert(self.cur_compound_index, c_ast.Assignment("=",
+						c_ast.ID(randvar),
+						old_expr))
+				# TODO insert decl
+				# self.cur_compound.block_items.insert(0, xxx)
+			c_ast.NodeVisitor.generic_visit(self, n)
+
+		def visit_Compound(self, n):
+			self.cur_compound = n
+			self.switchTable()
+			for i, item in enumerate(n.block_items or []):
+				self.cur_compound_index = i
+				if isinstance(item, c_ast.Decl):
+					self.cur_table.register(item.name)
+				elif isinstance(item, c_ast.FuncCall):
+					self.onFuncCall(item)
+				else:
+					c_ast.NodeVisitor.generic_visit(self, item)
+			self.revertTable()
+
+		def visit_FuncCall(self, n):
+			self.onFuncCall(n)
+
+		def switchTable(self):
+			new_table = self.cur_table.clone()
+			new_table.prev_table = self.cur_table
+			self.cur_table = new_table
+
+		def revertTable(self):
+			self.cur_table = self.cur_table.prev_table;
 
 	def run(self):
 		self.DeclSplit().visit(self.func)
+
+		cont = True
+		while cont:
+			f = self.PopFuncCall(self)
+			f.visit(self.func)
+			cont = f.found
+
+		print "--"
+		f = self.PopFuncCall(self)
+		f.visit(self.func)
+
 		return self
 
 	def returnAST(self):
@@ -160,13 +232,16 @@ inline int h1(int x) { return x; }
 int h2(int x) { return x; }
 inline int h3(int x) { return x; }
 
+void r(int x) {}
+
 int foo()
 {
 	int x = f();
+	r(f());
 	x += 1;
 	int y = g(z, g(y, f()));
 	int z = 2;
-	int hR = h1(h2(h3(0)));
+	int hR = h1(h1(h2(h3(0))));
 	int p;
 	return g(x, f());
 }
@@ -177,8 +252,9 @@ int bar() {}
 
 if __name__ == "__main__":
 	ast = pycparser_ext.ast_of(test_file)
+	# ast.show()
 	ast = RewriteFile(ast).run().returnAST()
-	ast.show()
+	# ast.show()
 	print c_generator.CGenerator().visit(ast)
 
 	# fun = pycparser_ext.ast_of(test_fun).ext[0]
