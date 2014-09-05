@@ -182,6 +182,9 @@ class Fun:
 	def __init__(self, func):
 		self.func = func
 
+	def name(self):
+		return self.func.decl.name
+
 	class ReturnVoid(c_ast.NodeVisitor):
 		def __init__(self):
 			self.result = False
@@ -427,7 +430,7 @@ class RewriteFun(Fun):
 		if not self.success:
 			return self
 
-		fun_name = self.func.decl.name
+		fun_name = self.name()
 		args = ', '.join(["namespace"] + map(lambda arg: arg.node.name, self.args))
 		generator = pycparser_ext.CGenerator()
 		body_contents = generator.visit(self.func.body).splitlines()[1:-1]
