@@ -53,7 +53,6 @@ optional arguments:
 ## Limitation
 
 - In the target file, include directives are located at the head.
-- Only those returns void will be translated. For technical reason, those returns non-void values can't be translated correctly.
 - GCC-extension will be ignored (input file will be preprocessed with -U\_\_GNUC\_\_). This is a limitation of pycparser.
 
 ## Installation
@@ -63,7 +62,7 @@ optional arguments:
 
 ## Todo
 
-- fake\_lib\_include should be downloaded from pycparser.
+- fake\_libc\_include should be downloaded from pycparser.
 - Automated regressiong tests. 
 - More experience with actual projects (hope to hear your reports).
 
