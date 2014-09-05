@@ -42,7 +42,7 @@ class VoidFun(rewrite_fun.Fun):
 				i, item = return_item
 				n.block_items[i] = c_ast.Assignment("=",
 						c_ast.UnaryOp("*", c_ast.ID("retval")), # lvalue
-						item.expr)
+						item.expr) # rvalue
 				n.block_items.append(c_ast.Return(None))
 
 	def rewriteReturn(self):
@@ -67,7 +67,28 @@ class RewriteFun:
 	def __init__(self, func, names):
 		self.func = func
 
+	class DeclSplit(c_ast.NodeVisitor):
+		def visit_Compound(self, n):
+			decls = []
+			for i, item in enumerate(n.block_items) or []:
+				if isinstance(item, c_ast.Decl):
+					decls.append((i, item))
+
+			for i, decl in reversed(decls):
+				if decl.init:
+					n.block_items[i] = c_ast.Assignment("=",
+							c_ast.ID(decl.name), # lvalue
+							decl.init) # rvalue
+				else:
+					del n.block_items[i]
+
+			for _, decl in reversed(decls):
+				decl_var = copy.deepcopy(decl)
+				decl_var.init = None
+				n.block_items.insert(0, decl_var)
+
 	def run(self):
+		self.DeclSplit().visit(self.func)
 		return self
 
 	def returnAST(self):
@@ -78,7 +99,6 @@ class RewriteFile:
 		self.ast = ast
 
 	def run(self):
-
 		non_void_funs = []
 		for i, n in enumerate(self.ast.ext):
 			if not isinstance(n, c_ast.FuncDef):
@@ -124,6 +144,7 @@ int h()
 	x += 1;
 	int y = g(x, f());
 	int z = 2;
+	int p;
 	return g(z, g(y, f()));
 }
 """
@@ -131,6 +152,7 @@ int h()
 if __name__ == "__main__":
 	ast = pycparser_ext.ast_of(test_file)
 	ast = RewriteFile(ast).run().returnAST()
+	ast.show()
 	print c_generator.CGenerator().visit(ast)
 
 	# fun = pycparser_ext.ast_of(test_fun).ext[0]
