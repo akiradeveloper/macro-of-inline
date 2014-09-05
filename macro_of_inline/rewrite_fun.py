@@ -365,6 +365,8 @@ class RewriteFun(Fun):
 			if not n.block_items:
 				n.block_items = []
 			n.block_items.append(c_ast.Label(GOTO_LABEL, c_ast.EmptyStatement()))
+			# We don't need recursive generic_visit() because we only want to
+			# insert goto at the top level.
 
 	class HasReturn(c_ast.NodeVisitor):
 		def __init__(self):
