@@ -111,7 +111,7 @@ class RewriteFile:
 				continue
 
 			# -ansi doesn't allow inline specifier
-			if not 'inline' in n.decl.funcspec:
+			if not rewrite_fun.Fun(n).isInline():
 				continue
 
 			runner = rewrite_fun.RewriteFun(n)

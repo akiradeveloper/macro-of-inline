@@ -179,6 +179,9 @@ PHASES = [
 	"memoize"]
 
 class Fun:
+	def __init__(self, func):
+		self.func = func
+
 	class ReturnVoid(c_ast.NodeVisitor):
 		def __init__(self):
 			self.result = False
@@ -225,6 +228,9 @@ class Fun:
 		f = self.VoidParam()
 		f.visit(param)
 		return f.result
+
+	def isInline(self):
+		return "inline" in self.func.decl.funcspec
 
 class RewriteFun(Fun):
 	"""
