@@ -23,6 +23,13 @@ inline void fff(void)
 	ff();
 }
 
+inline int ffff(void)
+{
+	fff();
+	fff();
+	return 0;
+}
+
 int g_var = 0;
 
 typedef struct S {

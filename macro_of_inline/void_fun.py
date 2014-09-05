@@ -1,4 +1,5 @@
 from pycparser import c_ast, c_generator
+import recorder
 import cfg
 import copy
 import inspect
@@ -14,6 +15,13 @@ class VoidFun(rewrite_fun.Fun):
 	"""
 	def __init__(self, func):
 		self.func = func
+		self.phase_no = 0
+
+	PHASES = [
+			"add_ret_val",
+			"void_return_type",
+			"return_to_assignment",
+	]
 
 	def addRetval(self):
 		rettype = copy.deepcopy(self.func.decl.type.type)
@@ -27,6 +35,7 @@ class VoidFun(rewrite_fun.Fun):
 		return self
 
 	def voidReturnValue(self):
+		self.phase_no += 1
 		self.func.decl.type.type = c_ast.TypeDecl(self.name(), [], c_ast.IdentifierType(["void"]))
 		return self
 
@@ -48,6 +57,8 @@ class VoidFun(rewrite_fun.Fun):
 			# FIXME ? call generic_visit()
 
 	def rewriteReturn(self):
+		self.phase_no += 1
+
 		self.ReturnToAssignment().visit(self.func)
 		return self
 
@@ -58,7 +69,7 @@ class VoidFun(rewrite_fun.Fun):
 		return self.func
 
 	def show(self):
-		self.func.show()
+		recorder.fun_record(self.PHASES[self.phase_no], self.func)
 		return self
 
 class SymbolTable:
@@ -78,12 +89,18 @@ class SymbolTable:
 		print(self.names)
 
 class RewriteFun:
+	PHASES = [
+			"split_decls",
+			"pop_fun_calls",
+	]
+
 	"""
 	Rewrite all functions
 	that may call the rewritten (non-void -> void) functions.
 	"""
 	def __init__(self, func, non_void_funs):
 		self.func = func
+		self.phase_no = 0
 		self.non_void_funs = non_void_funs
 		self.non_void_names = set([rewrite_fun.Fun(n).name() for _, n in self.non_void_funs])
 
@@ -201,21 +218,24 @@ class RewriteFun:
 
 	def run(self):
 		self.DeclSplit().visit(self.func)
+		self.show()
 
+		self.phase_no += 1
 		cont = True
 		while cont:
 			f = self.PopFuncCall(self)
 			f.visit(self.func)
 			cont = f.found
-
-		print "--"
-		f = self.PopFuncCall(self)
-		f.visit(self.func)
+		self.show()
 
 		return self
 
 	def returnAST(self):
 		return self.func
+
+	def show(self):
+		recorder.fun_record(self.PHASES[self.phase_no], self.func)
+		return self
 
 class RewriteFile:
 	def __init__(self, ast):
@@ -239,11 +259,15 @@ class RewriteFile:
 		for i, n in self.non_void_funs:
 			self.ast.ext[i] = VoidFun(n).run().returnAST()
 
+		recorder.file_record("rewrite_func_defines", c_generator.CGenerator().visit(self.ast))
+
 		# Rewrite all callers
 		for i, n in enumerate(self.ast.ext):
 			if not isinstance(n, c_ast.FuncDef):
 				continue
 			self.ast.ext[i] = RewriteFun(n, old_non_void_funs).run().returnAST()
+
+		recorder.file_record("rewrite_all_callers", c_generator.CGenerator().visit(self.ast))
 
 		return self
 

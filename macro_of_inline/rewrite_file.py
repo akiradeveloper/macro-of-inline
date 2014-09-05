@@ -110,6 +110,7 @@ class RewriteFile:
 		if MACROIZE_NON_VOID:
 			void_runner = void_fun.RewriteFile(self.ast)
 			void_runner.run()
+			recorder.file_record("convert_non_void_to_void", pycparser_ext.CGenerator().visit(self.ast))
 
 		macroizables = [] # (i, runner)
 		for i, n in enumerate(self.ast.ext):
