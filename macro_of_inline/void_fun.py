@@ -132,14 +132,14 @@ class RewriteFun:
 				unshadowed_names = self.context.non_void_names - self.cur_table.names
 				if not expr.name.name in unshadowed_names:
 					continue
-				n.found = True
+				self.found = True
 				randvar = rewrite_fun.newrandstr(cfg.env.rand_names, rewrite_fun.N)
 				old_expr = copy.deepcopy(n.args.exprs[i])
 				n.args.exprs[i] = c_ast.ID(randvar)
 				self.cur_compound.block_items.insert(self.cur_compound_index, c_ast.Assignment("=",
 						c_ast.ID(randvar),
 						old_expr))
-				func = (n for _, n in self.context.non_void_funs if rewrite_fun.Fun(n).name() == expr.name.name).next()
+				func = (m for _, m in self.context.non_void_funs if rewrite_fun.Fun(m).name() == expr.name.name).next()
 				old_decl = copy.deepcopy(func.decl.type.type)
 				rewrite_fun.RewriteTypeDecl(randvar).visit(old_decl)
 				self.cur_compound.block_items.insert(0, c_ast.Decl(randvar,
