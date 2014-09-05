@@ -67,7 +67,13 @@ class RewriteFun:
 	def __init__(self, func, names):
 		self.func = func
 
-class File:
+	def run(self):
+		return self
+
+	def returnAST(self):
+		return self.func
+
+class RewriteFile:
 	def __init__(self, ast):
 		self.ast = ast
 
@@ -93,7 +99,11 @@ class File:
 			if not isinstance(n, c_ast.FuncDef):
 				continue
 
-			self.ast.ext[i] = RewriteFun(n, [rewrite_fun.Fun(n).name() for n in non_void_funs]).run()
+			self.ast.ext[i] = RewriteFun(n, [rewrite_fun.Fun(n).name() for _, n in non_void_funs]).run().returnAST()
+		return self
+
+	def returnAST(self):
+		return self.ast
 
 test_fun = r"""
 inline struct T *f(int n)
@@ -104,8 +114,26 @@ inline struct T *f(int n)
 }
 """
 
+test_file = r"""
+inline int f(void) { return 0; }
+inline int g(int a, int b) { return a * b; }
+
+int h()
+{
+	int x = f();
+	x += 1;
+	int y = g(x, f());
+	int z = 2;
+	return g(z, g(y, f()));
+}
+"""
+
 if __name__ == "__main__":
-	fun = pycparser_ext.ast_of(test_fun).ext[0]
-	fun.show()
-	ast = VoidFun(fun).run().returnAST()
+	ast = pycparser_ext.ast_of(test_file)
+	ast = RewriteFile(ast).run().returnAST()
 	print c_generator.CGenerator().visit(ast)
+
+	# fun = pycparser_ext.ast_of(test_fun).ext[0]
+	# fun.show()
+	# ast = VoidFun(fun).run().returnAST()
+	# print c_generator.CGenerator().visit(ast)
