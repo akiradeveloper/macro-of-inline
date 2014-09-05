@@ -118,38 +118,54 @@ class RewriteFun:
 				return
 
 			for param_decl in self.context.func.decl.type.args.params or []:
-				# param_decl.show()
 				self.cur_table.register(param_decl.name)
 
-		def expandFuncCall(self, exprs, i):
-			expr = exprs[i]
+		def expandFuncCall(self, exprs, i, retitem):
+			"""
+			(exprs, i, None)
+			@exprs are the parameters of function call and @i is the visiting index.
+
+			(None, None, retitem)
+			The @retiem is of c_ast.Return
+			As return() is not a function we need this tricky work-around.
+			"""
+			if self.found:
+				return
+			expr = exprs[i] if exprs else retitem.expr
 			if not isinstance(expr, c_ast.FuncCall):
 				return
 			unshadowed_names = self.context.non_void_names - self.cur_table.names
 			if not expr.name.name in unshadowed_names:
 				return
+
 			self.found = True
 			randvar = rewrite_fun.newrandstr(cfg.env.rand_names, rewrite_fun.N)
-			old_expr = copy.deepcopy(exprs[i])
-			exprs[i] = c_ast.ID(randvar)
-			self.cur_compound.block_items.insert(self.cur_compound_index, c_ast.Assignment("=",
-					c_ast.ID(randvar),
-					old_expr))
-			func = (m for _, m in self.context.non_void_funs if rewrite_fun.Fun(m).name() == expr.name.name).next()
+			old_expr = copy.deepcopy(expr)
+			if exprs:
+				exprs[i] = c_ast.ID(randvar)
+			else:
+				retitem.expr = c_ast.ID(randvar)
+
+			# randvar = expr;
+			self.cur_compound.block_items.insert(self.cur_compound_index,
+					c_ast.Assignment("=",
+						c_ast.ID(randvar), # lvalue
+						old_expr)) # rvalue
+
+			# T randvar;
+			func = (m for _, m in self.context.non_void_funs if rewrite_fun.Fun(m).name() == old_expr.name.name).next()
 			old_decl = copy.deepcopy(func.decl.type.type)
 			rewrite_fun.RewriteTypeDecl(randvar).visit(old_decl)
 			self.cur_compound.block_items.insert(0, c_ast.Decl(randvar,
 				[], [], [], old_decl, None, None))
 
 		def onFuncCall(self, n):
-			if self.found:
-				return
 			if not n.args:
 				return
 			for i, expr in enumerate(n.args.exprs):
-				self.expandFuncCall(n.args.exprs, i)
+				self.expandFuncCall(n.args.exprs, i, None)
 				if self.found:
-					break
+					return
 			c_ast.NodeVisitor.generic_visit(self, n)
 
 		def visit_Compound(self, n):
@@ -160,8 +176,15 @@ class RewriteFun:
 				if isinstance(item, c_ast.Decl):
 					self.cur_table.register(item.name)
 				elif isinstance(item, c_ast.FuncCall):
+					# f();
 					self.onFuncCall(item)
+				elif isinstance(item, c_ast.Return):
+					if not item.expr:
+						return
+					# return expr;
+					self.expandFuncCall(None, None, item)
 				else:
+					# var = f();
 					c_ast.NodeVisitor.generic_visit(self, item)
 			self.revertTable()
 
@@ -212,11 +235,11 @@ class RewriteFile:
 
 		old_non_void_funs = copy.deepcopy(self.non_void_funs)
 
-		# rewrite definitions
+		# Rewrite definitions
 		for i, n in self.non_void_funs:
 			self.ast.ext[i] = VoidFun(n).run().returnAST()
 
-		# rewrite all functions
+		# Rewrite all callers
 		for i, n in enumerate(self.ast.ext):
 			if not isinstance(n, c_ast.FuncDef):
 				continue
