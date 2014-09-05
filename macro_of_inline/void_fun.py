@@ -71,7 +71,7 @@ class RewriteFun:
 	class DeclSplit(c_ast.NodeVisitor):
 		def visit_Compound(self, n):
 			decls = []
-			for i, item in enumerate(n.block_items) or []:
+			for i, item in enumerate(n.block_items or []):
 				if isinstance(item, c_ast.Decl):
 					decls.append((i, item))
 
@@ -117,7 +117,7 @@ class RewriteFile:
 		self.ast = ast
 		self.non_void_funs = []
 
-	def rewriteNonVoidFuncs(self):
+	def run(self):
 		for i, n in enumerate(self.ast.ext):
 			if not isinstance(n, c_ast.FuncDef):
 				continue
@@ -132,9 +132,6 @@ class RewriteFile:
 		for i, n in self.non_void_funs:
 			self.ast.ext[i] = VoidFun(n).run().returnAST()
 
-		return self
-
-	def rewriteCallerFuncs(self):
 		# rewrite all functions
 		for i, n in enumerate(self.ast.ext):
 			if not isinstance(n, c_ast.FuncDef):
@@ -180,7 +177,7 @@ int bar() {}
 
 if __name__ == "__main__":
 	ast = pycparser_ext.ast_of(test_file)
-	ast = RewriteFile(ast).rewriteNonVoidFuncs().rewriteCallerFuncs().returnAST()
+	ast = RewriteFile(ast).run().returnAST()
 	ast.show()
 	print c_generator.CGenerator().visit(ast)
 

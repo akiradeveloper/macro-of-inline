@@ -109,7 +109,7 @@ class RewriteFile:
 	def run(self):
 		if MACROIZE_NON_VOID:
 			void_runner = void_fun.RewriteFile(self.ast)
-			void_runner.rewriteNonVoidFuncs()
+			void_runner.run()
 
 		macroizables = [] # (i, runner)
 		for i, n in enumerate(self.ast.ext):
@@ -128,10 +128,6 @@ class RewriteFile:
 			runner.sanitizeNames()
 
 		recorder.file_record("sanitize_names", pycparser_ext.CGenerator().visit(self.ast))
-
-		if MACROIZE_NON_VOID:
-			# void_runner.rewriteCallerFuncs()
-			pass
 
 		LabelizeFuncCall([runner.func.decl.name for i, runner in macroizables]).visit(self.ast)
 
