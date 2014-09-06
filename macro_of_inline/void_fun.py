@@ -328,7 +328,7 @@ int foo()
 	} while(0);
 	int p;
 	int q = 3;
-	int hRR = h1(h1(h2(h3(0))));
+	int hRR = t->h1(h1(h2(h3(0))));
 	return g(x, f());
 }
 
