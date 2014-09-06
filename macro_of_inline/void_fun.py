@@ -131,7 +131,7 @@ class RewriteFun:
 			for _, decl in reversed(decls):
 				decl_var = copy.deepcopy(decl)
 				# TODO Don't split int x = <not func>.
-				# e.g. int r = 0;
+				# E.g. int r = 0;
 				decl_var.init = None
 				n.block_items.insert(0, decl_var)
 
@@ -139,7 +139,7 @@ class RewriteFun:
 
 	class PopFuncCall(c_ast.NodeVisitor):
 		"""
-		Flatten nested funcation calls
+		Flatten nested function calls
 
 		1. Find a deepest calling of inline function.
 		2. Allocate the random name for the output.
@@ -189,6 +189,10 @@ class RewriteFun:
 				[], [], [], old_decl, None, None))
 
 		def onFuncCall(self, n):
+			"""
+			Called on visiting a func calls
+			Pop up if an arg is an inlined.
+			"""
 			if not n.args:
 				return
 			for i, expr in enumerate(n.args.exprs):
@@ -196,6 +200,12 @@ class RewriteFun:
 				if self.found:
 					return
 			c_ast.NodeVisitor.generic_visit(self, n)
+
+		# This hook is needed to recursively visit func calls
+		# as func call arguments under a calling of onFuncCall()
+		# E.g. f(g(h()))
+		def visit_FuncCall(self, n):
+			self.onFuncCall(n)
 
 		def visit_Compound(self, n):
 			self.cur_compound = n
@@ -219,11 +229,8 @@ class RewriteFun:
 				elif isinstance(item, c_ast.Assignment) and isinstance(item.rvalue, c_ast.FuncCall):
 					# var = f(...);
 					self.onFuncCall(item.rvalue)
-			c_ast.NodeVisitor.generic_visit(self, n)
+			c_ast.NodeVisitor.generic_visit(self, n) # Dig into compounds.
 			self.revertTable()
-
-		def visit_FuncCall(self, n):
-			self.onFuncCall(n)
 
 		def switchTable(self):
 			new_table = self.cur_table.clone()
