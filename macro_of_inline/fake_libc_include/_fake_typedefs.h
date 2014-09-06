@@ -137,6 +137,7 @@ typedef int va_list;
 
 typedef int __int64_t;
 typedef int __uint64_t;
+typedef int uint128_t;
 typedef int stack_t;
 typedef int __sigset_t;
 typedef int sigjmp_buf;
