@@ -158,19 +158,10 @@ class RewriteFun:
 			for param_decl in self.context.func.decl.type.args.params or []:
 				self.cur_table.register(param_decl.name)
 
-		def expandFuncCall(self, exprs, i, retitem):
-			# FIXME too bad
-			"""
-			(exprs, i, None)
-			@exprs are the parameters of function call and @i is the visiting index.
-
-			(None, None, retitem)
-			The @retiem is of c_ast.Return
-			As return() is not a function we need this tricky work-around.
-			"""
+		def expandFuncCall(self, exprs, i):
 			if self.found:
 				return
-			expr = exprs[i] if exprs else retitem.expr
+			expr = exprs[i]
 			if not isinstance(expr, c_ast.FuncCall):
 				return
 			unshadowed_names = self.context.non_void_names - self.cur_table.names
@@ -180,10 +171,7 @@ class RewriteFun:
 			self.found = True
 			randvar = rewrite_fun.newrandstr(cfg.env.rand_names, rewrite_fun.N)
 			old_expr = copy.deepcopy(expr)
-			if exprs:
-				exprs[i] = c_ast.ID(randvar)
-			else:
-				retitem.expr = c_ast.ID(randvar)
+			exprs[i] = c_ast.ID(randvar)
 
 			# randvar = expr;
 			self.cur_compound.block_items.insert(self.cur_compound_index,
@@ -202,7 +190,7 @@ class RewriteFun:
 			if not n.args:
 				return
 			for i, expr in enumerate(n.args.exprs):
-				self.expandFuncCall(n.args.exprs, i, None)
+				self.expandFuncCall(n.args.exprs, i)
 				if self.found:
 					return
 			c_ast.NodeVisitor.generic_visit(self, n)
@@ -221,7 +209,9 @@ class RewriteFun:
 					if not item.expr:
 						return
 					# return expr;
-					self.expandFuncCall(None, None, item)
+					exprs = [item.expr]
+					self.expandFuncCall(exprs, 0)
+					item.expr = exprs[0]
 				else:
 					# var = f();
 					c_ast.NodeVisitor.generic_visit(self, item)
@@ -321,6 +311,9 @@ int foo()
 	int y = g(z, g(y, f()));
 	int z = 2;
 	int hR = h1(h1(h2(h3(0))));
+	do {
+		int hR = h1(h1(h2(h3(0))));
+	} while(0);
 	int p;
 	int q = 3;
 	return g(x, f());
