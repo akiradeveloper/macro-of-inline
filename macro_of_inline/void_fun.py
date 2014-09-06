@@ -55,7 +55,7 @@ class VoidFun(rewrite_fun.Fun):
 						c_ast.UnaryOp("*", c_ast.ID("retval")), # lvalue
 						item.expr) # rvalue
 				n.block_items.append(c_ast.Return(None))
-			# FIXME ? call generic_visit()
+			c_ast.NodeVisitor.generic_visit(self, n)
 
 	def rewriteReturn(self):
 		self.phase_no += 1
@@ -135,7 +135,7 @@ class RewriteFun:
 				decl_var.init = None
 				n.block_items.insert(0, decl_var)
 
-			# FIXME ? call generic_visit()
+			c_ast.NodeVisitor.generic_visit(self, n)
 
 	class PopFuncCall(c_ast.NodeVisitor):
 		"""
@@ -161,26 +161,28 @@ class RewriteFun:
 		def expandFuncCall(self, exprs, i):
 			if self.found:
 				return
-			expr = exprs[i]
+
+			expr = copy.deepcopy(exprs[i])
+
 			if not isinstance(expr, c_ast.FuncCall):
 				return
+
 			unshadowed_names = self.context.non_void_names - self.cur_table.names
 			if not expr.name.name in unshadowed_names:
 				return
 
 			self.found = True
 			randvar = rewrite_fun.newrandstr(cfg.env.rand_names, rewrite_fun.N)
-			old_expr = copy.deepcopy(expr)
 			exprs[i] = c_ast.ID(randvar)
 
 			# randvar = expr;
 			self.cur_compound.block_items.insert(self.cur_compound_index,
 					c_ast.Assignment("=",
 						c_ast.ID(randvar), # lvalue
-						old_expr)) # rvalue
+						expr)) # rvalue
 
 			# T randvar;
-			func = (m for _, m in self.context.non_void_funs if rewrite_fun.Fun(m).name() == old_expr.name.name).next()
+			func = (m for _, m in self.context.non_void_funs if rewrite_fun.Fun(m).name() == expr.name.name).next()
 			old_decl = copy.deepcopy(func.decl.type.type)
 			rewrite_fun.RewriteTypeDecl(randvar).visit(old_decl)
 			self.cur_compound.block_items.insert(0, c_ast.Decl(randvar,
@@ -203,17 +205,19 @@ class RewriteFun:
 				if isinstance(item, c_ast.Decl):
 					self.cur_table.register(item.name)
 				elif isinstance(item, c_ast.FuncCall):
-					# f();
+					# f(...);
 					self.onFuncCall(item)
 				elif isinstance(item, c_ast.Return):
 					if not item.expr:
 						return
 					# return expr;
+					# As "return" is not considered as a function call
+					# we need this work-around.
 					exprs = [item.expr]
 					self.expandFuncCall(exprs, 0)
 					item.expr = exprs[0]
 				else:
-					# var = f();
+					# var = f(...);
 					c_ast.NodeVisitor.generic_visit(self, item)
 			self.revertTable()
 
@@ -316,6 +320,7 @@ int foo()
 	} while(0);
 	int p;
 	int q = 3;
+	int hRR = h1(h1(h2(h3(0))));
 	return g(x, f());
 }
 
