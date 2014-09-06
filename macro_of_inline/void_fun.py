@@ -158,7 +158,7 @@ class RewriteFun:
 			for param_decl in self.context.func.decl.type.args.params or []:
 				self.cur_table.register(param_decl.name)
 
-		def expandFuncCall(self, exprs, i):
+		def onFuncArg(self, exprs, i):
 			if self.found:
 				return
 
@@ -192,7 +192,7 @@ class RewriteFun:
 			if not n.args:
 				return
 			for i, expr in enumerate(n.args.exprs):
-				self.expandFuncCall(n.args.exprs, i)
+				self.onFuncArg(n.args.exprs, i)
 				if self.found:
 					return
 			c_ast.NodeVisitor.generic_visit(self, n)
@@ -214,11 +214,12 @@ class RewriteFun:
 					# As "return" is not considered as a function call
 					# we need this work-around.
 					exprs = [item.expr]
-					self.expandFuncCall(exprs, 0)
+					self.onFuncArg(exprs, 0)
 					item.expr = exprs[0]
-				else:
+				elif isinstance(item, c_ast.Assignment) and isinstance(item.rvalue, c_ast.FuncCall):
 					# var = f(...);
-					c_ast.NodeVisitor.generic_visit(self, item)
+					self.onFuncCall(item.rvalue)
+			c_ast.NodeVisitor.generic_visit(self, n)
 			self.revertTable()
 
 		def visit_FuncCall(self, n):
