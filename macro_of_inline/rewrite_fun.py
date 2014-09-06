@@ -235,6 +235,9 @@ class Fun:
 	def isInline(self):
 		return "inline" in self.func.decl.funcspec
 
+	def isStatic(self):
+		return "static" in self.func.decl.storage
+
 class RewriteFun(Fun):
 	"""
 	AST -> AST
