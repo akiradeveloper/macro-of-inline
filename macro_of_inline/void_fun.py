@@ -13,15 +13,16 @@ class VoidFun(rewrite_fun.Fun):
 	2. New argument for returning value: f(..) -> f(.., T *retval)
 	3. Return statement to assignment: return x -> *retval = x
 	"""
+
+	PHASES = [
+		"add_ret_val",
+		"void_return_type",
+		"return_to_assignment",
+	]
+
 	def __init__(self, func):
 		self.func = func
 		self.phase_no = 0
-
-	PHASES = [
-			"add_ret_val",
-			"void_return_type",
-			"return_to_assignment",
-	]
 
 	def addRetval(self):
 		rettype = copy.deepcopy(self.func.decl.type.type)
@@ -89,15 +90,15 @@ class SymbolTable:
 		print(self.names)
 
 class RewriteFun:
-	PHASES = [
-			"split_decls",
-			"pop_fun_calls",
-	]
-
 	"""
 	Rewrite all functions
 	that may call the rewritten (non-void -> void) functions.
 	"""
+	PHASES = [
+		"split_decls",
+		"pop_fun_calls",
+	]
+
 	def __init__(self, func, non_void_funs):
 		self.func = func
 		self.phase_no = 0
@@ -105,6 +106,14 @@ class RewriteFun:
 		self.non_void_names = set([rewrite_fun.Fun(n).name() for _, n in self.non_void_funs])
 
 	class DeclSplit(c_ast.NodeVisitor):
+		"""
+		int x = v;
+
+		=>
+
+		int x; (lining this part at the beginning of the function block)
+		x = v;
+		"""
 		def visit_Compound(self, n):
 			decls = []
 			for i, item in enumerate(n.block_items or []):
@@ -121,14 +130,26 @@ class RewriteFun:
 
 			for _, decl in reversed(decls):
 				decl_var = copy.deepcopy(decl)
+				# TODO Don't split int x = <not func>.
+				# e.g. int r = 0;
 				decl_var.init = None
 				n.block_items.insert(0, decl_var)
 
+			# FIXME ? call generic_visit()
 
 	class PopFuncCall(c_ast.NodeVisitor):
+		"""
+		Flatten nested funcation calls
+
+		1. Find a deepest calling of inline function.
+		2. Allocate the random name for the output.
+		3. Factor out the call.
+		"""
 		def __init__(self, context):
 			self.context = context
 			self.cur_table = SymbolTable()
+
+			# For technical reason, we pop function off one by one.
 			self.found = False
 
 			if not self.context.func.decl.type.args:
@@ -138,6 +159,7 @@ class RewriteFun:
 				self.cur_table.register(param_decl.name)
 
 		def expandFuncCall(self, exprs, i, retitem):
+			# FIXME too bad
 			"""
 			(exprs, i, None)
 			@exprs are the parameters of function call and @i is the visiting index.
@@ -258,7 +280,6 @@ class RewriteFile:
 		# Rewrite definitions
 		for i, n in self.non_void_funs:
 			self.ast.ext[i] = VoidFun(n).run().returnAST()
-
 		recorder.file_record("rewrite_func_defines", c_generator.CGenerator().visit(self.ast))
 
 		# Rewrite all callers
@@ -266,7 +287,6 @@ class RewriteFile:
 			if not isinstance(n, c_ast.FuncDef):
 				continue
 			self.ast.ext[i] = RewriteFun(n, old_non_void_funs).run().returnAST()
-
 		recorder.file_record("rewrite_all_callers", c_generator.CGenerator().visit(self.ast))
 
 		return self
@@ -302,6 +322,7 @@ int foo()
 	int z = 2;
 	int hR = h1(h1(h2(h3(0))));
 	int p;
+	int q = 3;
 	return g(x, f());
 }
 
