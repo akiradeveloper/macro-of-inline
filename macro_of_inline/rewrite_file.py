@@ -121,8 +121,8 @@ class RewriteFile:
 			if not rewrite_fun.Fun(n).isInline():
 				continue
 
-			runner = rewrite_fun.RewriteFun(n)
-			if runner.canMacroize():
+			if rewrite_fun.Fun(n).returnVoid():
+				runner = rewrite_fun.RewriteFun(n)
 				macroizables.append((i, runner))
 
 		for i, runner in macroizables:

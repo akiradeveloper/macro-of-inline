@@ -249,9 +249,6 @@ class RewriteFun(Fun):
 		if DEBUG:
 			self.func.show()
 
-		self.success = None
-		self.success = self.canMacroize()
-
 		self.args = []
 		self.init_table = NameTable()
 
@@ -267,19 +264,7 @@ class RewriteFun(Fun):
 			name = arg.node.name
 			self.init_table.declare(name)
 
-	def canMacroize(self):
-		if self.success != None: # Lazy initialization
-			return self.success
-
-		if not self.returnVoid():
-			return False
-
-		return True
-
 	def renameFuncBody(self):
-		if not self.success:
-			return self
-
 		block_items = self.func.body.block_items
 		if not block_items:
 			return self
@@ -299,9 +284,6 @@ class RewriteFun(Fun):
 
 	def renameArgs(self):
 		self.phase_no += 1
-		if not self.success:
-			return self
-
 		for arg in self.args:
 			if not arg.shouldInsertDecl():
 				alias  = self.init_table.alias(arg.node.name)
@@ -324,9 +306,6 @@ class RewriteFun(Fun):
 		}
 		"""
 		self.phase_no += 1
-		if not self.success:
-			return self
-
 		block_items = self.func.body.block_items
 		if not block_items:
 			return self
@@ -380,9 +359,6 @@ class RewriteFun(Fun):
 
 	def insertGotoLabel(self):
 		self.phase_no += 1
-		if not self.success:
-			return self
-
 		f = self.HasReturn()
 		f.visit(self.func)
 		if f.result:
@@ -409,9 +385,6 @@ class RewriteFun(Fun):
 
 	def rewriteReturnToGoto(self):
 		self.phase_no += 1
-		if not self.success:
-			return self
-
 		self.RewriteReturnToGoto().visit(self.func)
 		return self
 
@@ -424,17 +397,11 @@ class RewriteFun(Fun):
 
 	def appendNamespaceToLabels(self):
 		self.phase_no += 1
-		if not self.success:
-			return self
-
 		self.AppendNamespaceToLables().visit(self.func)
 		return self
 
 	def macroize(self):
 		self.phase_no += 1
-		if not self.success:
-			return self
-
 		fun_name = self.name()
 		args = ', '.join(["namespace"] + map(lambda arg: arg.node.name, self.args))
 		generator = pycparser_ext.CGenerator()
@@ -455,8 +422,7 @@ do { \
 		return self.func
 
 	def show(self): 
-		if self.canMacroize():
-			recorder.fun_record(PHASES[self.phase_no], self.func)
+		recorder.fun_record(PHASES[self.phase_no], self.func)
 		return self
 
 testcase = r"""
