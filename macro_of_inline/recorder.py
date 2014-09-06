@@ -1,6 +1,5 @@
 import pycparser_ext
 import cfg
-
 import os
 import shutil
 
