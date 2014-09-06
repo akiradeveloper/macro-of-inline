@@ -1,18 +1,21 @@
 #!/usr/bin/env python
 
+from macro_of_inline import cfg
+
 import sys
 import argparse
 
-from macro_of_inline import cfg
 parser = argparse.ArgumentParser(version="0.9", description="C Preprocessor to translate inline functions to equivalent macros")
 parser.add_argument("i", metavar="INFILE", help="input filename. It does _not_ need to be preprocessed")
 parser.add_argument("-o", metavar="OUTFILE", help="output (default:-)", default="-")
+parser.add_argument("-I", nargs="+", metavar="PATHS", help="add paths to search", default=[])
 parser.add_argument("--record", nargs='?', metavar="DIR", help="record the tracks of code translation. specify a directory if you don't want to use the default directory (default:record-macro-of-inline)", const="record-macro-of-inline")
 parser.add_argument("--macroize-static-funs", action='store_true', help="static functions, no matter they are with inline specifier, are to be macroized")
 
 args = parser.parse_args()
 
 cfg.env.macroize_static_funs = args.macroize_static_funs
+cfg.env.additional_search_paths = args.I
 
 if args.record:
 	cfg.env.record_enabled = True
