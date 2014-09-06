@@ -117,8 +117,7 @@ class RewriteFile:
 			if not isinstance(n, c_ast.FuncDef):
 				continue
 
-			# -ansi doesn't allow inline specifier
-			if not rewrite_fun.Fun(n).isInline():
+			if not rewrite_fun.Fun(n).doMacroize():
 				continue
 
 			if rewrite_fun.Fun(n).returnVoid():

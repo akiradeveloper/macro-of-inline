@@ -3,6 +3,6 @@ class Env:
 		self.rand_names = set()
 		self.record_enabled = False
 		self.record_dir = "/tmp/record-macro-of-inline" # Stub
-		self.macroize_static = False
+		self.macroize_static_funs = False
 
 env = Env()

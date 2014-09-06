@@ -232,11 +232,18 @@ class Fun:
 		f.visit(param)
 		return f.result
 
+	# -ansi doesn't allow inline specifier
 	def isInline(self):
 		return "inline" in self.func.decl.funcspec
 
 	def isStatic(self):
 		return "static" in self.func.decl.storage
+
+	def doMacroize(self):
+		r = self.isInline()
+		if cfg.env.macroize_static_funs:
+			r |= self.isStatic()
+		return r
 
 class RewriteFun(Fun):
 	"""

@@ -271,7 +271,7 @@ class RewriteFile:
 			if not isinstance(n, c_ast.FuncDef):
 				continue
 			
-			if not rewrite_fun.Fun(n).isInline():
+			if not rewrite_fun.Fun(n).doMacroize():
 				continue
 
 			if not rewrite_fun.Fun(n).returnVoid():
