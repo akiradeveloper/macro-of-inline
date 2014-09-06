@@ -517,6 +517,10 @@ inline void fun(int x)
 }
 """
 
+testcase_9 = r"""
+inline struct T *fun() {}
+"""
+
 testcase_void1 = r"""
 inline void fun(void)
 {
@@ -547,17 +551,19 @@ def test(testcase):
 	parser = c_parser.CParser()
 	ast = parser.parse(testcase)
 	rewrite_fun = RewriteFun(ast.ext[0])
+	# rewrite_fun.returnVoid()
 	rewrite_fun.renameFuncBody().show().renameArgs().show().insertDeclLines().show().insertGotoLabel().show().rewriteReturnToGoto().show().appendNamespaceToLabels().show().macroize().show()
 
 if __name__ == "__main__":
 	# test(testcase)
 	# test(testcase_2)
 	# test(testcase_3)
-	test(testcase_4)
+	# test(testcase_4)
 	# test(testcase_5)
 	# test(testcase_6)
 	# test(testcase_7)
 	# test(testcase_8)
+	test(testcase_9)
 	# test(testcase_void1)
 	# test(testcase_void2)
 	# test(testcase_void3)
