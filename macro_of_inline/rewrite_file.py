@@ -70,7 +70,7 @@ class LabelizeFuncCall(c_ast.NodeVisitor):
 		n.args.exprs.insert(0, c_ast.ID(namespace))
 
 NORMALIZE_LABEL = True
-MACROIZE_NON_VOID = True
+MACROIZE_NON_VOID = False
 
 class RewriteFile:
 	"""

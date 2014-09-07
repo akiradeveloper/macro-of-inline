@@ -34,14 +34,14 @@ task "ruby" do
 
     File.open("../#{RUBY_FAIL_LOG}", "w") do |f|
       f.write """\
-  #{failure_list.join("\n")}
+#{failure_list.join("\n")}
   """
     end
 
-    File.open("../ruby-info.log") do |f|
+    File.open("../ruby-info.log", "w") do |f|
       f.write """\
-  success: #{perc}%
-  """
+success: #{perc}%
+"""
     end
 
     sh "./configure && make && make test"
