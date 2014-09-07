@@ -160,6 +160,8 @@ class RewriteFun:
 				return
 
 			for param_decl in self.context.func.decl.type.args.params or []:
+				if isinstance(param_decl, c_ast.EllipsisParam): # ... (EllipsisParam)
+					continue
 				self.cur_table.register(param_decl.name)
 
 		def onFuncArg(self, exprs, i):
@@ -310,7 +312,7 @@ inline struct T *f(int n)
 """
 
 test_fun2 = r"""
-inline int f() {
+inline int f(int x, ...) {
 	if (1) {
 		return 1;
 	} else {
@@ -329,7 +331,7 @@ inline int h3(int x) { return x; }
 
 void r(int x) {}
 
-int foo()
+int foo(int x, ...)
 {
 	int x = f();
 	r(f());
@@ -351,13 +353,13 @@ int bar() {}
 """
 
 if __name__ == "__main__":
-	# ast = pycparser_ext.ast_of(test_file)
-	# ast.show()
-	# ast = RewriteFile(ast).run().returnAST()
-	# ast.show()
-	# print c_generator.CGenerator().visit(ast)
-
-	fun = pycparser_ext.ast_of(test_fun2).ext[0]
-	fun.show()
-	ast = VoidFun(fun).run().returnAST()
+	ast = pycparser_ext.ast_of(test_file)
+	ast.show()
+	ast = RewriteFile(ast).run().returnAST()
+	ast.show()
 	print c_generator.CGenerator().visit(ast)
+
+	# fun = pycparser_ext.ast_of(test_fun2).ext[0]
+	# fun.show()
+	# ast = VoidFun(fun).run().returnAST()
+	# print c_generator.CGenerator().visit(ast)
