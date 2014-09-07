@@ -26,14 +26,17 @@ class VoidFun(rewrite_fun.Fun):
 		self.phase_no = 0
 
 	def addRetval(self):
-		rettype = copy.deepcopy(self.func.decl.type.type)
+		funtype = self.func.decl.type
+		rettype = copy.deepcopy(funtype.type)
 		rewrite_fun.RewriteTypeDecl("retval").visit(rettype)
 		newarg = c_ast.Decl("retval", [], [], [], c_ast.PtrDecl([], rettype), None, None)
 		params = []
 		if not self.voidArgs():
-			params = self.func.decl.type.args.params
+			params = funtype.args.params
 		params.append(newarg)
-		self.func.decl.type.args.params = params
+		if not funtype.args:
+			funtype.args = c_ast.ParamList([])
+		funtype.args.params = params
 		return self
 
 	def voidReturnValue(self):
@@ -306,6 +309,16 @@ inline struct T *f(int n)
 }
 """
 
+test_fun2 = r"""
+inline int f() {
+	if (1) {
+		return 1;
+	} else {
+		return 0;
+	}
+} 
+"""
+
 test_file = r"""
 inline int f(void) { return 0; }
 inline int g(int a, int b) { return a * b; }
@@ -338,13 +351,13 @@ int bar() {}
 """
 
 if __name__ == "__main__":
-	ast = pycparser_ext.ast_of(test_file)
-	ast.show()
-	ast = RewriteFile(ast).run().returnAST()
+	# ast = pycparser_ext.ast_of(test_file)
 	# ast.show()
-	print c_generator.CGenerator().visit(ast)
-
-	# fun = pycparser_ext.ast_of(test_fun).ext[0]
-	# fun.show()
-	# ast = VoidFun(fun).run().returnAST()
+	# ast = RewriteFile(ast).run().returnAST()
+	# ast.show()
 	# print c_generator.CGenerator().visit(ast)
+
+	fun = pycparser_ext.ast_of(test_fun2).ext[0]
+	fun.show()
+	ast = VoidFun(fun).run().returnAST()
+	print c_generator.CGenerator().visit(ast)
