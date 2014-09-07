@@ -528,6 +528,10 @@ testcase_9 = r"""
 inline struct T **fun(struct T *t) {}
 """
 
+testcase_10 = r"""
+inline void fun(int x, ...) {}
+"""
+
 testcase_void1 = r"""
 inline void fun(void)
 {
@@ -572,7 +576,8 @@ if __name__ == "__main__":
 	# test(testcase_6)
 	# test(testcase_7)
 	# test(testcase_8)
-	test(testcase_9)
+	# test(testcase_9)
+	test(testcase_10)
 	# test(testcase_void1)
 	# test(testcase_void2)
 	# test(testcase_void3)
