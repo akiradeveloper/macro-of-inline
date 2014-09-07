@@ -63,9 +63,14 @@ def compare_asts(ast1, ast2):
 	for attr in ast1.attr_names:
 		if getattr(ast1, attr) != getattr(ast2, attr):
 			return False
-	for i, c1 in enumerate(ast1.children()):
-		if compare_asts(c1, ast2.children()[i]) == False:
+
+	if len(ast1.children()) != len(ast2.children()):
+		return False
+
+	for c1, c2 in zip(ast1.children(), ast2.children()):
+		if compare_asts(c1, c2) == False:
 			return False
+
 	return True
 
 class ASTDiff:
