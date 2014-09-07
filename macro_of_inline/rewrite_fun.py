@@ -274,6 +274,7 @@ class RewriteFun(Fun):
 			self.args.append(arg)
 
 		for arg in self.args:
+			# FIXME EllipsisParam has no attribute 'name'
 			name = arg.node.name
 			self.init_table.declare(name)
 
