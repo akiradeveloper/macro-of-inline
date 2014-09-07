@@ -63,7 +63,6 @@ class VoidFun(rewrite_fun.Fun):
 
 	def rewriteReturn(self):
 		self.phase_no += 1
-
 		self.ReturnToAssignment().visit(self.func)
 		return self
 
@@ -92,6 +91,27 @@ class SymbolTable:
 
 	def show(self):
 		print(self.names)
+
+class FuncCallName(c_ast.NodeVisitor):
+	"""
+	Usage: visit(FuncCall.name)
+
+	A call might be of form "(*f)(...)"
+	The AST is then
+
+	FuncCall
+	  UnaryOp
+		ID
+
+	While ordinary call is of
+
+	FuncCall
+	  ID
+
+	We need to find the ID node recursively.
+	"""
+	def visit_ID(self, n):
+		self.result = n.name
 
 class RewriteFun:
 	"""
@@ -164,6 +184,7 @@ class RewriteFun:
 					continue
 				self.cur_table.register(param_decl.name)
 
+
 		def onFuncArg(self, exprs, i):
 			if self.found:
 				return
@@ -174,8 +195,11 @@ class RewriteFun:
 				return
 
 			unshadowed_names = self.context.non_void_names - self.cur_table.names
-			# FIXME 'UnaryOp' object has no attribute 'name'
-			if not expr.name.name in unshadowed_names:
+
+			f = FuncCallName()
+			f.visit(expr.name)
+			funcname = f.result
+			if not funcname in unshadowed_names:
 				return
 
 			self.found = True
@@ -189,7 +213,7 @@ class RewriteFun:
 						expr)) # rvalue
 
 			# T randvar;
-			func = (m for _, m in self.context.non_void_funs if rewrite_fun.Fun(m).name() == expr.name.name).next()
+			func = (m for _, m in self.context.non_void_funs if rewrite_fun.Fun(m).name() == funcname).next()
 			old_decl = copy.deepcopy(func.decl.type.type)
 			rewrite_fun.RewriteTypeDecl(randvar).visit(old_decl)
 			self.cur_compound.block_items.insert(0, c_ast.Decl(randvar,
@@ -269,6 +293,9 @@ class RewriteFun:
 		return self
 
 class RewriteFile:
+	"""
+	AST -> AST
+	"""
 	def __init__(self, ast):
 		self.ast = ast
 		self.non_void_funs = []
@@ -337,7 +364,7 @@ int foo(int x, ...)
 	int x = f();
 	r(f());
 	x += 1;
-	int y = g(z, g(y, f()));
+	int y = g(z, g(y, (*f)()));
 	int z = 2;
 	int hR = h1(h1(h2(h3(0))));
 	do {
