@@ -87,30 +87,6 @@ class QueryDeclType(c_ast.NodeVisitor):
 	def visit_ArrayDecl(self, node):
 		self.result = ArgType.array
 
-class Arg:
-	def __init__(self, node):
-		self.node = node
-
-	def queryType(self):
-		query = QueryDeclType() 	
-		query.visit(self.node)
-		return query.result
-
-	def shouldInsertDecl(self):
-		"""
-		Need to insert decl lines.
-		except func decl (function pointer) and array decl (e.g. int xs[])
-		which are immutable through the function body.
-		"""
-		t = self.queryType()
-		return not (t == ArgType.fun or t == ArgType.array)
-
-	def show(self):
-		if not DEBUG:
-			return
-		print("name %s" % self.node.name)
-		self.node.type.show()
-		print("type %r" % self.queryType())
 
 class RewriteTypeDecl(c_ast.NodeVisitor):
 	def __init__(self, alias):
@@ -255,6 +231,31 @@ class RewriteFun(Fun):
 	"""
 	AST -> AST
 	"""
+	class RenameArg:
+		def __init__(self, node):
+			self.node = node
+
+		def queryType(self):
+			query = QueryDeclType()
+			query.visit(self.node)
+			return query.result
+
+		def shouldInsertDecl(self):
+			"""
+			Need to insert decl lines.
+			except func decl (function pointer) and array decl (e.g. int xs[])
+			which are immutable through the function body.
+			"""
+			t = self.queryType()
+			return not (t == ArgType.fun or t == ArgType.array)
+
+		def show(self):
+			if not DEBUG:
+				return
+			print("name %s" % self.node.name)
+			self.node.type.show()
+			print("type %r" % self.queryType())
+
 	def __init__(self, func):
 		self.phase_no = 0
 		self.func = func
@@ -270,7 +271,7 @@ class RewriteFun(Fun):
 			params = func.decl.type.args.params
 
 		for param_decl in params:
-			arg = Arg(param_decl)
+			arg = self.RenameArg(param_decl)
 			self.args.append(arg)
 
 		for arg in self.args:
@@ -565,7 +566,7 @@ def test(testcase):
 	rewrite_fun = RewriteFun(ast.ext[0])
 	# print rewrite_fun.returnVoid()
 	# print rewrite_fun.voidArgs()
-	rewrite_fun.renameFuncBody().show().renameArgs().show().insertDeclLines().show().insertGotoLabel().show().rewriteReturnToGoto().show().appendNamespaceToLabels().show().macroize().show()
+	rewrite_fun.renameFuncBody().show().renameArgs().show().insertDeclLines().show().insertGotoLabel().show().rewriteReturnToGoto().show().appendNamespaceToLabels().show().macroize().show().returnAST().show()
 
 if __name__ == "__main__":
 	# test(testcase)
