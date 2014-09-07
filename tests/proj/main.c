@@ -23,8 +23,8 @@ inline void f_guard(int x)
 
 inline void ff(void)
 {
-	f_guard();
-	f_guard();
+	f_guard(0);
+	f_guard(0);
 }
 
 inline void fff(void)
