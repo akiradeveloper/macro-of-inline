@@ -25,9 +25,15 @@ inline void fff(void)
 
 inline int ffff(void)
 {
-	fff();
-	fff();
-	return 0;
+	if (0) {
+		fff();
+		fff();
+		return 1;
+	} else if (0) {
+		return 0;
+	} else {
+		return 0;
+	}
 }
 
 int g_var = 0;
