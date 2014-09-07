@@ -1,0 +1,71 @@
+require "find"
+
+RUBY_SRC = "ruby-src"
+RUBY_DIR = "ruby-src-macroize"
+RUBY_FAIL_LOG = "ruby-failure.log"
+
+desc "test with ruby source tree"
+task "ruby" do
+  dir = "ruby-src"
+  sh "git clone https://github.com/ruby/ruby #{RUBY_SRC}" unless File.directory? dir
+  root = "ruby-src-macroize"
+  sh "rm -rf #{RUBY_DIR}" if File.directory? root
+  sh "cp -r #{RUBY_SRC} #{RUBY_DIR}"
+
+  Dir.chdir(RUBY_DIR) do
+    sh "autoconf && ./configure"
+    success_list = []
+    failure_list = []
+    Dir.glob("./**/*.c") do |f|     
+      tmpfile = "/tmp/hoge.c"
+      # Looked at the Makefile
+      `macro-of-inline #{f} -o #{tmpfile} -I .ext/include/x86_64-linux ./include . --macroize-static-funs`
+      e = $?.exitstatus
+      if e == 0
+        success_list << f
+        `cp #{tmpfile} #{f}`
+      else
+        failure_list << f
+        puts "[macroize] failed: #{f}"
+      end
+    end
+
+    perc = success_list.size.to_f / (success_list.size + failure_list.size)
+
+    File.open("../#{RUBY_FAIL_LOG}", "w") do |f|
+      f.write """\
+  #{failure.join("\n")}
+  """
+    end
+
+    File.open("../ruby-info.log") do |f|
+      f.write """\
+  success: #{perc}%
+  """
+    end
+
+    sh "./configure && make && make test"
+  end
+end
+
+failures = []
+if File.exists? RUBY_FAIL_LOG
+  File.open(RUBY_FAIL_LOG).each do |line|
+    failures << line.chomp
+  end
+end
+
+Dir.chdir(RUBY_DIR) do
+  testno = 0
+  Dir.glob("./**/*.c") do |f|
+    fail_mark = (failures.include? f) ? "[fail]" : ""
+    testno += 1
+    desc "#{fail_mark} (#{f})"
+    task "ruby#{testno}" do
+      Dir.chdir(RUBY_DIR) do
+        sh "cp #{File.join("../#{RUBY_SRC}", f)} #{f}"
+        sh "macro-of-inline #{f} -I .ext/include/x86_64-linux ./include . --macroize-static-funs --record ../record-macro-of-inline"
+      end
+    end
+  end
+end
