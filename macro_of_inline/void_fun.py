@@ -33,7 +33,7 @@ class VoidFun(rewrite_fun.Fun):
 		params = []
 		if not self.voidArgs():
 			params = funtype.args.params
-		params.append(newarg)
+		params.insert(0, newarg)
 		if not funtype.args:
 			funtype.args = c_ast.ParamList([])
 		funtype.args.params = params
