@@ -12,6 +12,8 @@ task "ruby" do
 
   Dir.chdir(RUBY_DIR) do
     sh "autoconf && ./configure"
+    sh "make id.h"
+    sh "make probes.h"
     success_list = []
     failure_list = []
     Dir.glob("./**/*.c") do |f|     
