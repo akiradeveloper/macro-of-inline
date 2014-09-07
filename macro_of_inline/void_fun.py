@@ -174,6 +174,7 @@ class RewriteFun:
 				return
 
 			unshadowed_names = self.context.non_void_names - self.cur_table.names
+			# FIXME 'UnaryOp' object has no attribute 'name'
 			if not expr.name.name in unshadowed_names:
 				return
 
