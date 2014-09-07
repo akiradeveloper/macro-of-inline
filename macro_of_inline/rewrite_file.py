@@ -146,7 +146,9 @@ class RewriteFile:
 			self.normalizeLabels()
 
 		recorder.file_record("normalize_labels", pycparser_ext.CGenerator().visit(self.ast))
+		return self
 
+	def returnAST(self):
 		return self.ast
 
 class RewriteFileContents:
@@ -157,7 +159,7 @@ class RewriteFileContents:
 		self.filename = filename
 
 	def run(self):
-		f = lambda ast: RewriteFile(ast).run()
+		f = lambda ast: RewriteFile(ast).run().returnAST()
 		output = cpp_ext.Apply(f).on(self.filename)
 		return pycparser_ext.CGenerator.cleanUp(output)
 
@@ -210,7 +212,7 @@ int main()
 
 if __name__ == "__main__":
 	parser = c_parser.CParser()
-	output = RewriteFile(parser.parse(testcase)).run()
+	output = RewriteFile(parser.parse(testcase)).run().returnAST()
 
 	generator = pycparser_ext.CGenerator()
 	output = generator.visit(output)
