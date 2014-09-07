@@ -80,7 +80,7 @@ class RewriteFile:
 		self.ast = ast
 
 	def applyPreprocess(self):
-		fn = "%s.c" % rewrite_fun.randstr(16)
+		fn = "/tmp/%s.c" % rewrite_fun.randstr(16)
 		fp = open(fn, "w")
 		fp.write(pycparser_ext.CGenerator().visit(self.ast))
 		fp.close()
