@@ -56,10 +56,14 @@ optional arguments:
                         specifier, are to be macroized
 ```
 
+## Requirements
+
+- mcpp: A well-designed preprocessor. In Debian, `aptitude install mcpp`
+
 ## Limitation
 
-- In the target file, include directives are located at the head.
-- GCC-extension will be ignored (input file will be preprocessed with -U\_\_GNUC\_\_). This is a limitation of pycparser.
+- Include directives will be moved to the head of the file. Make sure this transformation is OK.
+- GCC-extensions are ignored (input file will be preprocessed with -U\_\_GNUC\_\_). This is a limitation of pycparser.
 
 ## Installation
 
