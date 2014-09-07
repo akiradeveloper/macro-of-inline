@@ -1,7 +1,17 @@
 # include "a.h"
 #include <stdarg.h>
 # include    "b.h"
+
 #include "f/g.h"
+
+#define HAVE_LOCALE_H
+#ifdef HAVE_LOCALE_H
+#include <locale.h>
+#endif
+#ifdef RUBY_DEBUG_ENV
+#include <stdlib.h>
+#endif
+
 #include <ucontext.h>
 
 inline void f_guard(int x)
