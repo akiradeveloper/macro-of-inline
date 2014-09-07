@@ -18,8 +18,8 @@ def cpp(filename):
 
 	# The raw output of mcpp can contain _Pragma() lines that can't be parsed by pycparser.
 	# Now we remove these lines however, can't suppose this adhoc patch will work for any cases.
-	lines = pycparser.preprocess_file(filename, cpp_path='mcpp', cpp_args=cpp_args).split("\n")
-	return '\n'.join([x for x in lines if not x.startswith("_Pragma(")])
+	output = pycparser.preprocess_file(filename, cpp_path='mcpp', cpp_args=cpp_args)
+	return '\n'.join([x for x in output.split('\n') if not x.startswith("_Pragma(")])
 
 def analyzeInclude(filename, txt):
 	"""
