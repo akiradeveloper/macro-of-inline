@@ -193,7 +193,10 @@ class Fun:
 			pass
 
 		def visit_TypeDecl(self, n):
-			self.result = "void" in n.type.names
+			# n.type can be Struct.
+			# What we concerns is that the return type is void or not
+			if isinstance(n.type, c_ast.IdentifierType):
+				self.result = "void" in n.type.names
 
 	def returnVoid(self):
 		# void f(...)
@@ -518,7 +521,7 @@ inline void fun(int x)
 """
 
 testcase_9 = r"""
-inline struct T *fun() {}
+inline struct T **fun() {}
 """
 
 testcase_void1 = r"""
@@ -550,8 +553,9 @@ inline void fun(void (*f)(void))
 def test(testcase):
 	parser = c_parser.CParser()
 	ast = parser.parse(testcase)
+	# ast.show()
 	rewrite_fun = RewriteFun(ast.ext[0])
-	# rewrite_fun.returnVoid()
+	rewrite_fun.returnVoid()
 	rewrite_fun.renameFuncBody().show().renameArgs().show().insertDeclLines().show().insertGotoLabel().show().rewriteReturnToGoto().show().appendNamespaceToLabels().show().macroize().show()
 
 if __name__ == "__main__":
