@@ -34,7 +34,7 @@ task "ruby" do
 
     File.open("../#{RUBY_FAIL_LOG}", "w") do |f|
       f.write """\
-  #{failure.join("\n")}
+  #{failure_list.join("\n")}
   """
     end
 
