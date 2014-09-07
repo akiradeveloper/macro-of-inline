@@ -209,7 +209,10 @@ class Fun:
 			self.result = False
 
 		def visit_TypeDecl(self, n):
-			self.result = "void" in n.type.names
+			# Same as ReturnVoid
+			# We don't concern types other than IdentifierType
+			if isinstance(n.type, c_ast.IdentifierType):
+				self.result = "void" in n.type.names
 
 	def voidArgs(self):
 		args = self.func.decl.type.args
@@ -521,7 +524,7 @@ inline void fun(int x)
 """
 
 testcase_9 = r"""
-inline struct T **fun() {}
+inline struct T **fun(struct T *t) {}
 """
 
 testcase_void1 = r"""
@@ -555,7 +558,8 @@ def test(testcase):
 	ast = parser.parse(testcase)
 	# ast.show()
 	rewrite_fun = RewriteFun(ast.ext[0])
-	rewrite_fun.returnVoid()
+	# print rewrite_fun.returnVoid()
+	# print rewrite_fun.voidArgs()
 	rewrite_fun.renameFuncBody().show().renameArgs().show().insertDeclLines().show().insertGotoLabel().show().rewriteReturnToGoto().show().appendNamespaceToLabels().show().macroize().show()
 
 if __name__ == "__main__":
