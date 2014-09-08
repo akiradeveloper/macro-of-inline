@@ -327,6 +327,7 @@ class RewriteFun:
 					self.cur_table.register(item.name)
 				elif isinstance(item, c_ast.Assignment):
 					self.onAssignment(n.block_items, i)
+			c_ast.NodeVisitor.generic_visit(self, n)
 			self.revertTable()
 
 		def onAssignment(self, block_items, i):
