@@ -77,7 +77,7 @@ class NameTable:
 			print("  %s -> (alias:%s, overwritable:%r)" % (name, tup.alias, tup.overwritable))
 
 ArgType = enum.Enum("ArgType", "other fun array")
-class QueryDeclType(c_ast.NodeVisitor):
+class QueryDeclType(pycparser_ext.NodeVisitor):
 	def __init__(self):
 		self.result = ArgType.other
 
@@ -88,20 +88,20 @@ class QueryDeclType(c_ast.NodeVisitor):
 		self.result = ArgType.array
 
 
-class RewriteTypeDecl(c_ast.NodeVisitor):
+class RewriteTypeDecl(pycparser_ext.NodeVisitor):
 	def __init__(self, alias):
 		self.alias = alias
 
 	def visit_TypeDecl(self, node):
 		node.declname = self.alias
 
-class RenameVars(c_ast.NodeVisitor):
+class RenameVars(pycparser_ext.NodeVisitor):
 	def __init__(self, init_table):
 		self.cur_table = init_table
 
 	def visit_Compound(self, node):
 		self.switchTable()
-		c_ast.NodeVisitor.generic_visit(self, node)
+		pycparser_ext.NodeVisitor.generic_visit(self, node)
 		self.revertTable()
 
 	def visit_Decl(self, node):
@@ -110,7 +110,7 @@ class RenameVars(c_ast.NodeVisitor):
 		P("Decl: %s -> %s" % (node.name, alias))
 		node.name = alias
 		RewriteTypeDecl(alias).visit(node.type)
-		c_ast.NodeVisitor.generic_visit(self, node)
+		pycparser_ext.NodeVisitor.generic_visit(self, node)
 
 	def visit_StructRef(self, node):
 		"""
@@ -120,11 +120,11 @@ class RenameVars(c_ast.NodeVisitor):
 		"field" node will never be renamed.
 		"""
 		self.visit(node.name)
-		c_ast.NodeVisitor.generic_visit(self, node.name)
+		pycparser_ext.NodeVisitor.generic_visit(self, node.name)
 
 	def visit_Cast(self, node):
 		self.visit(node.expr)
-		c_ast.NodeVisitor.generic_visit(self, node.expr)
+		pycparser_ext.NodeVisitor.generic_visit(self, node.expr)
 
 	def visit_ID(self, node):
 		alias = self.cur_table.alias(node.name)
@@ -161,7 +161,7 @@ class Fun:
 	def name(self):
 		return self.func.decl.name
 
-	class ReturnVoid(c_ast.NodeVisitor):
+	class ReturnVoid(pycparser_ext.NodeVisitor):
 		def __init__(self):
 			self.result = False
 
@@ -180,7 +180,7 @@ class Fun:
 		f.visit(self.func.decl)
 		return f.result
 
-	class VoidParam(c_ast.NodeVisitor):
+	class VoidParam(pycparser_ext.NodeVisitor):
 		def __init__(self):
 			self.result = False
 
@@ -377,7 +377,7 @@ class RewriteFun(Fun):
 	def sanitizeNames(self):
 		return self.renameFuncBody().show().renameArgs().show().insertDeclLines().show()
 
-	class InsertGotoLabel(c_ast.NodeVisitor):
+	class InsertGotoLabel(pycparser_ext.NodeVisitor):
 		"""
 		Renames the identifiers by random sequence so that they never conflicts others.
 
@@ -394,7 +394,7 @@ class RewriteFun(Fun):
 			# We don't need recursive generic_visit() because we only want to
 			# insert goto at the top level.
 
-	class HasReturn(c_ast.NodeVisitor):
+	class HasReturn(pycparser_ext.NodeVisitor):
 		def __init__(self):
 			self.result = False
 
@@ -411,22 +411,13 @@ class RewriteFun(Fun):
 			self.InsertGotoLabel().visit(self.func)
 		return self
 
-	class RewriteReturnToGoto(c_ast.NodeVisitor):
+	class RewriteReturnToGoto(pycparser_ext.NodeVisitor):
 		"""
 		Visit a compound and rewrite "return" to "goto GOTO_LABEL".
 		We assume at most only one "return" exists in a compound.
 		"""
-		def visit_Compound(self, n):
-			if not n.block_items:
-				n.block_items = []
-
-			return_index = None
-			for (i, item) in enumerate(n.block_items):
-				if isinstance(item, c_ast.Return):
-					return_index = i
-			if return_index != None:
-				n.block_items[return_index] = c_ast.Goto(GOTO_LABEL)
-			c_ast.NodeVisitor.generic_visit(self, n)
+		def visit_Return(self, n):
+			pycparser_ext.NodeVisitor.rewrite(self.current_parent, self.current_name, c_ast.Goto(GOTO_LABEL))
 
 	def rewriteReturnToGoto(self):
 		self.phase_no += 1
@@ -435,7 +426,7 @@ class RewriteFun(Fun):
 		self.RewriteReturnToGoto().visit(self.func)
 		return self
 
-	class AppendNamespaceToLables(c_ast.NodeVisitor):
+	class AppendNamespaceToLables(pycparser_ext.NodeVisitor):
 		def visit_Goto(self, n):
 			n.name = "namespace ## %s" % n.name
 
@@ -608,13 +599,13 @@ if __name__ == "__main__":
 	# test(testcase)
 	# test(testcase_2)
 	# test(testcase_3)
-	# test(testcase_4)
+	test(testcase_4)
 	# test(testcase_5)
 	# test(testcase_6)
 	# test(testcase_7)
 	# test(testcase_8)
 	# test(testcase_9)
-	test(testcase_10)
+	# test(testcase_10)
 	# test(testcase_void1)
 	# test(testcase_void2)
 	# test(testcase_void3)
