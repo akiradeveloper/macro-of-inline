@@ -296,7 +296,7 @@ class RewriteFun:
 				return
 
 			for param_decl in self.context.func.decl.type.args.params or []:
-				if isinstance(param_decl, c_ast.EllipsisParam): # ... (EllipsisParam)
+				if isinstance(param_decl, c_ast.EllipsisParam):
 					continue
 				self.cur_table.register(param_decl.name)
 
@@ -314,25 +314,29 @@ class RewriteFun:
 				if isinstance(item, c_ast.Decl):
 					self.cur_table.register(item.name)
 				elif isinstance(item, c_ast.Assignment):
-					self.onAssignment(item)
+					self.onAssignment(n.block_items, i)
 			self.revertTable()
 
-		def onAssignment(self, n):
+		def onAssignment(self, block_items, i):
+			n = block_items[i]
+
 			if not isinstance(n.rvalue, c_ast.FuncCall):
 				return
 
-			varname = n.lvalue.name
-
-			f = FuncCallName()
-			f.visit(n.rvalue)
-			funcname = f.result
+			funcname = FuncCallName()
+			funcname.visit(n.rvalue)
+			funcname = funcname.result
 
 			unshadowed_names = self.context.non_void_names - self.cur_table.names
 			if not funcname in unshadowed_names:
 				return
 
-			print "%s = %s" % (varname, funcname)
-			n.show()
+			proc = n.rvalue
+
+			if not proc.args:
+				proc.args = c_ast.ExprList([])
+			proc.args.exprs.insert(0, c_ast.UnaryOp("&", n.lvalue))
+			block_items[i] = proc
 
 	def run(self):
 		self.DeclSplit().visit(self.func)
