@@ -43,3 +43,19 @@ class CGenerator(c_generator.CGenerator):
 		Purge "^;\n" that is not allowed by ISO standard
 		"""
 		return '\n'.join([line for line in txt.splitlines() if line != ";"])
+
+class NodeVisitor(c_ast.NodeVisitor):
+
+	def visit(self, node):
+		if not hasattr(self, "current_parent"):
+			self.current_parent = node
+		c_ast.NodeVisitor.visit(self, node)
+
+	def generic_visit(self, node):
+		oldparent = self.current_parent
+		self.current_parent = node
+		for c_name, c in node.children():
+			self.current_name = c_name
+			# print("%s.%s = %s" % (self.current_parent, self.current_name, type(c)))
+			self.visit(c)
+		self.current_parent = oldparent

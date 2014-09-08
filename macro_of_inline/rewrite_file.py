@@ -8,7 +8,7 @@ import cfg
 import rewrite_fun
 import void_fun
 
-class LabelizeFuncCall(c_ast.NodeVisitor):
+class LabelizeFuncCall(pycparser_ext.NodeVisitor):
 	"""
 	Add random label all macro calls.
 
@@ -43,10 +43,10 @@ class LabelizeFuncCall(c_ast.NodeVisitor):
 	def visit_FuncDef(self, n):
 		if n.decl.name in self.macro_names:
 			self.called_in_macro = True
-		c_ast.NodeVisitor.generic_visit(self, n)
+		pycparser_ext.NodeVisitor.generic_visit(self, n)
 		self.called_in_macro = False
 
-	class Name(c_ast.NodeVisitor):
+	class Name(pycparser_ext.NodeVisitor):
 		"""
 		Get the name of the function called.
 		Usage: visit(FuncCall.name)
@@ -88,7 +88,7 @@ class RewriteFile:
 		self.ast = pycparser_ext.ast_of(cpp_ext.cpp(fn))
 		os.remove(fn)
 
-	class NormalizeLabels(c_ast.NodeVisitor):
+	class NormalizeLabels(pycparser_ext.NodeVisitor):
 		def __init__(self):
 			self.m = {} # string -> int
 
