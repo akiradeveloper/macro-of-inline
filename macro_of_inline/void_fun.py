@@ -206,20 +206,17 @@ class RewriteFun:
 			self.revertTable()
 
 		def mkCommaOp(self, var, f):
-			"""
-			var = f()
-
-			=>
-
-			(f(&var), var)
-			"""
 			proc = f
 			if not proc.args:
 				proc.args = c_ast.ExprList([])
 			proc.args.exprs.insert(0, c_ast.UnaryOp("&", var))
-			return c_ast.ExprList([proc, var])
+			return pycparser_ext.CommaOp(c_ast.ExprList([proc, var]))
 
 		def visit_FuncCall(self, n):
+			"""
+			var = f() => var = (f(&var), var)
+			f()       => (f(&randvar), randvar)
+			"""
 			funcname = FuncCallName()
 			funcname.visit(n)
 			funcname = funcname.result
@@ -353,9 +350,9 @@ if __name__ == "__main__":
 	ast.show()
 	ast = RewriteFile(ast).run().returnAST()
 	ast.show()
-	print c_generator.CGenerator().visit(ast)
+	print pycparser_ext.CGenerator().visit(ast)
 
 	# fun = pycparser_ext.ast_of(test_fun2).ext[0]
 	# fun.show()
 	# ast = VoidFun(fun).run().returnAST()
-	# print c_generator.CGenerator().visit(ast)
+	# print pycparser_ext.CGenerator().visit(ast)

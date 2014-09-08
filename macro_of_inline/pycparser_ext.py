@@ -20,6 +20,17 @@ class Any(c_ast.Node):
 
 	attr_names = ('text',)
 
+class CommaOp(c_ast.Node):
+	def __init__(self, exprs, coord=None):
+		self.exprs = exprs
+		self.coord = coord
+
+	def children(self):
+		nodelist = []
+		return tuple(nodelist)
+
+	attr_names = ('exprs',)
+
 class CGenerator(c_generator.CGenerator):
 	"""
 	Since we don't modify the upstream CGenerator
@@ -38,6 +49,9 @@ class CGenerator(c_generator.CGenerator):
 	"""
 	def visit_Any(self, n):
 		return n.text
+
+	def visit_CommaOp(self, n):
+		return "(" + self.visit(n.exprs) + ")"
 
 	@classmethod
 	def cleanUp(cls, txt):
