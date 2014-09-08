@@ -127,6 +127,7 @@ class RewriteFun:
 	PHASES = [
 		"split_decls",
 		"pop_fun_calls",
+		"rewrite_calls",
 	]
 
 	def __init__(self, func, non_void_funs):
@@ -191,7 +192,6 @@ class RewriteFun:
 				if isinstance(param_decl, c_ast.EllipsisParam): # ... (EllipsisParam)
 					continue
 				self.cur_table.register(param_decl.name)
-
 
 		def onFuncArg(self, exprs, i):
 			if self.found:
