@@ -214,6 +214,14 @@ class Fun:
 		f.visit(param)
 		return f.result
 
+	def hasVarArgs(self):
+		if self.voidArgs():
+			return False
+		for param_decl in self.func.decl.type.args.params:
+			if isinstance(param_decl, c_ast.EllipsisParam):
+				return True
+		return False
+
 	# TODO
 	def isRecursive(self):
 		return False
@@ -226,6 +234,11 @@ class Fun:
 		return "static" in self.func.decl.storage
 
 	def doMacroize(self):
+		if self.hasVarArgs():
+			return False
+		# Recursive call can't be macroized in any safe ways.
+		if self.isRecursive():
+			return False
 		r = self.isInline()
 		if cfg.env.macroize_static_funs:
 			r |= self.isStatic()
@@ -270,8 +283,8 @@ class RewriteFun(Fun):
 		if DEBUG:
 			self.func.show()
 
-		# Recursive call can't be macroized in any safe ways.
-		if self.isRecursive():
+		# FIXME Don't double check
+		if not self.doMacroize():
 			self.ok = False
 			return # __init__ should return None
 
@@ -285,12 +298,6 @@ class RewriteFun(Fun):
 			params = func.decl.type.args.params
 
 		for param_decl in params:
-			# If the function has varargs (...)
-			# it is impossible to translate to macro.
-			if isinstance(param_decl, c_ast.EllipsisParam):
-				self.ok = False
-				return
-
 			arg = self.Arg(param_decl)
 			self.args.append(arg)
 
