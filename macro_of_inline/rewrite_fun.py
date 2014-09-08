@@ -214,6 +214,10 @@ class Fun:
 		f.visit(param)
 		return f.result
 
+	# TODO
+	def isRecursive(self):
+		return False
+
 	# -ansi doesn't allow inline specifier
 	def isInline(self):
 		return "inline" in self.func.decl.funcspec
@@ -231,7 +235,7 @@ class RewriteFun(Fun):
 	"""
 	AST -> AST
 	"""
-	class RenameArg:
+	class Arg:
 		def __init__(self, node):
 			self.node = node
 
@@ -259,9 +263,14 @@ class RewriteFun(Fun):
 	def __init__(self, func):
 		self.phase_no = 0
 		self.func = func
+		self.ok = True
 
 		if DEBUG:
 			self.func.show()
+
+		if self.isRecursive():
+			self.ok = False
+			return # __init__ should return None
 
 		self.args = []
 		self.init_table = NameTable()
@@ -271,15 +280,22 @@ class RewriteFun(Fun):
 			params = func.decl.type.args.params
 
 		for param_decl in params:
-			arg = self.RenameArg(param_decl)
+			# If the function has varargs (...)
+			# it is impossible to translate to macro.
+			if isinstance(param_decl, c_ast.EllipsisParam):
+				self.ok = False
+				return
+
+			arg = self.Arg(param_decl)
 			self.args.append(arg)
 
 		for arg in self.args:
-			# FIXME EllipsisParam has no attribute 'name'
 			name = arg.node.name
 			self.init_table.declare(name)
 
 	def renameFuncBody(self):
+		if not self.ok: return self
+
 		block_items = self.func.body.block_items
 		if not block_items:
 			return self
@@ -287,7 +303,6 @@ class RewriteFun(Fun):
 		visitor = RenameVars(self.init_table)
 		for x in block_items:
 			visitor.visit(x)
-
 		return self
 
 	def renameDecl(self, node, alias):
@@ -299,11 +314,12 @@ class RewriteFun(Fun):
 
 	def renameArgs(self):
 		self.phase_no += 1
+		if not self.ok: return self
+
 		for arg in self.args:
 			if not arg.shouldInsertDecl():
 				alias  = self.init_table.alias(arg.node.name)
 				self.renameDecl(arg.node, alias)
-			
 		return self
 
 	def insertDeclLines(self):
@@ -321,6 +337,8 @@ class RewriteFun(Fun):
 		}
 		"""
 		self.phase_no += 1
+		if not self.ok: return self
+
 		block_items = self.func.body.block_items
 		if not block_items:
 			return self
@@ -342,7 +360,6 @@ class RewriteFun(Fun):
 
 				# Rename the arg
 				self.renameDecl(arg.node, newname)
-
 		return self
 
 	def sanitizeNames(self):
@@ -374,11 +391,12 @@ class RewriteFun(Fun):
 
 	def insertGotoLabel(self):
 		self.phase_no += 1
+		if not self.ok: return self
+
 		f = self.HasReturn()
 		f.visit(self.func)
 		if f.result:
 			self.InsertGotoLabel().visit(self.func)
-
 		return self
 
 	class RewriteReturnToGoto(c_ast.NodeVisitor):
@@ -400,6 +418,8 @@ class RewriteFun(Fun):
 
 	def rewriteReturnToGoto(self):
 		self.phase_no += 1
+		if not self.ok: return self
+
 		self.RewriteReturnToGoto().visit(self.func)
 		return self
 
@@ -412,11 +432,15 @@ class RewriteFun(Fun):
 
 	def appendNamespaceToLabels(self):
 		self.phase_no += 1
+		if not self.ok: return self
+
 		self.AppendNamespaceToLables().visit(self.func)
 		return self
 
 	def macroize(self):
 		self.phase_no += 1
+		if not self.ok: return self
+
 		fun_name = self.name()
 		args = ', '.join(["namespace"] + map(lambda arg: arg.node.name, self.args))
 		generator = pycparser_ext.CGenerator()
