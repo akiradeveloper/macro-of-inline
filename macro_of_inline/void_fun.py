@@ -310,6 +310,10 @@ inline struct T *f(int n)
 
 test_fun2 = r"""
 inline int f(int x, ...) {
+	while (0)
+		return 0;
+	for (;;)
+		return 0;
 	while (0) {
 		if (0)
 			return 0;
