@@ -416,17 +416,8 @@ class RewriteFun(Fun):
 		Visit a compound and rewrite "return" to "goto GOTO_LABEL".
 		We assume at most only one "return" exists in a compound.
 		"""
-		def visit_Compound(self, n):
-			if not n.block_items:
-				n.block_items = []
-
-			return_index = None
-			for (i, item) in enumerate(n.block_items):
-				if isinstance(item, c_ast.Return):
-					return_index = i
-			if return_index != None:
-				n.block_items[return_index] = c_ast.Goto(GOTO_LABEL)
-			pycparser_ext.NodeVisitor.generic_visit(self, n)
+		def visit_Return(self, n):
+			pycparser_ext.NodeVisitor.rewrite(self.current_parent, self.current_name, c_ast.Goto(GOTO_LABEL))
 
 	def rewriteReturnToGoto(self):
 		self.phase_no += 1
