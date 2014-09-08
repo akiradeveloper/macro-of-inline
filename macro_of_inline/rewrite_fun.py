@@ -263,11 +263,14 @@ class RewriteFun(Fun):
 	def __init__(self, func):
 		self.phase_no = 0
 		self.func = func
+
+		# Like Maybe monad, we will keep the state if once failed.
 		self.ok = True
 
 		if DEBUG:
 			self.func.show()
 
+		# Recursive call can't be macroized in any safe ways.
 		if self.isRecursive():
 			self.ok = False
 			return # __init__ should return None
@@ -275,6 +278,8 @@ class RewriteFun(Fun):
 		self.args = []
 		self.init_table = NameTable()
 
+		# We consider f(void) as f() that truly doesn't have
+		# arguments as AST-level.
 		params = []
 		if not self.voidArgs():
 			params = func.decl.type.args.params

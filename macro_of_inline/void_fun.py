@@ -179,6 +179,8 @@ class RewriteFun:
 			if not self.context.func.decl.type.args:
 				return
 
+			# Because these is no function of the same name in the same file
+			# we don't need care shadowing by it's own function name.
 			for param_decl in self.context.func.decl.type.args.params or []:
 				if isinstance(param_decl, c_ast.EllipsisParam): # ... (EllipsisParam)
 					continue
