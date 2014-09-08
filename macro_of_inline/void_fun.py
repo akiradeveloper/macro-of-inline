@@ -110,8 +110,14 @@ class FuncCallName(c_ast.NodeVisitor):
 
 	We need to find the ID node recursively.
 	"""
+
+	def __init__(self):
+		self.found = False
+
 	def visit_ID(self, n):
+		if self.found: return
 		self.result = n.name
+		self.found = True
 
 class RewriteFun:
 	"""
