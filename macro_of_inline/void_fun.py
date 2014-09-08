@@ -51,6 +51,9 @@ class VoidFun(rewrite_fun.Fun):
 						c_ast.UnaryOp("*", c_ast.ID("retval")), # lvalue
 						n.expr)) # rvalue
 
+			# print type(self.current_parent)
+			# self.current_parent.show()
+			# n.show()
 			assert(isinstance(self.current_parent, c_ast.Compound))
 			# Since we are visiting in depth-first and
 			# pycparser's children() method first create nodelist
@@ -72,21 +75,6 @@ class VoidFun(rewrite_fun.Fun):
 		recorder.fun_record(self.PHASES[self.phase_no], self.func)
 		return self
 
-class SymbolTable:
-	def __init__(self):
-		self.names = set()
-		self.prev_table = None
-
-	def register(self, name):
-		self.names.add(name)
-
-	def clone(self):
-		st = SymbolTable()
-		st.names = copy.deepcopy(self.names)
-		return st
-
-	def show(self):
-		print(self.names)
 
 class FuncCallName(c_ast.NodeVisitor):
 	"""
@@ -126,6 +114,22 @@ class FuncCallName(c_ast.NodeVisitor):
 		if self.found: return
 		self.result = n.name
 		self.found = True
+
+class SymbolTable:
+	def __init__(self):
+		self.names = set()
+		self.prev_table = None
+
+	def register(self, name):
+		self.names.add(name)
+
+	def clone(self):
+		st = SymbolTable()
+		st.names = copy.deepcopy(self.names)
+		return st
+
+	def show(self):
+		print(self.names)
 
 class RewriteFun:
 	"""
@@ -176,20 +180,10 @@ class RewriteFun:
 
 			c_ast.NodeVisitor.generic_visit(self, n)
 
-	class PopFuncCall(c_ast.NodeVisitor):
-		"""
-		Flatten nested function calls
-
-		1. Find a deepest calling of inline function.
-		2. Allocate the random name for the output.
-		3. Factor out the call.
-		"""
+	class RewriteToCommaOp(pycparser_ext.NodeVisitor):
 		def __init__(self, context):
-			self.context = context
 			self.cur_table = SymbolTable()
-
-			# For technical reason, we pop function off one by one.
-			self.found = False
+			self.context = context
 
 			if not self.context.func.decl.type.args:
 				return
@@ -201,166 +195,61 @@ class RewriteFun:
 					continue
 				self.cur_table.register(param_decl.name)
 
-		def onFuncArg(self, exprs, i):
-			if self.found:
-				return
+		def switchTable(self):
+			new_table = self.cur_table.clone()
+			new_table.prev_table = self.cur_table
+			self.cur_table = new_table
 
-			expr = copy.deepcopy(exprs[i])
+		def revertTable(self):
+			self.cur_table = self.cur_table.prev_table;
 
-			if not isinstance(expr, c_ast.FuncCall):
-				return
+		def visit_Compound(self, n):
+			self.switchTable()
+			pycparser_ext.NodeVisitor.generic_visit(self, n)
+			self.revertTable()
 
-			unshadowed_names = self.context.non_void_names - self.cur_table.names
+		def mkCommaOp(self, var, f):
+			proc = f
+			if not proc.args:
+				proc.args = c_ast.ExprList([])
+			proc.args.exprs.insert(0, c_ast.UnaryOp("&", var))
+			return pycparser_ext.CommaOp(c_ast.ExprList([proc, var]))
 
-			f = FuncCallName()
-			f.visit(expr.name)
-			funcname = f.result
-			if not funcname in unshadowed_names:
-				return
-
-			self.found = True
-			randvar = rewrite_fun.newrandstr(cfg.env.rand_names, rewrite_fun.N)
-			exprs[i] = c_ast.ID(randvar)
-
-			# randvar = expr;
-			self.cur_compound.block_items.insert(self.cur_compound_index,
-					c_ast.Assignment("=",
-						c_ast.ID(randvar), # lvalue
-						expr)) # rvalue
-
-			# T randvar;
-			func = (m for _, m in self.context.non_void_funs if rewrite_fun.Fun(m).name() == funcname).next()
-			old_decl = copy.deepcopy(func.decl.type.type)
-			rewrite_fun.RewriteTypeDecl(randvar).visit(old_decl)
-			self.cur_compound.block_items.insert(0, c_ast.Decl(randvar,
-				[], [], [], old_decl, None, None))
-
-		def onFuncCall(self, n):
-			"""
-			Called on visiting a func calls
-			Pop up if an arg is an inlined.
-			"""
-			if not n.args:
-				return
-			for i, expr in enumerate(n.args.exprs):
-				self.onFuncArg(n.args.exprs, i)
-				if self.found:
-					return
-			c_ast.NodeVisitor.generic_visit(self, n)
-
-		# This hook is needed to recursively visit func calls
-		# as func call arguments under a calling of onFuncCall()
-		# E.g. f(g(h()))
 		def visit_FuncCall(self, n):
-			self.onFuncCall(n)
-
-		def visit_Compound(self, n):
-			self.cur_compound = n
-			self.switchTable()
-			for i, item in enumerate(n.block_items or []):
-				self.cur_compound_index = i
-				if isinstance(item, c_ast.Decl):
-					self.cur_table.register(item.name)
-				elif isinstance(item, c_ast.FuncCall):
-					# f(...);
-					self.onFuncCall(item)
-				elif isinstance(item, c_ast.Return):
-					if not item.expr:
-						return
-					# return expr;
-					# As "return" is not considered as a function call
-					# we need this work-around.
-					exprs = [item.expr]
-					self.onFuncArg(exprs, 0)
-					item.expr = exprs[0]
-				elif isinstance(item, c_ast.Assignment) and isinstance(item.rvalue, c_ast.FuncCall):
-					# var = f(...);
-					self.onFuncCall(item.rvalue)
-			c_ast.NodeVisitor.generic_visit(self, n) # Dig into compounds.
-			self.revertTable()
-
-		def switchTable(self):
-			new_table = self.cur_table.clone()
-			new_table.prev_table = self.cur_table
-			self.cur_table = new_table
-
-		def revertTable(self):
-			self.cur_table = self.cur_table.prev_table;
-
-	# FIXME DRY: Crucial code duplication with PopFuncCall
-	class AddRetVal(c_ast.NodeVisitor):
-		"""
-		var = f(...);
-
-		=>
-
-		f(&var, ...);
-		"""
-		def __init__(self, context):
-			self.context = context
-			self.cur_table = SymbolTable()
-
-			if not self.context.func.decl.type.args:
-				return
-
-			for param_decl in self.context.func.decl.type.args.params or []:
-				if isinstance(param_decl, c_ast.EllipsisParam):
-					continue
-				self.cur_table.register(param_decl.name)
-
-		def switchTable(self):
-			new_table = self.cur_table.clone()
-			new_table.prev_table = self.cur_table
-			self.cur_table = new_table
-
-		def revertTable(self):
-			self.cur_table = self.cur_table.prev_table;
-
-		def visit_Compound(self, n):
-			self.switchTable()
-			for i, item in enumerate(n.block_items or []):
-				if isinstance(item, c_ast.Decl):
-					self.cur_table.register(item.name)
-				elif isinstance(item, c_ast.Assignment):
-					self.onAssignment(n.block_items, i)
-			c_ast.NodeVisitor.generic_visit(self, n)
-			self.revertTable()
-
-		def onAssignment(self, block_items, i):
-			n = block_items[i]
-
-			if not isinstance(n.rvalue, c_ast.FuncCall):
-				return
-
+			"""
+			var = f() => var = (f(&var), var)
+			f()       => (f(&randvar), randvar)
+			"""
 			funcname = FuncCallName()
-			funcname.visit(n.rvalue)
+			funcname.visit(n)
 			funcname = funcname.result
 
 			unshadowed_names = self.context.non_void_names - self.cur_table.names
-			if not funcname in unshadowed_names:
-				return
+			if funcname in unshadowed_names:
 
-			proc = n.rvalue
+				if (isinstance(self.current_parent, c_ast.Assignment)):
+					comma = self.mkCommaOp(self.current_parent.lvalue, n)
+				else:
+					randvar = rewrite_fun.newrandstr(cfg.env.rand_names, rewrite_fun.N)
 
-			if not proc.args:
-				proc.args = c_ast.ExprList([])
-			proc.args.exprs.insert(0, c_ast.UnaryOp("&", n.lvalue))
-			block_items[i] = proc
+					# Generate "T var" from the function definition "T f(...)"
+					func = (m for _, m in self.context.non_void_funs if rewrite_fun.Fun(m).name() == funcname).next()
+					old_decl = copy.deepcopy(func.decl.type.type)
+					rewrite_fun.RewriteTypeDecl(randvar).visit(old_decl)
+					self.context.func.body.block_items.insert(0, c_ast.Decl(randvar, [], [], [], old_decl, None, None))
+
+					comma = self.mkCommaOp(c_ast.ID(randvar), n)
+
+				pycparser_ext.NodeVisitor.rewrite(self.current_parent, self.current_name, comma)
+
+			pycparser_ext.NodeVisitor.generic_visit(self, n)
 
 	def run(self):
 		self.DeclSplit().visit(self.func)
 		self.show()
 
 		self.phase_no += 1
-		cont = True
-		while cont:
-			f = self.PopFuncCall(self)
-			f.visit(self.func)
-			cont = f.found
-		self.show()
-
-		self.phase_no += 1
-		self.AddRetVal(self).visit(self.func)
+		self.RewriteToCommaOp(self).visit(self.func)
 		self.show()
 
 		return self
@@ -421,10 +310,15 @@ inline struct T *f(int n)
 
 test_fun2 = r"""
 inline int f(int x, ...) {
-	if (1) {
-		return 1;
-	} else {
-		return 0;
+	while (0) {
+		if (0)
+			return 0;
+
+		if (1) {
+			return 1;
+		} else {
+			return 0;
+		}
 	}
 } 
 """
@@ -447,8 +341,12 @@ int foo(int x, ...)
 	int y = g(z, g(y, (*f)()));
 	int z = 2;
 	int hR = h1(h1(h2(h3(0))));
+	if (0)
+		return h1(h1(0));
 	do {
 		int hR = h1(h1(h2(h3(0))));
+		if (0)
+			return h1(h1(0));
 	} while(0);
 	int p;
 	int q = 3;
@@ -460,13 +358,13 @@ int bar() {}
 """
 
 if __name__ == "__main__":
-	ast = pycparser_ext.ast_of(test_file)
-	ast.show()
-	ast = RewriteFile(ast).run().returnAST()
-	ast.show()
-	print c_generator.CGenerator().visit(ast)
+	# ast = pycparser_ext.ast_of(test_file)
+	# ast.show()
+	# ast = RewriteFile(ast).run().returnAST()
+	# ast.show()
+	# print pycparser_ext.CGenerator().visit(ast)
 
-	# fun = pycparser_ext.ast_of(test_fun2).ext[0]
-	# fun.show()
-	# ast = VoidFun(fun).run().returnAST()
-	# print c_generator.CGenerator().visit(ast)
+	fun = pycparser_ext.ast_of(test_fun2).ext[0]
+	fun.show()
+	ast = VoidFun(fun).run().returnAST()
+	print pycparser_ext.CGenerator().visit(ast)
