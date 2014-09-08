@@ -364,6 +364,7 @@ class RewriteFun:
 
 		self.phase_no += 1
 		self.AddRetVal(self).visit(self.func)
+		self.show()
 
 		return self
 
