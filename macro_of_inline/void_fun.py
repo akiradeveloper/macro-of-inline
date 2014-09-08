@@ -44,22 +44,18 @@ class VoidFun(rewrite_fun.Fun):
 		self.func.decl.type.type = c_ast.TypeDecl(self.name(), [], c_ast.IdentifierType(["void"]))
 		return self
 
-	class ReturnToAssignment(c_ast.NodeVisitor):
-		def visit_Compound(self, n):
-			if not n.block_items:
-				return
-
-			return_item = None
-			for i, item in enumerate(n.block_items):
-				if isinstance(item, c_ast.Return):
-					return_item = (i, item)
-			if return_item != None:
-				i, item = return_item
-				n.block_items[i] = c_ast.Assignment("=",
+	class ReturnToAssignment(pycparser_ext.NodeVisitor):
+		def visit_Return(self, n):
+			pycparser_ext.NodeVisitor.rewrite(self.current_parent, self.current_name,
+				c_ast.Assignment("=",
 						c_ast.UnaryOp("*", c_ast.ID("retval")), # lvalue
-						item.expr) # rvalue
-				n.block_items.append(c_ast.Return(None))
-			c_ast.NodeVisitor.generic_visit(self, n)
+						n.expr)) # rvalue
+
+			assert(isinstance(self.current_parent, c_ast.Compound))
+			# Since we are visiting in depth-first and
+			# pycparser's children() method first create nodelist
+			# it is safe to add some node as sibling (but it won't be visited)
+			self.current_parent.block_items.append(c_ast.Return(None))
 
 	def rewriteReturn(self):
 		self.phase_no += 1
