@@ -46,19 +46,23 @@ class VoidFun(rewrite_fun.Fun):
 
 	class ReturnToAssignment(pycparser_ext.NodeVisitor):
 		def visit_Return(self, n):
-			pycparser_ext.NodeVisitor.rewrite(self.current_parent, self.current_name,
-				c_ast.Assignment("=",
+			ass = c_ast.Assignment("=",
 						c_ast.UnaryOp("*", c_ast.ID("retval")), # lvalue
-						n.expr)) # rvalue
+						n.expr) # rvalue
+			pycparser_ext.NodeVisitor.rewrite(self.current_parent, self.current_name, ass)
 
-			# print type(self.current_parent)
-			# self.current_parent.show()
-			# n.show()
-			assert(isinstance(self.current_parent, c_ast.Compound))
+			compound = self.current_parent
+
+			# We expect that the parent is compound (because we will have at least two lines in there).
+			# However, some hacky code omits curly braces (Linux kernel even oblige this).
+			if not isinstance(self.current_parent, c_ast.Compound):
+				compound = c_ast.Compound([ass])
+				pycparser_ext.NodeVisitor.rewrite(self.current_parent, self.current_name, compound)
+
 			# Since we are visiting in depth-first and
 			# pycparser's children() method first create nodelist
 			# it is safe to add some node as sibling (but it won't be visited)
-			self.current_parent.block_items.append(c_ast.Return(None))
+			compound.block_items.append(c_ast.Return(None))
 
 	def rewriteReturn(self):
 		self.phase_no += 1
