@@ -225,24 +225,23 @@ class RewriteFun:
 			funcname = funcname.result
 
 			unshadowed_names = self.context.non_void_names - self.cur_table.names
-			if not funcname in unshadowed_names:
-				pycparser_ext.NodeVisitor.generic_visit(self, n)
-				return
+			if funcname in unshadowed_names:
 
-			if (isinstance(self.current_parent, c_ast.Assignment)):
-				comma = self.mkCommaOp(self.current_parent.lvalue, n)
-			else:
-				randvar = rewrite_fun.newrandstr(cfg.env.rand_names, rewrite_fun.N)
+				if (isinstance(self.current_parent, c_ast.Assignment)):
+					comma = self.mkCommaOp(self.current_parent.lvalue, n)
+				else:
+					randvar = rewrite_fun.newrandstr(cfg.env.rand_names, rewrite_fun.N)
 
-				# Generate "T var" from the function definition "T f(...)"
-				func = (m for _, m in self.context.non_void_funs if rewrite_fun.Fun(m).name() == funcname).next()
-				old_decl = copy.deepcopy(func.decl.type.type)
-				rewrite_fun.RewriteTypeDecl(randvar).visit(old_decl)
-				self.context.func.body.block_items.insert(0, c_ast.Decl(randvar, [], [], [], old_decl, None, None))
+					# Generate "T var" from the function definition "T f(...)"
+					func = (m for _, m in self.context.non_void_funs if rewrite_fun.Fun(m).name() == funcname).next()
+					old_decl = copy.deepcopy(func.decl.type.type)
+					rewrite_fun.RewriteTypeDecl(randvar).visit(old_decl)
+					self.context.func.body.block_items.insert(0, c_ast.Decl(randvar, [], [], [], old_decl, None, None))
 
-				comma = self.mkCommaOp(c_ast.ID(randvar), n)
+					comma = self.mkCommaOp(c_ast.ID(randvar), n)
 
-			pycparser_ext.NodeVisitor.rewrite(self.current_parent, self.current_name, comma)
+				pycparser_ext.NodeVisitor.rewrite(self.current_parent, self.current_name, comma)
+
 			pycparser_ext.NodeVisitor.generic_visit(self, n)
 
 	def run(self):
