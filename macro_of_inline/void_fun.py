@@ -109,8 +109,20 @@ class FuncCallName(c_ast.NodeVisitor):
 	  ID
 
 	We need to find the ID node recursively.
-	"""
 
+	Note:
+	The AST representation of f->f(hoge) is like this.
+	As a result, this function returns 'f' as the name of this call.
+	This works because 'f' shadows the non-void functions.
+	(We don't expect f->f(hoge) will be written to f->f(&retval, hoge))
+
+        FuncCall:
+          StructRef: ->
+            ID: f
+            ID: f
+          ExprList:
+            ID: hoge
+	"""
 	def __init__(self):
 		self.found = False
 
@@ -445,7 +457,6 @@ int foo(int x, ...)
 	int hRR = t->h1(h1(h2(h3(0))));
 	return g(x, f());
 }
-
 
 int bar() {}
 """

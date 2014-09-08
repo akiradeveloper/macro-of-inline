@@ -221,7 +221,7 @@ if __name__ == "__main__":
 %s
 """ % pycparser_ext.CGenerator.cleanUp(output)
 
-	fn = "macro-of-inline-test.c"
+	fn = "/tmp/%s.c" % rewrite_fun.randstr(16)
 	f = open(fn, "w")
 	f.write(file_contents)
 	f.close()
