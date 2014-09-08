@@ -279,6 +279,61 @@ class RewriteFun:
 		def revertTable(self):
 			self.cur_table = self.cur_table.prev_table;
 
+	# FIXME DRY: Crucial code duplication with PopFuncCall
+	class AddRetVal(c_ast.NodeVisitor):
+		"""
+		var = f(...);
+
+		=>
+
+		f(&var, ...);
+		"""
+		def __init__(self, context):
+			self.context = context
+			self.cur_table = SymbolTable()
+
+			if not self.context.func.decl.type.args:
+				return
+
+			for param_decl in self.context.func.decl.type.args.params or []:
+				if isinstance(param_decl, c_ast.EllipsisParam): # ... (EllipsisParam)
+					continue
+				self.cur_table.register(param_decl.name)
+
+		def switchTable(self):
+			new_table = self.cur_table.clone()
+			new_table.prev_table = self.cur_table
+			self.cur_table = new_table
+
+		def revertTable(self):
+			self.cur_table = self.cur_table.prev_table;
+
+		def visit_Compound(self, n):
+			self.switchTable()
+			for i, item in enumerate(n.block_items or []):
+				if isinstance(item, c_ast.Decl):
+					self.cur_table.register(item.name)
+				elif isinstance(item, c_ast.Assignment):
+					self.onAssignment(item)
+			self.revertTable()
+
+		def onAssignment(self, n):
+			if not isinstance(n.rvalue, c_ast.FuncCall):
+				return
+
+			varname = n.lvalue.name
+
+			f = FuncCallName()
+			f.visit(n.rvalue)
+			funcname = f.result
+
+			unshadowed_names = self.context.non_void_names - self.cur_table.names
+			if not funcname in unshadowed_names:
+				return
+
+			print "%s = %s" % (varname, funcname)
+			n.show()
+
 	def run(self):
 		self.DeclSplit().visit(self.func)
 		self.show()
@@ -290,6 +345,9 @@ class RewriteFun:
 			f.visit(self.func)
 			cont = f.found
 		self.show()
+
+		self.phase_no += 1
+		self.AddRetVal(self).visit(self.func)
 
 		return self
 
