@@ -51,6 +51,9 @@ class VoidFun(rewrite_fun.Fun):
 						c_ast.UnaryOp("*", c_ast.ID("retval")), # lvalue
 						n.expr)) # rvalue
 
+			# print type(self.current_parent)
+			# self.current_parent.show()
+			# n.show()
 			assert(isinstance(self.current_parent, c_ast.Compound))
 			# Since we are visiting in depth-first and
 			# pycparser's children() method first create nodelist
@@ -307,10 +310,15 @@ inline struct T *f(int n)
 
 test_fun2 = r"""
 inline int f(int x, ...) {
-	if (1) {
-		return 1;
-	} else {
-		return 0;
+	while (0) {
+		if (0)
+			return 0;
+
+		if (1) {
+			return 1;
+		} else {
+			return 0;
+		}
 	}
 } 
 """
@@ -333,8 +341,12 @@ int foo(int x, ...)
 	int y = g(z, g(y, (*f)()));
 	int z = 2;
 	int hR = h1(h1(h2(h3(0))));
+	if (0)
+		return h1(h1(0));
 	do {
 		int hR = h1(h1(h2(h3(0))));
+		if (0)
+			return h1(h1(0));
 	} while(0);
 	int p;
 	int q = 3;
@@ -346,13 +358,13 @@ int bar() {}
 """
 
 if __name__ == "__main__":
-	ast = pycparser_ext.ast_of(test_file)
-	ast.show()
-	ast = RewriteFile(ast).run().returnAST()
-	ast.show()
-	print pycparser_ext.CGenerator().visit(ast)
-
-	# fun = pycparser_ext.ast_of(test_fun2).ext[0]
-	# fun.show()
-	# ast = VoidFun(fun).run().returnAST()
+	# ast = pycparser_ext.ast_of(test_file)
+	# ast.show()
+	# ast = RewriteFile(ast).run().returnAST()
+	# ast.show()
 	# print pycparser_ext.CGenerator().visit(ast)
+
+	fun = pycparser_ext.ast_of(test_fun2).ext[0]
+	fun.show()
+	ast = VoidFun(fun).run().returnAST()
+	print pycparser_ext.CGenerator().visit(ast)
