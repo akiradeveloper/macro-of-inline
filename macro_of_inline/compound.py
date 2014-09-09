@@ -90,7 +90,9 @@ class PrintCompound(CompoundVisitor):
 		c_ast.NodeVisitor.generic_visit(self, n)
 
 t1 = r"""
-void f()
+void f(int a, int b)
+int a;
+int b;
 {
 	{
 		int x;
@@ -121,7 +123,8 @@ if __name__ == "__main__":
 	ast.show()
 
 	Brace().visit(ast.ext[0])
-	ast.ext[0].show()
+	print ast.ext[0].param_decls
+	print ast.ext[0].decl.type.args.params
 	# print c_generator.CGenerator().visit(ast.ext[0])
 
 	PrintCompound().visit(ast.ext[0])
