@@ -80,7 +80,7 @@ class VoidFun(ext_pycparser.FuncDef):
 		return self
 
 class SymbolTable:
-	def __init__(self):
+	def __init__(self, func):
 		self.names = set()
 		self.prev_table = None
 
@@ -91,6 +91,11 @@ class SymbolTable:
 		st = SymbolTable()
 		st.names = copy.deepcopy(self.names)
 		return st
+
+	def switch(self):
+		new_table = self.clone()
+		new_table.prev_table = self.cur_table
+		return new_table
 
 	def show(self):
 		print(self.names)
@@ -160,17 +165,15 @@ class RewriteFun:
 				self.cur_table.register(param_decl.name)
 
 		def switchTable(self):
-			new_table = self.cur_table.clone()
-			new_table.prev_table = self.cur_table
-			self.cur_table = new_table
+			self.cur_table = self.cur_table.switch()
 
 		def revertTable(self):
 			self.cur_table = self.cur_table.prev_table;
 
 		def visit_Compound(self, n):
-			self.switchTable()
+			self.cur_table = self.cur_table.switch()
 			ext_pycparser.NodeVisitor.generic_visit(self, n)
-			self.revertTable()
+			self.cur_table = self.cur_table.prev_table;
 
 		def mkCommaOp(self, var, f):
 			proc = f
