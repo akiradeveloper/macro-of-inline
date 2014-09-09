@@ -3,6 +3,14 @@ from pycparser import c_ast, c_parser, c_generator
 import enum
 import re
 
+class Result:
+	def __init__(self, visitor):
+		self.visitor = visitor
+
+	def visit(self, n):
+		self.visitor.visit(n)
+		return self.visitor.result
+
 def ast_of(txt):
 	parser = c_parser.CParser()
 	return parser.parse(txt)
@@ -156,17 +164,13 @@ class FuncDef:
 			return False
 
 		param = args.params[0]
-		query = QueryDeclType()
-		query.visit(param)
 
 		# f(...(*g)(...))
-		if query.result == ArgType.fun:
+		if Result(QueryDeclType()).visit(param) == ArgType.fun:
 			return False
 
 		# f(void)
-		f = self.VoidParam()
-		f.visit(param)
-		return f.result
+		return Result(self.VoidParam()).visit(param)
 
 	def hasVarArgs(self):
 		if self.voidArgs():
@@ -195,9 +199,7 @@ class ParamDecl:
 		self.node = node
 
 	def queryType(self):
-		query = QueryDeclType()
-		query.visit(self.node)
-		return query.result
+		return Result(QueryDeclType()).visit(self.node)
 
 	def show(self):
 		if not DEBUG:

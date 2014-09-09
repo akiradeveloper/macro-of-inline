@@ -8,6 +8,7 @@ import ext_pycparser
 import recorder
 import rewrite_fun
 import rewrite_non_void
+import utils
 
 class LabelizeFuncCall(ext_pycparser.NodeVisitor):
 	"""
@@ -63,7 +64,7 @@ class LabelizeFuncCall(ext_pycparser.NodeVisitor):
 		f.visit(n.name)
 		if not f.result in self.macro_names:
 			return
-		namespace = rewrite_fun.newrandstr(cfg.env.rand_names, rewrite_fun.N)
+		namespace = utils.newrandstr(cfg.env.rand_names, utils.N)
 		if self.called_in_macro:
 			namespace = "namespace ## %s" % namespace
 		if n.args == None:
@@ -81,12 +82,12 @@ class RewriteFile:
 		self.ast = ast
 
 	def applyPreprocess(self):
-		fn = "/tmp/%s.c" % rewrite_fun.randstr(16)
+		fn = "/tmp/%s.c" % utils.randstr(16)
 		fp = open(fn, "w")
 		fp.write(ext_pycparser.CGenerator().visit(self.ast))
 		fp.close()
-		# print(cpp_ext.cpp(fn))
-		self.ast = ext_pycparser.ast_of(cpp_ext.cpp(fn))
+		# print(cppwrap.cpp(fn))
+		self.ast = ext_pycparser.ast_of(cppwrap.cpp(fn))
 		os.remove(fn)
 
 	class NormalizeLabels(ext_pycparser.NodeVisitor):
@@ -95,7 +96,7 @@ class RewriteFile:
 
 		def do_visit(self, n):
 			if n.name not in self.m:
-				self.m[n.name] = rewrite_fun.newrandstr(cfg.env.rand_names, rewrite_fun.N)
+				self.m[n.name] = utils.newrandstr(cfg.env.rand_names, utils.N)
 			n.name = self.m[n.name]
 
 		def visit_Goto(self, n):
@@ -161,7 +162,7 @@ class RewriteFileContents:
 
 	def run(self):
 		f = lambda ast: RewriteFile(ast).run().returnAST()
-		output = cpp_ext.Apply(f).on(self.filename)
+		output = cppwrap.Apply(f).on(self.filename)
 		return ext_pycparser.CGenerator.cleanUp(output)
 
 testcase = r"""
@@ -222,7 +223,7 @@ if __name__ == "__main__":
 %s
 """ % ext_pycparser.CGenerator.cleanUp(output)
 
-	fn = "/tmp/%s.c" % rewrite_fun.randstr(16)
+	fn = "/tmp/%s.c" % utils.randstr(16)
 	f = open(fn, "w")
 	f.write(file_contents)
 	f.close()
