@@ -1,7 +1,8 @@
-import pycparser_ext
-import cfg
 import os
 import shutil
+
+import cfg
+import ext_pycparser
 
 class Recorder:
 

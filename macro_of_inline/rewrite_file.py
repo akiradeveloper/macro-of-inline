@@ -1,14 +1,15 @@
 from pycparser import c_parser, c_ast
 
 import os
-import recorder
-import pycparser_ext
-import cpp_ext
-import cfg
-import rewrite_fun
-import void_fun
 
-class LabelizeFuncCall(pycparser_ext.NodeVisitor):
+import cfg
+import cppwrap
+import ext_pycparser
+import recorder
+import rewrite_fun
+import rewrite_non_void
+
+class LabelizeFuncCall(ext_pycparser.NodeVisitor):
 	"""
 	Add random label all macro calls.
 
@@ -43,10 +44,10 @@ class LabelizeFuncCall(pycparser_ext.NodeVisitor):
 	def visit_FuncDef(self, n):
 		if n.decl.name in self.macro_names:
 			self.called_in_macro = True
-		pycparser_ext.NodeVisitor.generic_visit(self, n)
+		ext_pycparser.NodeVisitor.generic_visit(self, n)
 		self.called_in_macro = False
 
-	class Name(pycparser_ext.NodeVisitor):
+	class Name(ext_pycparser.NodeVisitor):
 		"""
 		Get the name of the function called.
 		Usage: visit(FuncCall.name)
@@ -82,13 +83,13 @@ class RewriteFile:
 	def applyPreprocess(self):
 		fn = "/tmp/%s.c" % rewrite_fun.randstr(16)
 		fp = open(fn, "w")
-		fp.write(pycparser_ext.CGenerator().visit(self.ast))
+		fp.write(ext_pycparser.CGenerator().visit(self.ast))
 		fp.close()
 		# print(cpp_ext.cpp(fn))
-		self.ast = pycparser_ext.ast_of(cpp_ext.cpp(fn))
+		self.ast = ext_pycparser.ast_of(cpp_ext.cpp(fn))
 		os.remove(fn)
 
-	class NormalizeLabels(pycparser_ext.NodeVisitor):
+	class NormalizeLabels(ext_pycparser.NodeVisitor):
 		def __init__(self):
 			self.m = {} # string -> int
 
@@ -110,7 +111,7 @@ class RewriteFile:
 		if MACROIZE_NON_VOID:
 			void_runner = void_fun.RewriteFile(self.ast)
 			void_runner.run()
-			recorder.file_record("convert_non_void_to_void", pycparser_ext.CGenerator().visit(self.ast))
+			recorder.file_record("convert_non_void_to_void", ext_pycparser.CGenerator().visit(self.ast))
 
 		macroizables = [] # (i, runner)
 		for i, n in enumerate(self.ast.ext):
@@ -127,17 +128,17 @@ class RewriteFile:
 		for i, runner in macroizables:
 			runner.sanitizeNames()
 
-		recorder.file_record("sanitize_names", pycparser_ext.CGenerator().visit(self.ast))
+		recorder.file_record("sanitize_names", ext_pycparser.CGenerator().visit(self.ast))
 
 		LabelizeFuncCall([runner.func.decl.name for i, runner in macroizables]).visit(self.ast)
 
-		recorder.file_record("labelize_func_call", pycparser_ext.CGenerator().visit(self.ast))
+		recorder.file_record("labelize_func_call", ext_pycparser.CGenerator().visit(self.ast))
 
 		for i, runner in macroizables:
 			runner.insertGotoLabel().show().rewriteReturnToGoto().show().appendNamespaceToLabels().show().macroize().show()
 			self.ast.ext[i] = runner.returnAST()
 
-		recorder.file_record("macroize", pycparser_ext.CGenerator().visit(self.ast))
+		recorder.file_record("macroize", ext_pycparser.CGenerator().visit(self.ast))
 
 		# Apply preprocessor and normalize labels to fixed length
 		# Some compiler won't allow too-long lables.
@@ -145,7 +146,7 @@ class RewriteFile:
 			self.applyPreprocess()
 			self.normalizeLabels()
 
-		recorder.file_record("normalize_labels", pycparser_ext.CGenerator().visit(self.ast))
+		recorder.file_record("normalize_labels", ext_pycparser.CGenerator().visit(self.ast))
 		return self
 
 	def returnAST(self):
@@ -161,7 +162,7 @@ class RewriteFileContents:
 	def run(self):
 		f = lambda ast: RewriteFile(ast).run().returnAST()
 		output = cpp_ext.Apply(f).on(self.filename)
-		return pycparser_ext.CGenerator.cleanUp(output)
+		return ext_pycparser.CGenerator.cleanUp(output)
 
 testcase = r"""
 struct T { int x; };
@@ -214,12 +215,12 @@ if __name__ == "__main__":
 	parser = c_parser.CParser()
 	output = RewriteFile(parser.parse(testcase)).run().returnAST()
 
-	generator = pycparser_ext.CGenerator()
+	generator = ext_pycparser.CGenerator()
 	output = generator.visit(output)
 	file_contents = """
 #include <stdio.h>
 %s
-""" % pycparser_ext.CGenerator.cleanUp(output)
+""" % ext_pycparser.CGenerator.cleanUp(output)
 
 	fn = "/tmp/%s.c" % rewrite_fun.randstr(16)
 	f = open(fn, "w")

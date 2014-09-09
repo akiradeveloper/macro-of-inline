@@ -1,48 +1,27 @@
 from pycparser import c_parser, c_ast
 
-import recorder
-import cfg
-import pycparser_ext
 import collections
-import string
-import random
 import copy
 import enum
 
-Symbol = collections.namedtuple('Symbol', 'alias, overwritable')
+import cfg
+import ext_pycparser
+import recorder
+import utils
 
-DEBUG = False
+Symbol = collections.namedtuple('Symbol', 'alias, overwritable')
 
 # False -> ($oldname -> $randstr)
 # True  -> ($oldname -> ($oldname_$randstr))
 VERBOSE = False
 
-def P(s):
-	if not DEBUG:
-		return
-	print(s)
-
-def randstr(n):
-	return ''.join(random.choice(string.letters) for i in xrange(n))
-
-def newrandstr(names, n):
-	while True:
-		alias = randstr(n)
-		if alias in names:
-			continue
-		else:
-			names.add(alias)
-			break
-	return alias
-
-N = 16
 class NameTable:
 	def __init__(self):
 		self.table = {}
 		self.prev_table = None
 
 	def register(self, name):
-		alias = newrandstr(cfg.env.rand_names, N)
+		alias = utils.newrandstr(cfg.env.rand_names, utils.N)
 		if VERBOSE:
 			alias = "%s_%s" % (name, alias)
 		self.table[name] = Symbol(alias, overwritable=False)
@@ -69,48 +48,29 @@ class NameTable:
 		return nt
 	
 	def show(self):
-		if not DEBUG:
+		if not utils.DEBUG:
 			return
 		print("NameTable")
 		for name in self.table:
 			tup = self.table[name]
 			print("  %s -> (alias:%s, overwritable:%r)" % (name, tup.alias, tup.overwritable))
 
-ArgType = enum.Enum("ArgType", "other fun array")
-class QueryDeclType(pycparser_ext.NodeVisitor):
-	def __init__(self):
-		self.result = ArgType.other
-
-	def visit_FuncDecl(self, node):
-		self.result = ArgType.fun
-
-	def visit_ArrayDecl(self, node):
-		self.result = ArgType.array
-
-
-class RewriteTypeDecl(pycparser_ext.NodeVisitor):
-	def __init__(self, alias):
-		self.alias = alias
-
-	def visit_TypeDecl(self, node):
-		node.declname = self.alias
-
-class RenameVars(pycparser_ext.NodeVisitor):
+class RenameVars(ext_pycparser.NodeVisitor):
 	def __init__(self, init_table):
 		self.cur_table = init_table
 
 	def visit_Compound(self, node):
 		self.switchTable()
-		pycparser_ext.NodeVisitor.generic_visit(self, node)
+		ext_pycparser.NodeVisitor.generic_visit(self, node)
 		self.revertTable()
 
 	def visit_Decl(self, node):
 		self.cur_table.register(node.name)
 		alias = self.cur_table.alias(node.name)
-		P("Decl: %s -> %s" % (node.name, alias))
+		utils.P("Decl: %s -> %s" % (node.name, alias))
 		node.name = alias
-		RewriteTypeDecl(alias).visit(node.type)
-		pycparser_ext.NodeVisitor.generic_visit(self, node)
+		ext_pycparser.RewriteTypeDecl(alias).visit(node.type)
+		ext_pycparser.NodeVisitor.generic_visit(self, node)
 
 	def visit_StructRef(self, node):
 		"""
@@ -120,28 +80,27 @@ class RenameVars(pycparser_ext.NodeVisitor):
 		"field" node will never be renamed.
 		"""
 		self.visit(node.name)
-		pycparser_ext.NodeVisitor.generic_visit(self, node.name)
+		ext_pycparser.NodeVisitor.generic_visit(self, node.name)
 
 	def visit_Cast(self, node):
 		self.visit(node.expr)
-		pycparser_ext.NodeVisitor.generic_visit(self, node.expr)
+		ext_pycparser.NodeVisitor.generic_visit(self, node.expr)
 
 	def visit_ID(self, node):
 		alias = self.cur_table.alias(node.name)
-		P("ID: %s -> %s" % (node.name, alias))
+		utils.P("ID: %s -> %s" % (node.name, alias))
 		node.name = alias
 
 	def switchTable(self):
-		P("switch table")
+		utils.P("switch table")
 		self.cur_table.show()
 		new_table = self.cur_table.clone()
 		new_table.prev_table = self.cur_table
 		self.cur_table = new_table
 
 	def revertTable(self):
-		P("revert table")
+		utils.P("revert table")
 		self.cur_table = self.cur_table.prev_table
-
 
 GOTO_LABEL = "exit"
 
@@ -154,108 +113,28 @@ PHASES = [
 	"append_namespace_to_labels",
 	"memoize"]
 
-class Fun:
+class Fun(ext_pycparser.FuncDef):
 	def __init__(self, func):
-		self.func = func
-
-	def name(self):
-		return self.func.decl.name
-
-	class ReturnVoid(pycparser_ext.NodeVisitor):
-		def __init__(self):
-			self.result = False
-
-		def visit_ParamList(self, n):
-			pass
-
-		def visit_TypeDecl(self, n):
-			# n.type can be Struct.
-			# What we concerns is that the return type is void or not
-			if isinstance(n.type, c_ast.IdentifierType):
-				self.result = "void" in n.type.names
-
-	def returnVoid(self):
-		# void f(...)
-		f = self.ReturnVoid()
-		f.visit(self.func.decl)
-		return f.result
-
-	class VoidParam(pycparser_ext.NodeVisitor):
-		def __init__(self):
-			self.result = False
-
-		def visit_TypeDecl(self, n):
-			# Same as ReturnVoid
-			# We don't concern types other than IdentifierType
-			if isinstance(n.type, c_ast.IdentifierType):
-				self.result = "void" in n.type.names
-
-	def voidArgs(self):
-		args = self.func.decl.type.args
-
-		# f()
-		if args == None:
-			return True
-
-		# f(a, b, ...)
-		if len(args.params) > 1:
-			return False
-
-		param = args.params[0]
-		query = QueryDeclType()
-		query.visit(param)
-
-		# f(...(*g)(...))
-		if query.result == ArgType.fun:
-			return False
-
-		# f(void)
-		f = self.VoidParam()
-		f.visit(param)
-		return f.result
-
-	def hasVarArgs(self):
-		if self.voidArgs():
-			return False
-		for param_decl in self.func.decl.type.args.params:
-			if isinstance(param_decl, c_ast.EllipsisParam):
-				return True
-		return False
-
-	# TODO
-	def isRecursive(self):
-		return False
-
-	# -ansi doesn't allow inline specifier
-	def isInline(self):
-		return "inline" in self.func.decl.funcspec
-
-	def isStatic(self):
-		return "static" in self.func.decl.storage
+		ext_pycparser.FuncDef.__init__(self, func)
 
 	def doMacroize(self):
-		if self.hasVarArgs():
-			return False
-		# Recursive call can't be macroized in any safe ways.
-		if self.isRecursive():
-			return False
-		r = self.isInline()
-		if cfg.env.macroize_static_funs:
-			r |= self.isStatic()
-		return r
+			if self.hasVarArgs():
+				return False
+			# Recursive call can't be macroized in any safe ways.
+			if self.isRecursive():
+				return False
+			r = self.isInline()
+			if cfg.env.macroize_static_funs:
+				r |= self.isStatic()
+			return r
 
 class RewriteFun(Fun):
 	"""
 	AST -> AST
 	"""
-	class Arg:
-		def __init__(self, node):
-			self.node = node
-
-		def queryType(self):
-			query = QueryDeclType()
-			query.visit(self.node)
-			return query.result
+	class Arg(ext_pycparser.ParamDecl):
+		def __init__(self, param):	
+			ext_pycparser.ParamDecl.__init__(self, param)
 
 		def shouldInsertDecl(self):
 			"""
@@ -264,14 +143,7 @@ class RewriteFun(Fun):
 			which are immutable through the function body.
 			"""
 			t = self.queryType()
-			return not (t == ArgType.fun or t == ArgType.array)
-
-		def show(self):
-			if not DEBUG:
-				return
-			print("name %s" % self.node.name)
-			self.node.type.show()
-			print("type %r" % self.queryType())
+			return not (t == ext_pycparser.ArgType.fun or t == ext_pycparser.ArgType.array)
 
 	def __init__(self, func):
 		self.phase_no = 0
@@ -280,7 +152,7 @@ class RewriteFun(Fun):
 		# Like Maybe monad, we will keep the state if once failed.
 		self.ok = True
 
-		if DEBUG:
+		if utils.DEBUG:
 			self.func.show()
 
 		# FIXME Don't double check
@@ -322,7 +194,7 @@ class RewriteFun(Fun):
 		int var -> int $alias
 		"""
 		node.name = alias
-		RewriteTypeDecl(alias).visit(node)
+		ext_pycparser.RewriteTypeDecl(alias).visit(node)
 
 	def renameArgs(self):
 		self.phase_no += 1
@@ -357,7 +229,7 @@ class RewriteFun(Fun):
 
 		for arg in reversed(self.args):
 			if arg.shouldInsertDecl():
-				newname = newrandstr(cfg.env.rand_names, N)
+				newname = utils.newrandstr(cfg.env.rand_names, utils.N)
 
 				# Insert decl line
 				oldname = arg.node.name
@@ -377,7 +249,7 @@ class RewriteFun(Fun):
 	def sanitizeNames(self):
 		return self.renameFuncBody().show().renameArgs().show().insertDeclLines().show()
 
-	class InsertGotoLabel(pycparser_ext.NodeVisitor):
+	class InsertGotoLabel(ext_pycparser.NodeVisitor):
 		"""
 		Renames the identifiers by random sequence so that they never conflicts others.
 
@@ -394,7 +266,7 @@ class RewriteFun(Fun):
 			# We don't need recursive generic_visit() because we only want to
 			# insert goto at the top level.
 
-	class HasReturn(pycparser_ext.NodeVisitor):
+	class HasReturn(ext_pycparser.NodeVisitor):
 		def __init__(self):
 			self.result = False
 
@@ -411,13 +283,13 @@ class RewriteFun(Fun):
 			self.InsertGotoLabel().visit(self.func)
 		return self
 
-	class RewriteReturnToGoto(pycparser_ext.NodeVisitor):
+	class RewriteReturnToGoto(ext_pycparser.NodeVisitor):
 		"""
 		Visit a compound and rewrite "return" to "goto GOTO_LABEL".
 		We assume at most only one "return" exists in a compound.
 		"""
 		def visit_Return(self, n):
-			pycparser_ext.NodeVisitor.rewrite(self.current_parent, self.current_name, c_ast.Goto(GOTO_LABEL))
+			ext_pycparser.NodeVisitor.rewrite(self.current_parent, self.current_name, c_ast.Goto(GOTO_LABEL))
 
 	def rewriteReturnToGoto(self):
 		self.phase_no += 1
@@ -426,7 +298,7 @@ class RewriteFun(Fun):
 		self.RewriteReturnToGoto().visit(self.func)
 		return self
 
-	class AppendNamespaceToLables(pycparser_ext.NodeVisitor):
+	class AppendNamespaceToLables(ext_pycparser.NodeVisitor):
 		def visit_Goto(self, n):
 			n.name = "namespace ## %s" % n.name
 
@@ -446,7 +318,7 @@ class RewriteFun(Fun):
 
 		fun_name = self.name()
 		args = ', '.join(["namespace"] + map(lambda arg: arg.node.name, self.args))
-		generator = pycparser_ext.CGenerator()
+		generator = ext_pycparser.CGenerator()
 		body_contents = generator.visit(self.func.body).splitlines()[1:-1]
 		if not len(body_contents):
 			body_contents = [""]
@@ -457,7 +329,7 @@ do { \
 %s
 } while(0)
 """ % (fun_name, args, body)
-		self.func = pycparser_ext.Any(macro)
+		self.func = ext_pycparser.Any(macro)
 		return self
 
 	def returnAST(self):

@@ -1,9 +1,11 @@
 from pycparser import c_ast, c_parser, c_generator
 
+import ext_pycparser
+
 def mk(xs):
 	return c_ast.Compound([c_ast.Compound(xs)])
 
-class Brace(c_ast.NodeVisitor):
+class Brace(ext_pycparser.NodeVisitor):
 
 	def visit_If(self, n):
 		if not isinstance(n.iftrue, c_ast.Compound):
@@ -50,7 +52,7 @@ class Brace(c_ast.NodeVisitor):
 			n.stmt = comp
 		c_ast.NodeVisitor.generic_visit(self, n)
 
-class CompoundVisitor(c_ast.NodeVisitor):
+class CompoundVisitor(ext_pycparser.NodeVisitor):
 
 	def visit_If(self, n):
 		# print(type(n))

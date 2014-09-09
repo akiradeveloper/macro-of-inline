@@ -1,11 +1,12 @@
 from pycparser import c_ast
 
-import recorder
-import cfg
-import os
 import enum
+import os
+
+import cfg
+import ext_pycparser
 import pycparser
-import pycparser_ext
+import recorder
 
 def cpp(filename):
 	"""
@@ -152,20 +153,20 @@ class Apply:
 		# print(included_codes)
 		# print(included_headers)	
 
-		ast_a = pycparser_ext.ast_of(cpped_txt)
+		ast_a = ext_pycparser.ast_of(cpped_txt)
 		ast_a = self.f(ast_a)
 
-		ast_b = pycparser_ext.ast_of('\n'.join(included_codes))
+		ast_b = ext_pycparser.ast_of('\n'.join(included_codes))
 		ast_delete(ast_a, ast_b)
-		recorder.file_record("delete_included_decls", pycparser_ext.CGenerator().visit(ast_a))
+		recorder.file_record("delete_included_decls", ext_pycparser.CGenerator().visit(ast_a))
 
-		contents = pycparser_ext.CGenerator().visit(ast_a)
+		contents = ext_pycparser.CGenerator().visit(ast_a)
 
 		contents =  """
 %s
 %s
 
-""" % ('\n'.join(included_headers), pycparser_ext.CGenerator.cleanUp(contents))
+""" % ('\n'.join(included_headers), ext_pycparser.CGenerator.cleanUp(contents))
 
 		recorder.file_record("union_header_directives", contents)
 		return contents
@@ -227,7 +228,7 @@ int main()
 	return 0;
 }
 """
-	ast_a = pycparser_ext.ast_of(a)
+	ast_a = ext_pycparser.ast_of(a)
 
 	b = r"""
 int x1;
@@ -238,6 +239,6 @@ void f2();
 typedef struct T3 { int x; } t3;
 typedef int int1;
 """
-	ast_b = pycparser_ext.ast_of(b)
+	ast_b = ext_pycparser.ast_of(b)
 
 	ast_delete(ast_a, ast_b)

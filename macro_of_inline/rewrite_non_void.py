@@ -5,9 +5,9 @@ import cfg
 import copy
 import inspect
 import rewrite_fun
-import pycparser_ext
+import ext_pycparser
 
-class VoidFun(rewrite_fun.Fun):
+class VoidFun(ext_pycparser.FuncDef):
 	"""
 	Rewrite function definitions
 	1. Return type T to void: T f(..) -> void f(..)
@@ -28,7 +28,7 @@ class VoidFun(rewrite_fun.Fun):
 	def addRetval(self):
 		funtype = self.func.decl.type
 		rettype = copy.deepcopy(funtype.type)
-		rewrite_fun.RewriteTypeDecl("retval").visit(rettype)
+		ext_pycparser.RewriteTypeDecl("retval").visit(rettype)
 		newarg = c_ast.Decl("retval", [], [], [], c_ast.PtrDecl([], rettype), None, None)
 		params = []
 		if not self.voidArgs():
@@ -44,12 +44,12 @@ class VoidFun(rewrite_fun.Fun):
 		self.func.decl.type.type = c_ast.TypeDecl(self.name(), [], c_ast.IdentifierType(["void"]))
 		return self
 
-	class ReturnToAssignment(pycparser_ext.NodeVisitor):
+	class ReturnToAssignment(ext_pycparser.NodeVisitor):
 		def visit_Return(self, n):
 			ass = c_ast.Assignment("=",
 						c_ast.UnaryOp("*", c_ast.ID("retval")), # lvalue
 						n.expr) # rvalue
-			pycparser_ext.NodeVisitor.rewrite(self.current_parent, self.current_name, ass)
+			ext_pycparser.NodeVisitor.rewrite(self.current_parent, self.current_name, ass)
 
 			compound = self.current_parent
 
@@ -57,7 +57,7 @@ class VoidFun(rewrite_fun.Fun):
 			# However, some hacky code omits curly braces (Linux kernel even oblige this).
 			if not isinstance(self.current_parent, c_ast.Compound):
 				compound = c_ast.Compound([ass])
-				pycparser_ext.NodeVisitor.rewrite(self.current_parent, self.current_name, compound)
+				ext_pycparser.NodeVisitor.rewrite(self.current_parent, self.current_name, compound)
 
 			# Since we are visiting in depth-first and
 			# pycparser's children() method first create nodelist
@@ -78,46 +78,6 @@ class VoidFun(rewrite_fun.Fun):
 	def show(self):
 		recorder.fun_record(self.PHASES[self.phase_no], self.func)
 		return self
-
-
-class FuncCallName(c_ast.NodeVisitor):
-	"""
-	Usage: visit(FuncCall.name)
-
-	A call might be of form "(*f)(...)"
-	The AST is then
-
-	FuncCall
-	  UnaryOp
-		ID
-
-	While ordinary call is of
-
-	FuncCall
-	  ID
-
-	We need to find the ID node recursively.
-
-	Note:
-	The AST representation of f->f(hoge) is like this.
-	As a result, this function returns 'f' as the name of this call.
-	This works because 'f' shadows the non-void functions.
-	(We don't expect f->f(hoge) will be written to f->f(&retval, hoge))
-
-        FuncCall:
-          StructRef: ->
-            ID: f
-            ID: f
-          ExprList:
-            ID: hoge
-	"""
-	def __init__(self):
-		self.found = False
-
-	def visit_ID(self, n):
-		if self.found: return
-		self.result = n.name
-		self.found = True
 
 class SymbolTable:
 	def __init__(self):
@@ -184,7 +144,7 @@ class RewriteFun:
 
 			c_ast.NodeVisitor.generic_visit(self, n)
 
-	class RewriteToCommaOp(pycparser_ext.NodeVisitor):
+	class RewriteToCommaOp(ext_pycparser.NodeVisitor):
 		def __init__(self, context):
 			self.cur_table = SymbolTable()
 			self.context = context
@@ -209,7 +169,7 @@ class RewriteFun:
 
 		def visit_Compound(self, n):
 			self.switchTable()
-			pycparser_ext.NodeVisitor.generic_visit(self, n)
+			ext_pycparser.NodeVisitor.generic_visit(self, n)
 			self.revertTable()
 
 		def mkCommaOp(self, var, f):
@@ -217,14 +177,14 @@ class RewriteFun:
 			if not proc.args:
 				proc.args = c_ast.ExprList([])
 			proc.args.exprs.insert(0, c_ast.UnaryOp("&", var))
-			return pycparser_ext.CommaOp(c_ast.ExprList([proc, var]))
+			return ext_pycparser.CommaOp(c_ast.ExprList([proc, var]))
 
 		def visit_FuncCall(self, n):
 			"""
 			var = f() => var = (f(&var), var)
 			f()       => (f(&randvar), randvar)
 			"""
-			funcname = FuncCallName()
+			funcname = ext_pycparser.FuncCallName()
 			funcname.visit(n)
 			funcname = funcname.result
 
@@ -244,9 +204,9 @@ class RewriteFun:
 
 					comma = self.mkCommaOp(c_ast.ID(randvar), n)
 
-				pycparser_ext.NodeVisitor.rewrite(self.current_parent, self.current_name, comma)
+				ext_pycparser.NodeVisitor.rewrite(self.current_parent, self.current_name, comma)
 
-			pycparser_ext.NodeVisitor.generic_visit(self, n)
+			ext_pycparser.NodeVisitor.generic_visit(self, n)
 
 	def run(self):
 		self.DeclSplit().visit(self.func)
@@ -366,13 +326,13 @@ int bar() {}
 """
 
 if __name__ == "__main__":
-	# ast = pycparser_ext.ast_of(test_file)
+	# ast = ext_pycparser.ast_of(test_file)
 	# ast.show()
 	# ast = RewriteFile(ast).run().returnAST()
 	# ast.show()
-	# print pycparser_ext.CGenerator().visit(ast)
+	# print ext_pycparser.CGenerator().visit(ast)
 
-	fun = pycparser_ext.ast_of(test_fun2).ext[0]
+	fun = ext_pycparser.ast_of(test_fun2).ext[0]
 	fun.show()
 	ast = VoidFun(fun).run().returnAST()
-	print pycparser_ext.CGenerator().visit(ast)
+	print ext_pycparser.CGenerator().visit(ast)
