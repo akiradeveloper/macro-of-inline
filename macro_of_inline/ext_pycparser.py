@@ -248,6 +248,13 @@ class FuncCallName(c_ast.NodeVisitor):
 		self.result = n.name
 		self.found = True
 
+class AllFuncCall(NodeVisitor):
+	def __init__(self):
+		self.result = []
+
+	def visit_FuncCall(self, n):
+		self.result.append(n)
+
 class FuncCall:
 	pass
 

@@ -83,6 +83,13 @@ class CompoundVisitor(ext_pycparser.NodeVisitor):
 		# print(type(n))
 		c_ast.NodeVisitor.generic_visit(self, n.stmt)
 
+class AllFuncCall(CompoundVisitor):
+	def __init__(self):
+		self.result = []
+
+	def visit_FuncCall(self, n):
+		self.result.append(n)
+
 class PrintCompound(CompoundVisitor):
 	"""
 	Test
