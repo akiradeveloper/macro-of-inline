@@ -113,22 +113,7 @@ PHASES = [
 	"append_namespace_to_labels",
 	"memoize"]
 
-class Fun(ext_pycparser.FuncDef):
-	def __init__(self, func):
-		ext_pycparser.FuncDef.__init__(self, func)
-
-	def doMacroize(self):
-			if self.hasVarArgs():
-				return False
-			# Recursive call can't be macroized in any safe ways.
-			if self.isRecursive():
-				return False
-			r = self.isInline()
-			if cfg.env.macroize_static_funs:
-				r |= self.isStatic()
-			return r
-
-class RewriteFun(Fun):
+class Main(ext_pycparser.FuncDef):
 	"""
 	AST -> AST
 	"""
@@ -154,11 +139,6 @@ class RewriteFun(Fun):
 
 		if utils.DEBUG:
 			self.func.show()
-
-		# FIXME Don't double check
-		if not self.doMacroize():
-			self.ok = False
-			return # __init__ should return None
 
 		self.args = []
 		self.init_table = NameTable()
@@ -460,7 +440,7 @@ def test(testcase):
 	parser = c_parser.CParser()
 	ast = parser.parse(testcase)
 	# ast.show()
-	rewrite_fun = RewriteFun(ast.ext[0])
+	rewrite_fun = Main(ast.ext[0])
 	# print rewrite_fun.returnVoid()
 	# print rewrite_fun.voidArgs()
 	rewrite_fun.renameFuncBody().show().renameArgs().show().insertDeclLines().show().insertGotoLabel().show().rewriteReturnToGoto().show().appendNamespaceToLabels().show().macroize().show().returnAST().show()
