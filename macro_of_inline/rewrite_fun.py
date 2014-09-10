@@ -163,6 +163,8 @@ class RewriteFun(Fun):
 		self.args = []
 		self.init_table = NameTable()
 
+		# FIXME care for EllipsisParam
+
 		# We consider f(void) as f() that truly doesn't have
 		# arguments as AST-level.
 		params = []
