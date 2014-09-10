@@ -163,15 +163,11 @@ class RewriteFun(Fun):
 		self.args = []
 		self.init_table = NameTable()
 
-		# FIXME care for EllipsisParam
+		# We consider f(void) as f() that truly doesn't have arguments as AST-level.
+		if self.voidArgs():
+			return
 
-		# We consider f(void) as f() that truly doesn't have
-		# arguments as AST-level.
-		params = []
-		if not self.voidArgs():
-			params = func.decl.type.args.params
-
-		for param_decl in params:
+		for param_decl in func.decl.type.args.params:
 			arg = self.Arg(param_decl)
 			self.args.append(arg)
 
