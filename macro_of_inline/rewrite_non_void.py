@@ -88,7 +88,7 @@ class SymbolTable:
 		self.names.add(name)
 
 	def register_args(self, func):
-		if not func.decl.type.args:
+		if ext_pycparser.FuncDef(func).voidArgs():
 			return
 
 		# Because recursive function will not be macroized
