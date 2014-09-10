@@ -87,6 +87,17 @@ class SymbolTable:
 	def register(self, name):
 		self.names.add(name)
 
+	def register_args(self, func):
+		if not func.decl.type.args:
+			return
+
+		# Because recursive function will not be macroized
+		# we don't need care shadowing by it's own function name.
+		for param_decl in func.decl.type.args.params or []:
+			if isinstance(param_decl, c_ast.EllipsisParam): # ... (Ellipsisparam)
+				continue
+			self.register(param_decl.name)
+
 	def clone(self):
 		st = SymbolTable()
 		st.names = copy.deepcopy(self.names)
@@ -153,16 +164,7 @@ class RewriteFun:
 		def __init__(self, context):
 			self.cur_table = SymbolTable()
 			self.context = context
-
-			if not self.context.func.decl.type.args:
-				return
-
-			# Because recursive function will not be macroized
-			# we don't need care shadowing by it's own function name.
-			for param_decl in self.context.func.decl.type.args.params or []:
-				if isinstance(param_decl, c_ast.EllipsisParam): # ... (EllipsisParam)
-					continue
-				self.cur_table.register(param_decl.name)
+			self.cur_table.register_args(self.context.func)
 
 		def switchTable(self):
 			self.cur_table = self.cur_table.switch()
