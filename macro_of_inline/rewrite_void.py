@@ -109,8 +109,14 @@ class Main:
 		self.NormalizeLabels().visit(self.ast)
 
 	def run(self):
-		runners = []
+		macroizables = []
 		for name in rewrite.t.macroizables:
+			_, func = rewrite.t.all_funcs[name]
+			if ext_pycparser.FuncDef(func).returnVoid():
+				macroizables.append(name)
+
+		runners = []
+		for name in macroizables:
 			i, func = rewrite.t.all_funcs[name]
 			runner = rewrite_void_fun.Main(func)
 			runners.append((i, runner))
@@ -121,7 +127,7 @@ class Main:
 		recorder.t.file_record("sanitize_names", ext_pycparser.CGenerator().visit(self.ast))
 
 		# We need here the names of the macroizables
-		AddNamespaceToFuncCalls(rewrite.t.macroizables).visit(self.ast)
+		AddNamespaceToFuncCalls(macroizables).visit(self.ast)
 
 		recorder.t.file_record("labelize_func_call", ext_pycparser.CGenerator().visit(self.ast))
 
