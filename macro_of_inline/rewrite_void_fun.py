@@ -326,6 +326,7 @@ inline void fun(int x, char *y, int (*f)(int), void (*g)(char c), struct T *t, i
 	x = z;
 	while (x) {
 		int x;
+		extfun(&x);
 		x = 0;
 		x = 0;
 		do {
@@ -446,10 +447,10 @@ def test(testcase):
 	rewrite_fun.renameFuncBody().show().renameArgs().show().insertDeclLines().show().insertGotoLabel().show().rewriteReturnToGoto().show().appendNamespaceToLabels().show().macroize().show().returnAST().show()
 
 if __name__ == "__main__":
-	# test(testcase)
+	test(testcase)
 	# test(testcase_2)
 	# test(testcase_3)
-	test(testcase_4)
+	# test(testcase_4)
 	# test(testcase_5)
 	# test(testcase_6)
 	# test(testcase_7)
