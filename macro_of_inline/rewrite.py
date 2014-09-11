@@ -4,7 +4,9 @@ import cfg
 import copy
 import cppwrap
 import ext_pycparser
+import rewrite_void
 import rewrite_non_void
+import utils
 
 class FuncDef(ext_pycparser.FuncDef):
 	def __init__(self, func):
@@ -17,40 +19,38 @@ class FuncDef(ext_pycparser.FuncDef):
 			if self.isRecursive():
 				return False
 			r = self.isInline()
-			if cfg.env.macroize_static_funs:
+			if cfg.t.macroize_static_funs:
 				r |= self.isStatic()
 			return r
 
 class Context:
 	def __init__(self):
-		self.ast = None
-		self.ast_orig = None
 		self.rand_names = set()
+
+		self.ast = None
 		self.all_funcs = {} # name -> (i, ast)
-		self.macroizables = [] # [name]
+		self.macroizables = set() # set(name)
+
+	def setupAST(self, ast):
+		if self.ast == ast:
+			return
+		self.ast = ast
+
+		for i, n in enumerate(ast.ext):
+			if isinstance(n, c_ast.FuncDef):
+				self.all_funcs[FuncDef(n).name()] = (i, n)
+
+		for name, (_, n) in self.all_funcs.items():
+			if not FuncDef(n).doMacroize():
+				continue
+			self.macroizables.add(name)
+
+		# TODO reduce macronizes
 
 t = Context()
 
-def setup(self, ast):
-	global t
-
-	if t.ast == ast:
-		return
-
-	t.ast = ast
-	t.ast_orig = copy.deepcopy(ast)
-
-	for i, n in enumerate(ast):
-		if isinstance(n, c_ast.FuncDef):
-			t.all_funcs[FuncDef(n).name()] = (i, copy.deepcopy(n))
-
-	for name, (_, n) in t.all_funcs.items():
-		if not FuncDef(n).doMacroize():
-			continue
-		self.macronizables.append(name)
-
-	# TODO reduce macronizes
-
+def newrandstr():
+	return utils.newrandstr(t.rand_names, utils.N)
 
 MACROIZE_NON_VOID = False
 class AST:
@@ -58,8 +58,8 @@ class AST:
 	AST -> AST
 	"""
 	def __init__(self, ast):
+		t.setupAST(ast)
 		self.ast = ast
-		context.setup(ast)
 
 	def run(self):
 		if MACROIZE_NON_VOID:
@@ -71,6 +71,7 @@ class AST:
 		runner = rewrite_void.Main(self.ast)
 		runner.run()
 		self.ast = runner.returnAST()
+		return self
 
 	def returnAST(self):
 		return self.ast

@@ -22,7 +22,7 @@ class NameTable:
 		self.prev_table = None
 
 	def register(self, name):
-		alias = utils.newrandstr(rewrite.t.rand_names, utils.N)
+		alias = rewrite.newrandstr()
 		if VERBOSE:
 			alias = "%s_%s" % (name, alias)
 		self.table[name] = Symbol(alias, overwritable=False)
@@ -208,7 +208,7 @@ class Main(ext_pycparser.FuncDef):
 
 		for arg in reversed(self.args):
 			if arg.shouldInsertDecl():
-				newname = utils.newrandstr(rewrite.t.rand_names, utils.N)
+				newname = rewrite.newrandstr()
 
 				# Insert decl line
 				oldname = arg.node.name

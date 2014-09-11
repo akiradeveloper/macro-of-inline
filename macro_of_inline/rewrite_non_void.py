@@ -129,7 +129,7 @@ class RewriteCaller:
 				if (isinstance(self.current_parent, c_ast.Assignment)):
 					comma = self.mkCommaOp(self.current_parent.lvalue, n)
 				else:
-					randvar = rewrite_fun.newrandstr(rewrite.t.rand_names, rewrite_fun.N)
+					randvar = rewrite.newrandstr()
 
 					# Generate "T var" from the function definition "T f(...)"
 					func = (m for _, m in self.context.non_void_funs if rewrite_fun.Fun(m).name() == funcname).next()
@@ -165,8 +165,8 @@ class Main:
 	AST -> AST
 	"""
 	def __init__(self, ast):
+		rewrite.t.setupAST(ast)
 		self.ast = ast
-		self.non_void_funs = []
 
 	def run(self):
 

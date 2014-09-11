@@ -3,6 +3,7 @@ from pycparser import c_parser, c_ast
 import os
 
 import cfg
+import cppwrap
 import ext_pycparser
 import recorder
 import rewrite
@@ -65,7 +66,7 @@ class AddNamespaceToFuncCalls(ext_pycparser.NodeVisitor):
 		f.visit(n.name)
 		if not f.result in self.macro_names:
 			return
-		namespace = utils.newrandstr(rewrite.t.rand_names, utils.N)
+		namespace = rewrite.newrandstr()
 		if self.called_in_macro:
 			namespace = "namespace ## %s" % namespace
 		if n.args == None:
@@ -77,6 +78,7 @@ class Main:
 	AST -> AST
 	"""
 	def __init__(self, ast):
+		rewrite.t.setupAST(ast)
 		self.ast = ast
 
 	def applyPreprocess(self):
@@ -94,7 +96,7 @@ class Main:
 
 		def do_visit(self, n):
 			if n.name not in self.m:
-				self.m[n.name] = utils.newrandstr(rewrite.t.rand_names, utils.N)
+				self.m[n.name] = rewrite.newrandstr()
 			n.name = self.m[n.name]
 
 		def visit_Goto(self, n):
@@ -108,7 +110,8 @@ class Main:
 
 	def run(self):
 		runners = []
-		for i, func in rewrite.macroizables:
+		for name in rewrite.t.macroizables:
+			i, func = rewrite.t.all_funcs[name]
 			runner = rewrite_void_fun.Main(func)
 			runners.append((i, runner))
 
@@ -118,7 +121,7 @@ class Main:
 		recorder.t.file_record("sanitize_names", ext_pycparser.CGenerator().visit(self.ast))
 
 		# We need here the names of the macroizables
-		AddNamespaceToFuncCalls(rewrite.macroizables).visit(self.ast)
+		AddNamespaceToFuncCalls(rewrite.t.macroizables).visit(self.ast)
 
 		recorder.t.file_record("labelize_func_call", ext_pycparser.CGenerator().visit(self.ast))
 
@@ -189,7 +192,9 @@ int main()
 
 if __name__ == "__main__":
 	parser = c_parser.CParser()
-	output = Main(parser.parse(testcase)).run().returnAST()
+	ast = parser.parse(testcase)
+
+	output = Main(ast).run().returnAST()
 
 	generator = ext_pycparser.CGenerator()
 	output = generator.visit(output)

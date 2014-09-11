@@ -33,7 +33,7 @@ class Recorder:
 		if cfg.t.record_enabled:
 			return
 
-		if not isinstance(ast, pycparser_ext.Any):
+		if not isinstance(ast, ext_pycparser.Any):
 			self.current_fun_name = ast.decl.name
 
 		fun_name = self.current_fun_name
@@ -49,7 +49,7 @@ class Recorder:
 		fn = "%s/%d-%s.txt" % (dn, self.fun_rewrite_level[fun_name], title)
 
 		f = open(fn, "w")
-		f.write(pycparser_ext.CGenerator().visit(ast))
+		f.write(ext_pycparser.CGenerator().visit(ast))
 		f.close()
 
 t = Recorder()
