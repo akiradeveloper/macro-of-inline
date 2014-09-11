@@ -121,9 +121,9 @@ class RewriteCaller:
 			"""
 			name = ext_pycparser.Result(ext_pycparser.FuncCallName()).visit(n)
 
+			# FIXME ONLY non-void funcs
 			unshadowed_names = rewrite.t.macroizables - self.cur_table.names
 			if name in unshadowed_names:
-
 				if (isinstance(self.current_parent, c_ast.Assignment)):
 					comma = self.mkCommaOp(self.current_parent.lvalue, n)
 				else:
