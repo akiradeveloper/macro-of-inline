@@ -46,6 +46,7 @@ class Recorder:
 		f.write(pycparser_ext.CGenerator().visit(ast))
 		f.close()
 
+# TODO t
 g_recorder = Recorder()
 
 def file_record(title, contents):

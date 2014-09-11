@@ -21,24 +21,35 @@ class FuncDef(ext_pycparser.FuncDef):
 				r |= self.isStatic()
 			return r
 
-class Context:
+class T:
 	def __init__(self):
+		self.ast = None
+		self.ast_orig = None
 		self.all_funcs = {} # name -> (i, ast)
 		self.macroizables = [] # [name]
 
-	def setup(self, ast):
-		for i, n in enumerate(ast.ext):
-			if isinstance(n, c_ast.FuncDef):
-				self.all_funcs[FuncDef(n).name()] = (i, copy.deepcopy(n))
+t = T()
 
-		for name, (_, n) in self.all_funcs.items():
-			if not FuncDef(n).doMacroize():
-				continue
-			self.macronizables.append(name)
+def setup(self, ast):
+	global t
 
-		# TODO reduce macronizes
+	if t.ast == ast:
+		return
 
-context = Context()
+	t.ast = ast
+	t.ast_orig = copy.deepcopy(ast)
+
+	for i, n in enumerate(ast):
+		if isinstance(n, c_ast.FuncDef):
+			t.all_funcs[FuncDef(n).name()] = (i, copy.deepcopy(n))
+
+	for name, (_, n) in t.all_funcs.items():
+		if not FuncDef(n).doMacroize():
+			continue
+		self.macronizables.append(name)
+
+	# TODO reduce macronizes
+
 
 MACROIZE_NON_VOID = False
 class AST:
