@@ -14,17 +14,17 @@ parser.add_argument("--macroize-static-funs", action='store_true', help="static 
 
 args = parser.parse_args()
 
-cfg.env.macroize_static_funs = args.macroize_static_funs
-cfg.env.additional_search_paths = args.I
+cfg.t.macroize_static_funs = args.macroize_static_funs
+cfg.t.additional_search_paths = args.I
 
 if args.record:
-	cfg.env.record_enabled = True
-	cfg.env.record_dir = args.record
+	cfg.t.record_enabled = True
+	cfg.t.record_dir = args.record
 
 # rewrite_file module imports recorder module and
-# recorder module shouldn't be imported before cfg.env is all set.
-from macro_of_inline import rewrite_file
-runner = rewrite_file.RewriteFileContents(args.i)
+# recorder module shouldn't be imported before cfg.t is all set.
+from macro_of_inline import rewrite
+runner = rewrite.Main(args.i)
 output_txt = runner.run()
 
 if args.o == "-":

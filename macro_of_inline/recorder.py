@@ -7,7 +7,7 @@ import ext_pycparser
 class Recorder:
 
 	def __init__(self):
-		self.rec_dir = cfg.env.record_dir
+		self.rec_dir = cfg.t.record_dir
 		self.file_rewrite_level = 0
 
 		self.current_fun_name = None
@@ -20,6 +20,9 @@ class Recorder:
 			os.makedirs(self.rec_dir)
 
 	def file_record(self, title, contents):
+		if cfg.t.record_enabled:
+			return
+
 		self.file_rewrite_level += 1
 		fn = "%s/%d-%s.txt" % (self.rec_dir, self.file_rewrite_level, title)
 		f = open(fn, "w")
@@ -27,7 +30,10 @@ class Recorder:
 		f.close()
 
 	def fun_record(self, title, ast):
-		if not isinstance(ast, pycparser_ext.Any):
+		if cfg.t.record_enabled:
+			return
+
+		if not isinstance(ast, ext_pycparser.Any):
 			self.current_fun_name = ast.decl.name
 
 		fun_name = self.current_fun_name
@@ -43,15 +49,7 @@ class Recorder:
 		fn = "%s/%d-%s.txt" % (dn, self.fun_rewrite_level[fun_name], title)
 
 		f = open(fn, "w")
-		f.write(pycparser_ext.CGenerator().visit(ast))
+		f.write(ext_pycparser.CGenerator().visit(ast))
 		f.close()
 
-g_recorder = Recorder()
-
-def file_record(title, contents):
-	if cfg.env.record_enabled:
-		g_recorder.file_record(title, contents)
-
-def fun_record(title, ast):
-	if cfg.env.record_enabled:
-		g_recorder.fun_record(title, ast)
+t = Recorder()

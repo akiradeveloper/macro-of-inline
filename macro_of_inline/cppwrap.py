@@ -15,7 +15,7 @@ def cpp(filename):
 	# TODO Use pkg_resources or something that fits more.
 	p = os.path.join(os.path.dirname(__file__), 'fake_libc_include')
 	cpp_args = ['-U__GNUC__', r'-I%s' % p]
-	cpp_args.extend([r'-I%s' % path for path in cfg.env.additional_search_paths])
+	cpp_args.extend([r'-I%s' % path for path in cfg.t.additional_search_paths])
 
 	# The raw output of mcpp can contain _Pragma() lines that can't be parsed by pycparser.
 	# Now we remove these lines however, can't suppose this adhoc patch will work for any cases.
@@ -135,7 +135,7 @@ class Apply:
 
 	def on(self, filename):
 		cpped_txt = cpp(filename)
-		recorder.file_record("preprocessed", cpped_txt)
+		recorder.t.file_record("preprocessed", cpped_txt)
 		# print(cpped_txt)
 
 		includes = analyzeInclude(filename, cpped_txt)
@@ -158,7 +158,7 @@ class Apply:
 
 		ast_b = ext_pycparser.ast_of('\n'.join(included_codes))
 		ast_delete(ast_a, ast_b)
-		recorder.file_record("delete_included_decls", ext_pycparser.CGenerator().visit(ast_a))
+		recorder.t.file_record("delete_included_decls", ext_pycparser.CGenerator().visit(ast_a))
 
 		contents = ext_pycparser.CGenerator().visit(ast_a)
 
@@ -168,7 +168,7 @@ class Apply:
 
 """ % ('\n'.join(included_headers), ext_pycparser.CGenerator.cleanUp(contents))
 
-		recorder.file_record("union_header_directives", contents)
+		recorder.t.file_record("union_header_directives", contents)
 		return contents
 
 if __name__ == "__main__":

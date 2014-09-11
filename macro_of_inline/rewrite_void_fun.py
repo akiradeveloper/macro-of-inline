@@ -7,6 +7,7 @@ import enum
 import cfg
 import ext_pycparser
 import recorder
+import rewrite
 import utils
 
 Symbol = collections.namedtuple('Symbol', 'alias, overwritable')
@@ -21,7 +22,7 @@ class NameTable:
 		self.prev_table = None
 
 	def register(self, name):
-		alias = utils.newrandstr(cfg.env.rand_names, utils.N)
+		alias = rewrite.newrandstr()
 		if VERBOSE:
 			alias = "%s_%s" % (name, alias)
 		self.table[name] = Symbol(alias, overwritable=False)
@@ -113,22 +114,7 @@ PHASES = [
 	"append_namespace_to_labels",
 	"memoize"]
 
-class Fun(ext_pycparser.FuncDef):
-	def __init__(self, func):
-		ext_pycparser.FuncDef.__init__(self, func)
-
-	def doMacroize(self):
-			if self.hasVarArgs():
-				return False
-			# Recursive call can't be macroized in any safe ways.
-			if self.isRecursive():
-				return False
-			r = self.isInline()
-			if cfg.env.macroize_static_funs:
-				r |= self.isStatic()
-			return r
-
-class RewriteFun(Fun):
+class Main(ext_pycparser.FuncDef):
 	"""
 	AST -> AST
 	"""
@@ -154,11 +140,6 @@ class RewriteFun(Fun):
 
 		if utils.DEBUG:
 			self.func.show()
-
-		# FIXME Don't double check
-		if not self.doMacroize():
-			self.ok = False
-			return # __init__ should return None
 
 		self.args = []
 		self.init_table = NameTable()
@@ -227,7 +208,7 @@ class RewriteFun(Fun):
 
 		for arg in reversed(self.args):
 			if arg.shouldInsertDecl():
-				newname = utils.newrandstr(cfg.env.rand_names, utils.N)
+				newname = rewrite.newrandstr()
 
 				# Insert decl line
 				oldname = arg.node.name
@@ -334,7 +315,7 @@ do { \
 		return self.func
 
 	def show(self): 
-		recorder.fun_record(PHASES[self.phase_no], self.func)
+		recorder.t.fun_record(PHASES[self.phase_no], self.func)
 		return self
 
 testcase = r"""
@@ -346,6 +327,7 @@ inline void fun(int x, char *y, int (*f)(int), void (*g)(char c), struct T *t, i
 	x = z;
 	while (x) {
 		int x;
+		extfun(&x);
 		x = 0;
 		x = 0;
 		do {
@@ -460,16 +442,16 @@ def test(testcase):
 	parser = c_parser.CParser()
 	ast = parser.parse(testcase)
 	# ast.show()
-	rewrite_fun = RewriteFun(ast.ext[0])
+	rewrite_fun = Main(ast.ext[0])
 	# print rewrite_fun.returnVoid()
 	# print rewrite_fun.voidArgs()
 	rewrite_fun.renameFuncBody().show().renameArgs().show().insertDeclLines().show().insertGotoLabel().show().rewriteReturnToGoto().show().appendNamespaceToLabels().show().macroize().show().returnAST().show()
 
 if __name__ == "__main__":
-	# test(testcase)
+	test(testcase)
 	# test(testcase_2)
 	# test(testcase_3)
-	test(testcase_4)
+	# test(testcase_4)
 	# test(testcase_5)
 	# test(testcase_6)
 	# test(testcase_7)

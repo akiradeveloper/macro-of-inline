@@ -6,11 +6,13 @@ import cfg
 import cppwrap
 import ext_pycparser
 import recorder
-import rewrite_fun
-import rewrite_non_void
+import rewrite
+import rewrite_void_fun
 import utils
 
-class LabelizeFuncCall(ext_pycparser.NodeVisitor):
+NORMALIZE_LABEL = True
+
+class AddNamespaceToFuncCalls(ext_pycparser.NodeVisitor):
 	"""
 	Add random label all macro calls.
 
@@ -64,21 +66,19 @@ class LabelizeFuncCall(ext_pycparser.NodeVisitor):
 		f.visit(n.name)
 		if not f.result in self.macro_names:
 			return
-		namespace = utils.newrandstr(cfg.env.rand_names, utils.N)
+		namespace = rewrite.newrandstr()
 		if self.called_in_macro:
 			namespace = "namespace ## %s" % namespace
 		if n.args == None:
 			n.args = c_ast.ExprList([])
 		n.args.exprs.insert(0, c_ast.ID(namespace))
 
-NORMALIZE_LABEL = True
-MACROIZE_NON_VOID = False
-
-class RewriteFile:
+class Main:
 	"""
 	AST -> AST
 	"""
 	def __init__(self, ast):
+		rewrite.t.setupAST(ast)
 		self.ast = ast
 
 	def applyPreprocess(self):
@@ -96,7 +96,7 @@ class RewriteFile:
 
 		def do_visit(self, n):
 			if n.name not in self.m:
-				self.m[n.name] = utils.newrandstr(cfg.env.rand_names, utils.N)
+				self.m[n.name] = rewrite.newrandstr()
 			n.name = self.m[n.name]
 
 		def visit_Goto(self, n):
@@ -109,37 +109,33 @@ class RewriteFile:
 		self.NormalizeLabels().visit(self.ast)
 
 	def run(self):
-		if MACROIZE_NON_VOID:
-			void_runner = void_fun.RewriteFile(self.ast)
-			void_runner.run()
-			recorder.file_record("convert_non_void_to_void", ext_pycparser.CGenerator().visit(self.ast))
+		macroizables = []
+		for name in rewrite.t.macroizables:
+			_, func = rewrite.t.all_funcs[name]
+			if ext_pycparser.FuncDef(func).returnVoid():
+				macroizables.append(name)
 
-		macroizables = [] # (i, runner)
-		for i, n in enumerate(self.ast.ext):
-			if not isinstance(n, c_ast.FuncDef):
-				continue
+		runners = []
+		for name in macroizables:
+			i, func = rewrite.t.all_funcs[name]
+			runner = rewrite_void_fun.Main(func)
+			runners.append((i, runner))
 
-			if not rewrite_fun.Fun(n).doMacroize():
-				continue
-
-			if rewrite_fun.Fun(n).returnVoid():
-				runner = rewrite_fun.RewriteFun(n)
-				macroizables.append((i, runner))
-
-		for i, runner in macroizables:
+		for i, runner in runners:
 			runner.sanitizeNames()
 
-		recorder.file_record("sanitize_names", ext_pycparser.CGenerator().visit(self.ast))
+		recorder.t.file_record("sanitize_names", ext_pycparser.CGenerator().visit(self.ast))
 
-		LabelizeFuncCall([runner.func.decl.name for i, runner in macroizables]).visit(self.ast)
+		# We need here the names of the macroizables
+		AddNamespaceToFuncCalls(macroizables).visit(self.ast)
 
-		recorder.file_record("labelize_func_call", ext_pycparser.CGenerator().visit(self.ast))
+		recorder.t.file_record("labelize_func_call", ext_pycparser.CGenerator().visit(self.ast))
 
-		for i, runner in macroizables:
+		for i, runner in runners:
 			runner.insertGotoLabel().show().rewriteReturnToGoto().show().appendNamespaceToLabels().show().macroize().show()
 			self.ast.ext[i] = runner.returnAST()
 
-		recorder.file_record("macroize", ext_pycparser.CGenerator().visit(self.ast))
+		recorder.t.file_record("macroize", ext_pycparser.CGenerator().visit(self.ast))
 
 		# Apply preprocessor and normalize labels to fixed length
 		# Some compiler won't allow too-long lables.
@@ -147,23 +143,11 @@ class RewriteFile:
 			self.applyPreprocess()
 			self.normalizeLabels()
 
-		recorder.file_record("normalize_labels", ext_pycparser.CGenerator().visit(self.ast))
+		recorder.t.file_record("normalize_labels", ext_pycparser.CGenerator().visit(self.ast))
 		return self
 
 	def returnAST(self):
 		return self.ast
-
-class RewriteFileContents:
-	"""
-	File -> Text
-	"""
-	def __init__(self, filename):
-		self.filename = filename
-
-	def run(self):
-		f = lambda ast: RewriteFile(ast).run().returnAST()
-		output = cppwrap.Apply(f).on(self.filename)
-		return ext_pycparser.CGenerator.cleanUp(output)
 
 testcase = r"""
 struct T { int x; };
@@ -210,11 +194,13 @@ int main()
   puts("OK");
   return 0;
 }
-""" % rewrite_fun.testcase
+""" % rewrite_void_fun.testcase
 
 if __name__ == "__main__":
 	parser = c_parser.CParser()
-	output = RewriteFile(parser.parse(testcase)).run().returnAST()
+	ast = parser.parse(testcase)
+
+	output = Main(ast).run().returnAST()
 
 	generator = ext_pycparser.CGenerator()
 	output = generator.visit(output)
@@ -230,7 +216,4 @@ if __name__ == "__main__":
 	# TODO Direct from stdio. Use gcc -xs -
 	os.system("gcc -ansi -pedantic %s && ./a.out" % fn)
 	os.remove(fn)
-	print(output)
-
-	output = RewriteFileContents("tests/proj/main.c").run()
 	print(output)
