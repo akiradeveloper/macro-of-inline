@@ -1,6 +1,7 @@
 from pycparser import c_ast, c_generator
 
 import cfg
+import copy
 import ext_pycparser
 import inspect
 import recorder
@@ -10,7 +11,7 @@ import rewrite_non_void_fun
 import utils
 
 class SymbolTable:
-	def __init__(self, func):
+	def __init__(self):
 		self.names = set()
 		self.prev_table = None
 
@@ -35,7 +36,7 @@ class SymbolTable:
 
 	def switch(self):
 		new_table = self.clone()
-		new_table.prev_table = self.cur_table
+		new_table.prev_table = self
 		return new_table
 
 	def show(self):
@@ -52,11 +53,10 @@ class RewriteCaller:
 		"rewrite_calls",
 	]
 
-	def __init__(self, func, non_void_funs):
+	def __init__(self, func, macroizables):
 		self.func = func
 		self.phase_no = 0
-		self.non_void_funs = non_void_funs
-		self.non_void_names = set([rewrite_fun.Fun(n).name() for _, n in self.non_void_funs])
+		self.macroizables = macroizables
 
 	class DeclSplit(c_ast.NodeVisitor):
 		"""
@@ -91,9 +91,8 @@ class RewriteCaller:
 			c_ast.NodeVisitor.generic_visit(self, n)
 
 	class RewriteToCommaOp(ext_pycparser.NodeVisitor):
-		def __init__(self, context):
+		def __init__(self):
 			self.cur_table = SymbolTable()
-			self.context = context
 			self.cur_table.register_args(self.context.func)
 
 		def switchTable(self):
@@ -169,19 +168,21 @@ class Main:
 		self.ast = ast
 
 	def run(self):
-
-		old_non_void_funs = copy.deepcopy(self.non_void_funs)
+		macroizables = []
+		for name in rewrite.t.macroizables:
+			i, func = rewrite.t.all_funcs[name]
+			if not ext_pycparser.FuncDef(func).returnVoid():
+				macroizables.append(name)
 
 		# Rewrite definitions
-		for i, n in self.non_void_funs:
-			self.ast.ext[i] = rewrite_non_void_fun.Main(n).run().returnAST()
+		for name in macroizables:
+			i, func = rewrite.t.all_funcs[name]
+			self.ast.ext[i] = rewrite_non_void_fun.Main(func).run().returnAST()
 		recorder.t.file_record("rewrite_func_defines", c_generator.CGenerator().visit(self.ast))
 
 		# Rewrite all callers
-		for i, n in enumerate(self.ast.ext):
-			if not isinstance(n, c_ast.FuncDef):
-				continue
-			self.ast.ext[i] = RewriteCaller(n, old_non_void_funs).run().returnAST()
+		for i, func in rewrite.t.all_funcs.values():
+			self.ast.ext[i] = RewriteCaller(func, macroizables).run().returnAST()
 		recorder.t.file_record("rewrite_all_callers", c_generator.CGenerator().visit(self.ast))
 
 		return self
