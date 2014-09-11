@@ -3,6 +3,7 @@ from pycparser import c_ast
 import copy
 import ext_pycparser
 import recorder
+import rewrite
 
 class Main(ext_pycparser.FuncDef):
 	"""
@@ -73,7 +74,7 @@ class Main(ext_pycparser.FuncDef):
 		return self.func
 
 	def show(self):
-		recorder.fun_record(self.PHASES[self.phase_no], self.func)
+		recorder.t.fun_record(self.PHASES[self.phase_no], self.func)
 		return self
 
 test_fun = r"""

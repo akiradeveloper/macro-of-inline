@@ -7,6 +7,7 @@ import enum
 import cfg
 import ext_pycparser
 import recorder
+import rewrite
 import utils
 
 Symbol = collections.namedtuple('Symbol', 'alias, overwritable')
@@ -21,7 +22,7 @@ class NameTable:
 		self.prev_table = None
 
 	def register(self, name):
-		alias = utils.newrandstr(cfg.env.rand_names, utils.N)
+		alias = utils.newrandstr(rewrite.t.rand_names, utils.N)
 		if VERBOSE:
 			alias = "%s_%s" % (name, alias)
 		self.table[name] = Symbol(alias, overwritable=False)
@@ -207,7 +208,7 @@ class Main(ext_pycparser.FuncDef):
 
 		for arg in reversed(self.args):
 			if arg.shouldInsertDecl():
-				newname = utils.newrandstr(cfg.env.rand_names, utils.N)
+				newname = utils.newrandstr(rewrite.t.rand_names, utils.N)
 
 				# Insert decl line
 				oldname = arg.node.name
@@ -314,7 +315,7 @@ do { \
 		return self.func
 
 	def show(self): 
-		recorder.fun_record(PHASES[self.phase_no], self.func)
+		recorder.t.fun_record(PHASES[self.phase_no], self.func)
 		return self
 
 testcase = r"""

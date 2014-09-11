@@ -4,6 +4,7 @@ import cfg
 import ext_pycparser
 import inspect
 import recorder
+import rewrite
 import rewrite_void_fun
 import rewrite_non_void_fun
 import utils
@@ -128,7 +129,7 @@ class RewriteCaller:
 				if (isinstance(self.current_parent, c_ast.Assignment)):
 					comma = self.mkCommaOp(self.current_parent.lvalue, n)
 				else:
-					randvar = rewrite_fun.newrandstr(cfg.env.rand_names, rewrite_fun.N)
+					randvar = rewrite_fun.newrandstr(rewrite.t.rand_names, rewrite_fun.N)
 
 					# Generate "T var" from the function definition "T f(...)"
 					func = (m for _, m in self.context.non_void_funs if rewrite_fun.Fun(m).name() == funcname).next()
@@ -156,7 +157,7 @@ class RewriteCaller:
 		return self.func
 
 	def show(self):
-		recorder.fun_record(self.PHASES[self.phase_no], self.func)
+		recorder.t.fun_record(self.PHASES[self.phase_no], self.func)
 		return self
 
 class Main:
@@ -174,14 +175,14 @@ class Main:
 		# Rewrite definitions
 		for i, n in self.non_void_funs:
 			self.ast.ext[i] = rewrite_non_void_fun.Main(n).run().returnAST()
-		recorder.file_record("rewrite_func_defines", c_generator.CGenerator().visit(self.ast))
+		recorder.t.file_record("rewrite_func_defines", c_generator.CGenerator().visit(self.ast))
 
 		# Rewrite all callers
 		for i, n in enumerate(self.ast.ext):
 			if not isinstance(n, c_ast.FuncDef):
 				continue
 			self.ast.ext[i] = RewriteCaller(n, old_non_void_funs).run().returnAST()
-		recorder.file_record("rewrite_all_callers", c_generator.CGenerator().visit(self.ast))
+		recorder.t.file_record("rewrite_all_callers", c_generator.CGenerator().visit(self.ast))
 
 		return self
 

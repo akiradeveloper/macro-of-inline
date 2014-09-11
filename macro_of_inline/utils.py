@@ -21,4 +21,3 @@ def newrandstr(names, n):
 			names.add(alias)
 			break
 	return alias
-

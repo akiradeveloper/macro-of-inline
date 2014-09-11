@@ -65,7 +65,7 @@ class AddNamespaceToFuncCalls(ext_pycparser.NodeVisitor):
 		f.visit(n.name)
 		if not f.result in self.macro_names:
 			return
-		namespace = utils.newrandstr(cfg.env.rand_names, utils.N)
+		namespace = utils.newrandstr(rewrite.t.rand_names, utils.N)
 		if self.called_in_macro:
 			namespace = "namespace ## %s" % namespace
 		if n.args == None:
@@ -94,7 +94,7 @@ class Main:
 
 		def do_visit(self, n):
 			if n.name not in self.m:
-				self.m[n.name] = utils.newrandstr(cfg.env.rand_names, utils.N)
+				self.m[n.name] = utils.newrandstr(rewrite.t.rand_names, utils.N)
 			n.name = self.m[n.name]
 
 		def visit_Goto(self, n):
@@ -115,17 +115,18 @@ class Main:
 		for i, runner in runners:
 			runner.sanitizeNames()
 
-		recorder.file_record("sanitize_names", ext_pycparser.CGenerator().visit(self.ast))
+		recorder.t.file_record("sanitize_names", ext_pycparser.CGenerator().visit(self.ast))
 
-		AddNamespaceToFuncCalls([runner.func.decl.name for i, runner in rewrite.macroizables]).visit(self.ast)
+		# We need here the names of the macroizables
+		AddNamespaceToFuncCalls(rewrite.macroizables).visit(self.ast)
 
-		recorder.file_record("labelize_func_call", ext_pycparser.CGenerator().visit(self.ast))
+		recorder.t.file_record("labelize_func_call", ext_pycparser.CGenerator().visit(self.ast))
 
 		for i, runner in runners:
 			runner.insertGotoLabel().show().rewriteReturnToGoto().show().appendNamespaceToLabels().show().macroize().show()
 			self.ast.ext[i] = runner.returnAST()
 
-		recorder.file_record("macroize", ext_pycparser.CGenerator().visit(self.ast))
+		recorder.t.file_record("macroize", ext_pycparser.CGenerator().visit(self.ast))
 
 		# Apply preprocessor and normalize labels to fixed length
 		# Some compiler won't allow too-long lables.
@@ -133,7 +134,7 @@ class Main:
 			self.applyPreprocess()
 			self.normalizeLabels()
 
-		recorder.file_record("normalize_labels", ext_pycparser.CGenerator().visit(self.ast))
+		recorder.t.file_record("normalize_labels", ext_pycparser.CGenerator().visit(self.ast))
 		return self
 
 	def returnAST(self):

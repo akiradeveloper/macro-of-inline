@@ -21,14 +21,15 @@ class FuncDef(ext_pycparser.FuncDef):
 				r |= self.isStatic()
 			return r
 
-class T:
+class Context:
 	def __init__(self):
 		self.ast = None
 		self.ast_orig = None
+		self.rand_names = set()
 		self.all_funcs = {} # name -> (i, ast)
 		self.macroizables = [] # [name]
 
-t = T()
+t = Context()
 
 def setup(self, ast):
 	global t
@@ -65,7 +66,7 @@ class AST:
 			runner = rewrite_non_void.Main(self.ast)
 			runner.run()
 			self.ast = runner.returnAST()
-			recorder.file_record("convert_non_void_to_void", ext_pycparser.CGenerator().visit(self.ast))
+			recorder.t.file_record("convert_non_void_to_void", ext_pycparser.CGenerator().visit(self.ast))
 
 		runner = rewrite_void.Main(self.ast)
 		runner.run()
