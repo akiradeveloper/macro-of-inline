@@ -1,27 +1,12 @@
 from pycparser import c_ast
-from singleton.singleton import Singleton
 
 import cfg
+import copy
 import cppwrap
 import ext_pycparser
 import rewrite_non_void
 
-def prepare_rewrite(ast):
-	self.all_funcs = []
-	for i, n in enumerate(ast.ext):
-		if isinstance(n, c_ast.FuncDef):
-			self.all_funcs.append((i, n))
-		
-	self.macronizables = []
-	for _, func in all_funcs:
-		if not Fun(func).doMacroize():
-			continue
-		self.macronizables.append(func)
-
-	print(self.all_funcs)
-	# TODO filter out unsafe macroizables
-
-class Fun(ext_pycparser.FuncDef):
+class FuncDef(ext_pycparser.FuncDef):
 	def __init__(self, func):
 		ext_pycparser.FuncDef.__init__(self, func)
 
@@ -36,24 +21,44 @@ class Fun(ext_pycparser.FuncDef):
 				r |= self.isStatic()
 			return r
 
-@Singleton
-class Env:
-	def __init__(self, ast):
-		pass
+class Context:
+	def __init__(self):
+		self.all_funcs = {} # name -> (i, ast)
+		self.macroizables = [] # [name]
+
+	def setup(self, ast):
+		for i, n in enumerate(ast.ext):
+			if isinstance(n, c_ast.FuncDef):
+				self.all_funcs[FuncDef(n).name()] = (i, copy.deepcopy(n))
+
+		for name, (_, n) in self.all_funcs.items():
+			if not FuncDef(n).doMacroize():
+				continue
+			self.macronizables.append(name)
+
+		# TODO reduce macronizes
+
+context = Context()
 
 MACROIZE_NON_VOID = False
 class AST:
+	"""
+	AST -> AST
+	"""
 	def __init__(self, ast):
 		self.ast = ast
-		AST.prepare_rewrite(ast)
+		context.setup(ast)
 
 	def run(self):
 		if MACROIZE_NON_VOID:
-			void_runner = void_fun.Main(self.ast)
-			void_runner.run()
+			runner = rewrite_non_void.Main(self.ast)
+			runner.run()
+			self.ast = runner.returnAST()
 			recorder.file_record("convert_non_void_to_void", ext_pycparser.CGenerator().visit(self.ast))
 
-		pass
+		runner = rewrite_void.Main(self.ast)
+		runner.run()
+		self.ast = runner.returnAST()
 
 	def returnAST(self):
 		return self.ast

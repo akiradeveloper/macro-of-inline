@@ -173,14 +173,14 @@ class Main:
 
 		# Rewrite definitions
 		for i, n in self.non_void_funs:
-			self.ast.ext[i] = VoidFun(n).run().returnAST()
+			self.ast.ext[i] = rewrite_non_void_fun.Main(n).run().returnAST()
 		recorder.file_record("rewrite_func_defines", c_generator.CGenerator().visit(self.ast))
 
 		# Rewrite all callers
 		for i, n in enumerate(self.ast.ext):
 			if not isinstance(n, c_ast.FuncDef):
 				continue
-			self.ast.ext[i] = RewriteFun(n, old_non_void_funs).run().returnAST()
+			self.ast.ext[i] = RewriteCaller(n, old_non_void_funs).run().returnAST()
 		recorder.file_record("rewrite_all_callers", c_generator.CGenerator().visit(self.ast))
 
 		return self
