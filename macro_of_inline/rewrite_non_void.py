@@ -1,6 +1,7 @@
 from pycparser import c_ast, c_generator
 
 import cfg
+import compound
 import copy
 import ext_pycparser
 import inspect
@@ -9,38 +10,6 @@ import rewrite
 import rewrite_void_fun
 import rewrite_non_void_fun
 import utils
-
-class SymbolTable:
-	def __init__(self):
-		self.names = set()
-		self.prev_table = None
-
-	def register(self, name):
-		self.names.add(name)
-
-	def register_args(self, func):
-		if ext_pycparser.FuncDef(func).voidArgs():
-			return
-
-		# Because recursive function will not be macroized
-		# we don't need care shadowing by it's own function name.
-		for param_decl in func.decl.type.args.params or []:
-			if isinstance(param_decl, c_ast.EllipsisParam): # ... (Ellipsisparam)
-				continue
-			self.register(param_decl.name)
-
-	def clone(self):
-		st = SymbolTable()
-		st.names = copy.deepcopy(self.names)
-		return st
-
-	def switch(self):
-		new_table = self.clone()
-		new_table.prev_table = self
-		return new_table
-
-	def show(self):
-		print(self.names)
 
 class RewriteCaller:
 	"""
@@ -93,7 +62,7 @@ class RewriteCaller:
 	class RewriteToCommaOp(ext_pycparser.NodeVisitor):
 		def __init__(self, func):
 			self.func = func
-			self.cur_table = SymbolTable()
+			self.cur_table = compound.SymbolTable()
 			self.cur_table.register_args(func)
 
 		def switchTable(self):

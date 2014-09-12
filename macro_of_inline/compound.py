@@ -1,5 +1,6 @@
 from pycparser import c_ast, c_parser, c_generator
 
+import copy
 import ext_pycparser
 
 def mk(xs):
@@ -82,6 +83,38 @@ class CompoundVisitor(ext_pycparser.NodeVisitor):
 	def visit_DoWhile(self, n):
 		# print(type(n))
 		c_ast.NodeVisitor.generic_visit(self, n.stmt)
+
+class SymbolTable:
+	def __init__(self):
+		self.names = set()
+		self.prev_table = None
+
+	def register(self, name):
+		self.names.add(name)
+
+	def register_args(self, func):
+		if ext_pycparser.FuncDef(func).voidArgs():
+			return
+
+		# Because recursive function will not be macroized
+		# we don't need care shadowing by it's own function name.
+		for param_decl in func.decl.type.args.params or []:
+			if isinstance(param_decl, c_ast.EllipsisParam): # ... (Ellipsisparam)
+				continue
+			self.register(param_decl.name)
+
+	def clone(self):
+		st = SymbolTable()
+		st.names = copy.deepcopy(self.names)
+		return st
+
+	def switch(self):
+		new_table = self.clone()
+		new_table.prev_table = self
+		return new_table
+
+	def show(self):
+		print(self.names)
 
 class AllFuncCall(CompoundVisitor):
 	def __init__(self):
