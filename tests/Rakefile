@@ -6,8 +6,7 @@ desc "test with ruby source tree"
 task "ruby" do
   dir = "ruby-src"
   sh "git clone https://github.com/ruby/ruby #{RUBY_SRC}" unless File.directory? dir
-  root = "ruby-src-macroize"
-  sh "rm -rf #{RUBY_DIR}" if File.directory? root
+  sh "rm -rf #{RUBY_DIR}" if File.directory? RUBY_DIR
   sh "cp -r #{RUBY_SRC} #{RUBY_DIR}"
 
   Dir.chdir(RUBY_DIR) do
@@ -68,4 +67,4 @@ Dir.chdir(RUBY_DIR) do
       end
     end
   end
-end
+end if File.directory? RUBY_DIR
