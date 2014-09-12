@@ -109,16 +109,11 @@ class Main:
 	def normalizeLabels(self):
 		self.NormalizeLabels().visit(self.ast)
 
-	def run(self):
-		macroizables = []
-		for name in rewrite.t.macroizables:
-			_, func = rewrite.t.all_funcs[name]
-			if ext_pycparser.FuncDef(func).returnVoid():
-				macroizables.append(name)
-
+	def rewriteCallers(self, macroizables):
 		AddNamespaceToFuncCalls(macroizables).visit(self.ast)
 		recorder.t.file_record("labelize_func_call", ext_pycparser.CGenerator().visit(self.ast))
 
+	def rewriteDefs(self, macroizables):
 		runners = []
 		for name in macroizables:
 			i, func = rewrite.t.all_funcs[name]
@@ -133,6 +128,19 @@ class Main:
 			runner.insertGotoLabel().show().rewriteReturnToGoto().show().appendNamespaceToLabels().show().macroize().show()
 			self.ast.ext[i] = runner.returnAST()
 		recorder.t.file_record("macroize", ext_pycparser.CGenerator().visit(self.ast))
+
+	def run(self):
+		macroizables = []
+		for name in rewrite.t.macroizables:
+			_, func = rewrite.t.all_funcs[name]
+			if ext_pycparser.FuncDef(func).returnVoid():
+				macroizables.append(name)
+
+		self.rewriteCallers(macroizables)
+
+		# After macroize() calls within macroized functions are expanded.
+		# We need to rewrite callers before that.
+		self.rewriteDefs(macroizables)
 
 		# Apply preprocessor and normalize labels to fixed length
 		# Some compiler won't allow too-long lables.
