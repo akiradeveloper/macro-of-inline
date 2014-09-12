@@ -1,6 +1,11 @@
+require "parallel"
+require "securerandom"
+
 RUBY_SRC = "ruby-src"
 RUBY_DIR = "ruby-src-macroize"
 RUBY_FAIL_LOG = "ruby-failure.log"
+
+N = 8 # TODO Asking the system ncpus
 
 desc "test with ruby source tree"
 task "ruby" do
@@ -13,11 +18,17 @@ task "ruby" do
     sh "autoconf && ./configure"
     sh "make id.h"
     sh "make probes.h"
+
+    cfiles = []
+    Dir.glob("./**/*.c") do |f|
+      cfiles << f
+    end
+
     success_list = []
     failure_list = []
-    Dir.glob("./**/*.c") do |f|     
-      tmpfile = "/tmp/hoge.c"
+    Parallel.each(cfiles, in_threads: N) do |f|
       # Looked at the Makefile
+      tmpfile = "/tmp/#{SecureRandom.random_number(10**32)}.c"
       `macro-of-inline #{f} -o #{tmpfile} -I .ext/include/x86_64-linux ./include . --macroize-static-funs`
       e = $?.exitstatus
       if e == 0
@@ -27,9 +38,15 @@ task "ruby" do
         failure_list << f
         puts "[macroize] failed: #{f}"
       end
+      `rm -r #{tmpfile}`
     end
 
     perc = success_list.size.to_f / (success_list.size + failure_list.size)
+    File.open("../ruby-info.log", "w") do |f|
+      f.write """\
+success: #{perc}%
+"""
+    end
 
     File.open("../#{RUBY_FAIL_LOG}", "w") do |f|
       f.write """\
@@ -37,13 +54,7 @@ task "ruby" do
   """
     end
 
-    File.open("../ruby-info.log", "w") do |f|
-      f.write """\
-success: #{perc}%
-"""
-    end
-
-    sh "./configure && make && make test"
+    sh "./configure && make -j #{N} && make test"
   end
 end
 
