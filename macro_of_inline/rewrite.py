@@ -2,11 +2,44 @@ from pycparser import c_ast
 
 import cfg
 import copy
+import compound
 import cppwrap
 import ext_pycparser
 import rewrite_void
 import rewrite_non_void
 import utils
+
+class DeclSplit(c_ast.NodeVisitor):
+	"""
+	int x = v;
+
+	=>
+
+	int x; (lining this part at the beginning of the function block)
+	x = v;
+	"""
+	def visit_Compound(self, n):
+		decls = []
+		for i, item in enumerate(n.block_items or []):
+			if isinstance(item, c_ast.Decl):
+				decls.append((i, item))
+
+		for i, decl in reversed(decls):
+			if decl.init:
+				n.block_items[i] = c_ast.Assignment("=",
+						c_ast.ID(decl.name), # lvalue
+						decl.init) # rvalue
+			else:
+				del n.block_items[i]
+
+		for _, decl in reversed(decls):
+			decl_var = copy.deepcopy(decl)
+			# TODO Don't split int x = <not func>.
+			# E.g. int r = 0;
+			decl_var.init = None
+			n.block_items.insert(0, decl_var)
+
+		c_ast.NodeVisitor.generic_visit(self, n)
 
 class FuncDef(ext_pycparser.FuncDef):
 	def __init__(self, func):
@@ -62,7 +95,8 @@ class AST:
 		self.ast = ast
 
 	def run(self):
-		# TODO Split decls, ...
+		# compound.Brace().visit(self.ast) # The statements always be surrounded by { and }
+		DeclSplit().visit(self.ast)	# Declarations and assignments be split.
 
 		if MACROIZE_NON_VOID:
 			runner = rewrite_non_void.Main(self.ast)

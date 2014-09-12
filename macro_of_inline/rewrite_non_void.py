@@ -27,38 +27,6 @@ class RewriteCaller:
 		self.phase_no = 0
 		self.macroizables = macroizables
 
-	class DeclSplit(c_ast.NodeVisitor):
-		"""
-		int x = v;
-
-		=>
-
-		int x; (lining this part at the beginning of the function block)
-		x = v;
-		"""
-		def visit_Compound(self, n):
-			decls = []
-			for i, item in enumerate(n.block_items or []):
-				if isinstance(item, c_ast.Decl):
-					decls.append((i, item))
-
-			for i, decl in reversed(decls):
-				if decl.init:
-					n.block_items[i] = c_ast.Assignment("=",
-							c_ast.ID(decl.name), # lvalue
-							decl.init) # rvalue
-				else:
-					del n.block_items[i]
-
-			for _, decl in reversed(decls):
-				decl_var = copy.deepcopy(decl)
-				# TODO Don't split int x = <not func>.
-				# E.g. int r = 0;
-				decl_var.init = None
-				n.block_items.insert(0, decl_var)
-
-			c_ast.NodeVisitor.generic_visit(self, n)
-
 	class RewriteToCommaOp(ext_pycparser.NodeVisitor):
 		def __init__(self, func):
 			self.func = func
@@ -111,9 +79,6 @@ class RewriteCaller:
 			ext_pycparser.NodeVisitor.generic_visit(self, n)
 
 	def run(self):
-		self.DeclSplit().visit(self.func)
-		self.show()
-
 		self.phase_no += 1
 		self.RewriteToCommaOp(self.func).visit(self.func)
 		self.show()

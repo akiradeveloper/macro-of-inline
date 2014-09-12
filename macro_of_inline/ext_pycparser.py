@@ -77,6 +77,8 @@ class NodeVisitor(c_ast.NodeVisitor):
 		c_ast.NodeVisitor.visit(self, node)
 
 	def generic_visit(self, node):
+		# print node
+		# node.show()
 		oldparent = self.current_parent
 		self.current_parent = node
 		for c_name, c in node.children():

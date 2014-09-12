@@ -9,6 +9,7 @@ def mk(xs):
 class Brace(ext_pycparser.NodeVisitor):
 
 	def visit_If(self, n):
+		# print(type(n))
 		if not isinstance(n.iftrue, c_ast.Compound):
 			comp = mk([n.iftrue])
 			n.iftrue = comp
@@ -18,36 +19,42 @@ class Brace(ext_pycparser.NodeVisitor):
 		c_ast.NodeVisitor.generic_visit(self, n)
 
 	def visit_Case(self, n):
+		# print(type(n))
 		if not isinstance(n.stmts, c_ast.Compound):
 			comp = mk(n.stmts)
 			n.stmts = [comp]
 		c_ast.NodeVisitor.generic_visit(self, n)
 
 	def visit_Default(self, n):
+		# print(type(n))
 		if not isinstance(n.stmts, c_ast.Compound):
 			comp = mk(n.stmts)
 			n.stmts = [comp]
 		c_ast.NodeVisitor.generic_visit(self, n)
 
 	def visit_Switch(self, n):
+		# print(type(n))
 		if not isinstance(n.stmt, c_ast.Compound):
 			comp = mk([n.stmt])
 			n.stmt = comp
 		c_ast.NodeVisitor.generic_visit(self, n)
 
 	def visit_For(self, n):
+		# print(type(n))
 		if not isinstance(n.stmt, c_ast.Compound):
 			comp = mk([n.stmt])
 			n.stmt = comp
 		c_ast.NodeVisitor.generic_visit(self, n)
 
 	def visit_While(self, n):
+		# print(type(n))
 		if not isinstance(n.stmt, c_ast.Compound):
 			comp = mk([n.stmt])
 			n.stmt = comp
 		c_ast.NodeVisitor.generic_visit(self, n)
 
 	def visit_DoWhile(self, n):
+		# print(type(n))
 		if not isinstance(n.stmt, c_ast.Compound):
 			comp = mk([n.stmt])
 			n.stmt = comp
@@ -164,7 +171,7 @@ if __name__ == "__main__":
 	ast = p.parse(t1)
 	ast.show()
 
-	Brace().visit(ast.ext[0])
+	Brace().visit(ast)
 	print ast.ext[0].param_decls
 	print ast.ext[0].decl.type.args.params
 	# print c_generator.CGenerator().visit(ast.ext[0])
