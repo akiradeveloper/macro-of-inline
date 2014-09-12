@@ -12,7 +12,7 @@ import utils
 
 NORMALIZE_LABEL = True
 
-# FIXME Only inside compound
+# FIXME Only inside scoped-compound
 class AddNamespaceToFuncCalls(ext_pycparser.NodeVisitor):
 	"""
 	Add random label all macro calls.
@@ -51,6 +51,7 @@ class AddNamespaceToFuncCalls(ext_pycparser.NodeVisitor):
 		ext_pycparser.NodeVisitor.generic_visit(self, n)
 		self.called_in_macro = False
 
+	# FIXME Don't use this. Lacks care for pattern t->f()
 	class Name(ext_pycparser.NodeVisitor):
 		"""
 		Get the name of the function called.

@@ -62,6 +62,8 @@ class AST:
 		self.ast = ast
 
 	def run(self):
+		# TODO Split decls, ...
+
 		if MACROIZE_NON_VOID:
 			runner = rewrite_non_void.Main(self.ast)
 			runner.run()
