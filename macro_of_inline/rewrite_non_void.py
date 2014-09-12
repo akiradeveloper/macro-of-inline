@@ -173,16 +173,16 @@ class Main:
 			if not ext_pycparser.FuncDef(func).returnVoid():
 				macroizables.append(name)
 
+		# Rewrite all callers
+		for i, func in rewrite.t.all_funcs.values():
+			self.ast.ext[i] = RewriteCaller(func, macroizables).run().returnAST()
+		recorder.t.file_record("rewrite_all_callers", c_generator.CGenerator().visit(self.ast))
+
 		# Rewrite definitions
 		for name in macroizables:
 			i, func = rewrite.t.all_funcs[name]
 			self.ast.ext[i] = rewrite_non_void_fun.Main(func).run().returnAST()
 		recorder.t.file_record("rewrite_func_defines", c_generator.CGenerator().visit(self.ast))
-
-		# Rewrite all callers
-		for i, func in rewrite.t.all_funcs.values():
-			self.ast.ext[i] = RewriteCaller(func, macroizables).run().returnAST()
-		recorder.t.file_record("rewrite_all_callers", c_generator.CGenerator().visit(self.ast))
 
 		return self
 

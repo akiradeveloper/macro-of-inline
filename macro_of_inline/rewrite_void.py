@@ -12,6 +12,7 @@ import utils
 
 NORMALIZE_LABEL = True
 
+# FIXME Only inside compound
 class AddNamespaceToFuncCalls(ext_pycparser.NodeVisitor):
 	"""
 	Add random label all macro calls.
@@ -115,6 +116,9 @@ class Main:
 			if ext_pycparser.FuncDef(func).returnVoid():
 				macroizables.append(name)
 
+		AddNamespaceToFuncCalls(macroizables).visit(self.ast)
+		recorder.t.file_record("labelize_func_call", ext_pycparser.CGenerator().visit(self.ast))
+
 		runners = []
 		for name in macroizables:
 			i, func = rewrite.t.all_funcs[name]
@@ -123,18 +127,11 @@ class Main:
 
 		for i, runner in runners:
 			runner.sanitizeNames()
-
 		recorder.t.file_record("sanitize_names", ext_pycparser.CGenerator().visit(self.ast))
-
-		# We need here the names of the macroizables
-		AddNamespaceToFuncCalls(macroizables).visit(self.ast)
-
-		recorder.t.file_record("labelize_func_call", ext_pycparser.CGenerator().visit(self.ast))
 
 		for i, runner in runners:
 			runner.insertGotoLabel().show().rewriteReturnToGoto().show().appendNamespaceToLabels().show().macroize().show()
 			self.ast.ext[i] = runner.returnAST()
-
 		recorder.t.file_record("macroize", ext_pycparser.CGenerator().visit(self.ast))
 
 		# Apply preprocessor and normalize labels to fixed length
@@ -142,8 +139,8 @@ class Main:
 		if NORMALIZE_LABEL:
 			self.applyPreprocess()
 			self.normalizeLabels()
-
 		recorder.t.file_record("normalize_labels", ext_pycparser.CGenerator().visit(self.ast))
+
 		return self
 
 	def returnAST(self):
