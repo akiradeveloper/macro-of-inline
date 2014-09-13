@@ -64,6 +64,15 @@ class Context:
 		self.all_funcs = {} # name -> (i, ast)
 		self.macroizables = set() # set(name)
 
+	def blacklist(self):
+		f = lambda n: ext_pycparser.Result(ext_pycparser.FuncCallName()).visit(n)
+		all_calls = utils.countMap(map(f, ext_pycparser.Result(ext_pycparser.AllFuncCall()).visit(self.ast)))
+		# print all_calls
+		incomp_calls = utils.countMap(map(f, ext_pycparser.Result(compound.AllFuncCall()).visit(self.ast)))
+		# print incomp_calls
+		utils.countMapDiff(all_calls, incomp_calls)
+		return set([k for k, v in all_calls.items() if v > 0])
+
 	def setupAST(self, ast):
 		if self.ast == ast:
 			return
@@ -78,7 +87,10 @@ class Context:
 				continue
 			self.macroizables.add(name)
 
-		# TODO reduce macronizes
+		# Exclude functions calls inside expressions
+		blacklist = self.blacklist()
+		# print blacklist
+		self.macroizables -= blacklist
 
 t = Context()
 

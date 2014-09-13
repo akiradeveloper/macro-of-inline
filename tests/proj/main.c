@@ -14,6 +14,8 @@
 
 #include <ucontext.h>
 
+inline void inc(int *x) { *x += 1; }
+
 inline void f_guard(int x)
 {
 	int x = x;
@@ -23,6 +25,8 @@ inline void f_guard(int x)
 
 inline void ff(void)
 {
+	int i;
+	for (i = 0; i < 3; inc(&i));
 	f_guard(0);
 	f_guard(0);
 }
