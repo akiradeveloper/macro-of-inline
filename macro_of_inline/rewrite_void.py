@@ -115,9 +115,10 @@ class Main:
 			runner.sanitizeNames()
 		recorder.t.file_record("sanitize_names", ext_pycparser.CGenerator().visit(self.ast))
 
-		for i, runner in runners:
+		for i, runner in reversed(runners):
 			runner.insertGotoLabel().show().rewriteReturnToGoto().show().appendNamespaceToLabels().show().macroize().show()
-			self.ast.ext[i] = runner.returnAST()
+			self.ast.ext.insert(i, runner.returnAST())
+
 		recorder.t.file_record("macroize", ext_pycparser.CGenerator().visit(self.ast))
 
 	def run(self):
