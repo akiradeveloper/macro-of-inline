@@ -57,6 +57,8 @@ class AddNamespaceToFuncCalls(compound.CompoundVisitor):
 		if not name in self.macroizables:
 			return
 
+		n.name.name = "macro_%s" % n.name.name
+
 		namespace = rewrite.newrandstr()
 		if self.called_in_macro:
 			namespace = "namespace ## %s" % namespace
@@ -108,30 +110,40 @@ class Main:
 		runners = []
 		for name in macroizables:
 			i, func = rewrite.t.all_funcs[name]
-			runner = rewrite_void_fun.Main(copy.deepcopy(func))
+			runner = rewrite_void_fun.Main(func)
 			runners.append((i, runner))
 
 		for i, runner in runners:
 			runner.sanitizeNames()
 		recorder.t.file_record("sanitize_names", ext_pycparser.CGenerator().visit(self.ast))
 
-		for i, runner in runners:
+		for i, runner in reversed(runners):
 			runner.insertGotoLabel().show().rewriteReturnToGoto().show().appendNamespaceToLabels().show().macroize().show()
 			self.ast.ext[i] = runner.returnAST()
+
 		recorder.t.file_record("macroize", ext_pycparser.CGenerator().visit(self.ast))
 
 	def run(self):
 		macroizables = []
+
 		for name in rewrite.t.macroizables:
 			_, func = rewrite.t.all_funcs[name]
 			if ext_pycparser.FuncDef(func).returnVoid():
 				macroizables.append(name)
+
+		orig_funcs = []
+		for name in macroizables:
+			i, func = rewrite.t.all_funcs[name]
+			orig_funcs.append((i, copy.deepcopy(func)))
 
 		self.rewriteCallers(macroizables)
 
 		# After macroize() calls within macroized functions are expanded.
 		# We need to rewrite callers before that.
 		self.rewriteDefs(macroizables)
+
+		for i, func in reversed(orig_funcs):
+			self.ast.ext.insert(i, func)
 
 		# Apply preprocessor and normalize labels to fixed length
 		# Some compiler won't allow too-long lables.
