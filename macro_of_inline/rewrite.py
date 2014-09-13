@@ -49,15 +49,15 @@ class FuncDef(ext_pycparser.FuncDef):
 		ext_pycparser.FuncDef.__init__(self, func)
 
 	def doMacroize(self):
-			if self.hasVarArgs():
-				return False
-			# Recursive call can't be macroized in any safe ways.
-			if self.isRecursive():
-				return False
-			r = self.isInline()
-			if cfg.t.macroize_static_funs:
-				r |= self.isStatic()
-			return r
+		if self.hasVarArgs():
+			return False
+		# Recursive call can't be macroized in any safe ways.
+		if self.isRecursive():
+			return False
+		r = self.isInline()
+		if cfg.t.macroize_static_funs:
+			r |= self.isStatic()
+		return r
 
 class Context:
 	def __init__(self):
