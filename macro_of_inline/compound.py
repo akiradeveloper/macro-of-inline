@@ -7,12 +7,19 @@ def mk(xs):
 	return c_ast.Compound([c_ast.Compound(xs)])
 
 class Brace(ext_pycparser.NodeVisitor):
-
 	def visit_If(self, n):
 		# print(type(n))
 		if not isinstance(n.iftrue, c_ast.Compound):
 			comp = mk([n.iftrue])
 			n.iftrue = comp
+
+		# Statement may omit else clause (n.iffalse == None)
+		# and it is frequently seen.
+		# Here, we explicitly assign empty statement to the
+		# else clause.
+		# if (cond); => if (cond); else;
+		if not n.iffalse:
+			n.iffalse = c_ast.EmptyStatement()
 		if not isinstance(n.iffalse, c_ast.Compound):
 			comp = mk([n.iffalse])
 			n.iffalse = comp
@@ -65,7 +72,8 @@ class CompoundVisitor(ext_pycparser.NodeVisitor):
 	def visit_If(self, n):
 		# print(type(n))
 		c_ast.NodeVisitor.generic_visit(self, n.iftrue)
-		c_ast.NodeVisitor.generic_visit(self, n.iffalse)
+		if n.iffalse:
+			c_ast.NodeVisitor.generic_visit(self, n.iffalse)
 
 	def visit_Case(self, n):
 		# print(type(n))
@@ -147,24 +155,35 @@ int b;
 		int x;
 		switch (x)
 			case 1:
+				;
+
+		switch (x) {
+			case 1:
 				break;
+			case 2:
 			default:
 				break;
-		if (0)
-			return;
-		else return;
+		}
 
 		for (;;)
 			return;
+		for (;;);
+
+		if (0);
+		if (0); else;
+		if (0) return;
+		if (0) return;
+		else return;
 
 		while (0)
 			return;
+		while (0);
 
+		do; while(0);
 		do return; while(0);
 	}
 }
 """
-
 
 if __name__ == "__main__":
 	p = c_parser.CParser()
@@ -172,8 +191,7 @@ if __name__ == "__main__":
 	ast.show()
 
 	Brace().visit(ast)
-	print ast.ext[0].param_decls
-	print ast.ext[0].decl.type.args.params
-	# print c_generator.CGenerator().visit(ast.ext[0])
-
+	# print ast.ext[0].param_decls
+	# print ast.ext[0].decl.type.args.params
+	print c_generator.CGenerator().visit(ast.ext[0])
 	PrintCompound().visit(ast.ext[0])

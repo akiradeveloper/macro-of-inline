@@ -95,7 +95,7 @@ class AST:
 		self.ast = ast
 
 	def run(self):
-		# compound.Brace().visit(self.ast) # The statements always be surrounded by { and }
+		compound.Brace().visit(self.ast) # The statements always be surrounded by { and }
 		DeclSplit().visit(self.ast)	# Declarations and assignments be split.
 
 		if MACROIZE_NON_VOID:
