@@ -3,6 +3,7 @@ from pycparser import c_parser, c_ast
 import os
 
 import cfg
+import compound
 import cppwrap
 import ext_pycparser
 import recorder
@@ -12,16 +13,16 @@ import utils
 
 NORMALIZE_LABEL = True
 
-# FIXME Only inside scoped-compound
-class AddNamespaceToFuncCalls(ext_pycparser.NodeVisitor):
+# FIXME care for scope
+class AddNamespaceToFuncCalls(compound.CompoundVisitor):
 	"""
-	Add random label all macro calls.
+	Add random namespace macro calls.
 
-	Passing macro a random label is required because
-	calling a macro twice causes duplication of label
-	if the label name is fixed within macro.
-
-	Consider the following code:
+	To allow multiple returns in a function we need exit label
+	at the end of the definition.
+	However, giving a function a label without care for how it
+	is called causes label duplication when it's macroized and
+	then expanded.
 
 	#define f() \
 	do { \
@@ -31,46 +32,34 @@ class AddNamespaceToFuncCalls(ext_pycparser.NodeVisitor):
 	f();
 	f(); // duplication of rand_label
 
-	Instead, we define macros that is passed a label name
-	and give it a random label every different call:
+	Instead, we introduce a notion of namespace.
 
-	#define f(rand_label) \
+	#define f(namespace) \
 	do { \
-	rand_label: \
+	namespace ## exit: \
 	} while (0)
 	f(rand_label_1);
-	f(rand_label_2);
+	f(rand_label_2); // won't conflict
 	"""
-	def __init__(self, macro_names):
-		self.macro_names = macro_names
+	def __init__(self, macroizables):
+		self.macroizables = macroizables
 		self.called_in_macro = False
 
 	def visit_FuncDef(self, n):
-		if n.decl.name in self.macro_names:
+		if n.decl.name in self.macroizables:
 			self.called_in_macro = True
 		ext_pycparser.NodeVisitor.generic_visit(self, n)
 		self.called_in_macro = False
 
-	# FIXME Don't use this. Lacks care for pattern t->f()
-	class Name(ext_pycparser.NodeVisitor):
-		"""
-		Get the name of the function called.
-		Usage: visit(FuncCall.name)
-		"""
-		def __init__(self):
-			self.result = ""
-
-		def visit_ID(self, n):
-			self.result = n.name
-
 	def visit_FuncCall(self, n):
-		f = self.Name();
-		f.visit(n.name)
-		if not f.result in self.macro_names:
+		name = ext_pycparser.Result(ext_pycparser.FuncCallName()).visit(n.name)
+		if not name in self.macroizables:
 			return
+
 		namespace = rewrite.newrandstr()
 		if self.called_in_macro:
 			namespace = "namespace ## %s" % namespace
+
 		if n.args == None:
 			n.args = c_ast.ExprList([])
 		n.args.exprs.insert(0, c_ast.ID(namespace))
