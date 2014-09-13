@@ -67,8 +67,10 @@ optional arguments:
 
 ## Installation
 
-- To install, `python setup.py install` for the latest version (recommended) or `pip install macro-of-inline` for the pip-registered version.
-- To uninstall, uninstall.sh is provided.
+- To clone source tree, run `git clone https://github.com/akiradeveloper/macro-of-inline`.
+- To install, run `python setup.py install`.
+- To keep updated, run `git pull`.
+- To uninstall, run `sh uninstall.sh`.
 
 ## Todo
 
