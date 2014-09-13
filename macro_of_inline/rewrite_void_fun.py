@@ -327,7 +327,6 @@ inline void fun(int x, char *y, int (*f)(int), void (*g)(char c), struct T *t, i
 	x = z;
 	while (x) {
 		int x;
-		extfun(&x);
 		x = 0;
 		x = 0;
 		do {

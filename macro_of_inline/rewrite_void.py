@@ -131,6 +131,8 @@ class Main:
 			if ext_pycparser.FuncDef(func).returnVoid():
 				macroizables.append(name)
 
+		# We keep the original FuncDefs and revive them after the
+		# corresponding functions and their callers are transformed.
 		orig_funcs = []
 		for name in macroizables:
 			i, func = rewrite.t.all_funcs[name]
@@ -222,6 +224,7 @@ if __name__ == "__main__":
 	f.write(file_contents)
 	f.close()
 	# TODO Direct from stdio. Use gcc -xs -
-	os.system("gcc -ansi -pedantic %s && ./a.out" % fn)
+	# os.system("gcc -ansi -pedantic %s && ./a.out" % fn)
+	os.system("gcc -pedantic %s && ./a.out" % fn)
 	os.remove(fn)
 	print(output)
