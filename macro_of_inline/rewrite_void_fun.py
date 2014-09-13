@@ -295,7 +295,7 @@ class Main(ext_pycparser.FuncDef):
 		self.phase_no += 1
 		if not self.ok: return self
 
-		fun_name = self.name()
+		fun_name = "macro_%s" % self.name()
 		args = ', '.join(["namespace"] + map(lambda arg: arg.node.name, self.args))
 		generator = ext_pycparser.CGenerator()
 		body_contents = generator.visit(self.func.body).splitlines()[1:-1]
