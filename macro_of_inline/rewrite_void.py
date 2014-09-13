@@ -14,8 +14,7 @@ import utils
 
 NORMALIZE_LABEL = True
 
-# FIXME care for scope
-class AddNamespaceToFuncCalls(compound.CompoundVisitor):
+class RewriteCaller(compound.CompoundVisitor):
 	"""
 	Add random namespace macro calls.
 
@@ -103,7 +102,7 @@ class Main:
 		self.NormalizeLabels().visit(self.ast)
 
 	def rewriteCallers(self, macroizables):
-		AddNamespaceToFuncCalls(macroizables).visit(self.ast)
+		RewriteCaller(macroizables).visit(self.ast)
 		recorder.t.file_record("labelize_func_call", ext_pycparser.CGenerator().visit(self.ast))
 
 	def rewriteDefs(self, macroizables):
@@ -120,7 +119,6 @@ class Main:
 		for i, runner in reversed(runners):
 			runner.insertGotoLabel().show().rewriteReturnToGoto().show().appendNamespaceToLabels().show().macroize().show()
 			self.ast.ext[i] = runner.returnAST()
-
 		recorder.t.file_record("macroize", ext_pycparser.CGenerator().visit(self.ast))
 
 	def run(self):
