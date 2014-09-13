@@ -21,7 +21,10 @@ class DeclSplit(c_ast.NodeVisitor):
 	def visit_Compound(self, n):
 		decls = []
 		for i, item in enumerate(n.block_items or []):
-			if isinstance(item, c_ast.Decl):
+			if not isinstance(item, c_ast.Decl):
+				continue
+			# if item.init:
+			if isinstance(item.init, c_ast.FuncCall):
 				decls.append((i, item))
 
 		for i, decl in reversed(decls):
@@ -32,12 +35,12 @@ class DeclSplit(c_ast.NodeVisitor):
 			else:
 				del n.block_items[i]
 
-		for _, decl in reversed(decls):
+		for i, decl in reversed(decls):
 			decl_var = copy.deepcopy(decl)
 			# TODO Don't split int x = <not func>.
 			# E.g. int r = 0;
 			decl_var.init = None
-			n.block_items.insert(0, decl_var)
+			n.block_items.insert(i, decl_var)
 
 		c_ast.NodeVisitor.generic_visit(self, n)
 
@@ -78,6 +81,9 @@ class Context:
 			return
 		self.ast = ast
 
+		compound.Brace().visit(self.ast) # The statements always be surrounded by { and }
+		DeclSplit().visit(self.ast)	# Declarations and assignments be split.
+
 		for i, n in enumerate(ast.ext):
 			if isinstance(n, c_ast.FuncDef):
 				self.all_funcs[FuncDef(n).name()] = (i, n)
@@ -107,9 +113,6 @@ class AST:
 		self.ast = ast
 
 	def run(self):
-		compound.Brace().visit(self.ast) # The statements always be surrounded by { and }
-		DeclSplit().visit(self.ast)	# Declarations and assignments be split.
-
 		if MACROIZE_NON_VOID:
 			runner = rewrite_non_void.Main(self.ast)
 			runner.run()

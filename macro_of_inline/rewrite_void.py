@@ -4,6 +4,7 @@ import os
 
 import cfg
 import compound
+import copy
 import cppwrap
 import ext_pycparser
 import recorder
@@ -107,7 +108,7 @@ class Main:
 		runners = []
 		for name in macroizables:
 			i, func = rewrite.t.all_funcs[name]
-			runner = rewrite_void_fun.Main(func)
+			runner = rewrite_void_fun.Main(copy.deepcopy(func))
 			runners.append((i, runner))
 
 		for i, runner in runners:
