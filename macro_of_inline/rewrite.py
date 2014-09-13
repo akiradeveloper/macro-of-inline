@@ -21,7 +21,9 @@ class DeclSplit(c_ast.NodeVisitor):
 	def visit_Compound(self, n):
 		decls = []
 		for i, item in enumerate(n.block_items or []):
-			if isinstance(item, c_ast.Decl):
+			if not isinstance(item, c_ast.Decl):
+				continue
+			if isinstance(item.init, c_ast.FuncCall):
 				decls.append((i, item))
 
 		for i, decl in reversed(decls):
@@ -32,12 +34,12 @@ class DeclSplit(c_ast.NodeVisitor):
 			else:
 				del n.block_items[i]
 
-		for _, decl in reversed(decls):
+		for i, decl in reversed(decls):
 			decl_var = copy.deepcopy(decl)
 			# TODO Don't split int x = <not func>.
 			# E.g. int r = 0;
 			decl_var.init = None
-			n.block_items.insert(0, decl_var)
+			n.block_items.insert(i, decl_var)
 
 		c_ast.NodeVisitor.generic_visit(self, n)
 
