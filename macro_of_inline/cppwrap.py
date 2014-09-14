@@ -10,7 +10,8 @@ import recorder
 
 def cpp(filename):
 	"""
-	filename -> txt
+	Preprocessing (File -> Text)
+	mcpp + fake_libc_include for --cross_build
 	"""
 	# TODO Use pkg_resources or something that fits more.
 	p = os.path.join(os.path.dirname(__file__), 'fake_libc_include')
@@ -24,7 +25,7 @@ def cpp(filename):
 
 def analyzeInclude(filename, txt):
 	"""
-	txt -> [(include lineno, txt)]
+	Text -> [(Lineno, Text)]
 	"""
 	filename = os.path.abspath(filename)
 	current_result = None
@@ -125,7 +126,7 @@ def ast_delete(a, b):
 
 class Apply:
 	"""
-	(AST -> AST) -> filename -> txt
+	(AST -> AST) -> File -> Text
 
 	The file (of filename) can be before preprocessing.
 	It can contains directives.

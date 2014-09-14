@@ -1,3 +1,5 @@
+import cfg
+import pycparser
 import random
 import string
 
@@ -38,8 +40,22 @@ def countMapDiff(m1, m2):
 	for k in m2.keys():
 		m1[k] -= m2[k]
 
+def cpp(filename):
+	"""
+	General preprocessing
+	The output can be parsed by pycparser
+
+	__builtin_va_list is really built-in and we can't access the
+	definition in header file. We redefine this for parsing.
+	"""
+	cpp_args = ['-U__GNUC__', '-E', '-D__builtin_va_list=void *']
+	cpp_args.extend([r'-I%s' % path for path in cfg.t.additional_search_paths])
+	return pycparser.preprocess_file(filename, cpp_path='gcc', cpp_args=cpp_args)
+
 if __name__ == "__main__":
 	a = countMap([2,1,1,2,3])
 	b = countMap([3,1,2,2,2])
 	countMapDiff(a, b)
 	print(a)
+
+	print cpp("tests/proj/main.c")

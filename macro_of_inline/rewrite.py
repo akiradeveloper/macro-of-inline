@@ -5,6 +5,7 @@ import copy
 import compound
 import cppwrap
 import ext_pycparser
+import os
 import recorder
 import rewrite_void
 import rewrite_non_void
@@ -136,10 +137,20 @@ class Main:
 		self.filename = filename
 
 	def run(self):
-		f = lambda ast: AST(ast).run().returnAST()
-		output = cppwrap.Apply(f).on(self.filename)
+		f = lambda ast: AST(ast).run().returnAST() # AST -> AST
+		if cfg.t.cross_build:
+			output = cppwrap.Apply(f).on(self.filename)
+		else:
+			with open(self.filename, "r") as fp:
+				cpped_txt = fp.read()
+			ext_pycparser.ast_of(cpped_txt)
+			output = ext_pycparser.CGenerator().visit(f(ext_pycparser.ast_of(cpped_txt)))
+			print output
 		return ext_pycparser.CGenerator.cleanUp(output)
 
 if __name__ == "__main__":
-	output = Main("tests/proj/main.c").run()
-	print(output)
+	fn = "tmp.c"
+	with open(fn, "w") as fp:
+		fp.write(utils.cpp("tests/proj/main.c"))
+	output = Main(fn).run()
+	os.remove(fn)
