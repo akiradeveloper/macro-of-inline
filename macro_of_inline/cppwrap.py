@@ -10,8 +10,7 @@ import recorder
 
 def cpp(filename):
 	"""
-	Preprocessing (File -> Text)
-	mcpp + fake_libc_include for --cross_build
+	File -> Text
 	"""
 	# TODO Use pkg_resources or something that fits more.
 	p = os.path.join(os.path.dirname(__file__), 'fake_libc_include')

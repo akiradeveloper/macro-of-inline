@@ -138,18 +138,22 @@ class Main:
 
 	def run(self):
 		f = lambda ast: AST(ast).run().returnAST() # AST -> AST
-		if cfg.t.cross_build:
-			output = cppwrap.Apply(f).on(self.filename)
+		print cfg.t.with_cpp
+		if cfg.t.with_cpp:
+			if cfg.t.cpp_mode == 'gcc':
+				output = utils.cpp(self.filename)
+			else:
+				print "hogehoge"
+				output = cppwrap.Apply(f).on(self.filename)
 		else:
 			with open(self.filename, "r") as fp:
 				cpped_txt = fp.read()
-			ext_pycparser.ast_of(cpped_txt)
 			output = ext_pycparser.CGenerator().visit(f(ext_pycparser.ast_of(cpped_txt)))
 			print output
 		return ext_pycparser.CGenerator.cleanUp(output)
 
 if __name__ == "__main__":
-	fn = "tmp.c"
+	fn = "/tmp/%s.c" % utils.randstr(16)
 	with open(fn, "w") as fp:
 		fp.write(utils.cpp("tests/proj/main.c"))
 	output = Main(fn).run()

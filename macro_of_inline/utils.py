@@ -42,8 +42,7 @@ def countMapDiff(m1, m2):
 
 def cpp(filename):
 	"""
-	General preprocessing
-	The output can be parsed by pycparser
+	File -> Text
 
 	__builtin_va_list is really built-in and we can't access the
 	definition in header file. We redefine this for parsing.
