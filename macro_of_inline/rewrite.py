@@ -140,7 +140,8 @@ class Main:
 		f = lambda ast: AST(ast).run().returnAST() # AST -> AST
 		if cfg.t.with_cpp:
 			if cfg.t.cpp_mode == 'gcc':
-				output = utils.cpp(self.filename)
+				cpped_txt = utils.cpp(self.filename)
+				output = ext_pycparser.CGenerator().visit(f(ext_pycparser.ast_of(cpped_txt)))
 			else:
 				output = cppwrap.Apply(f).on(self.filename)
 		else:
