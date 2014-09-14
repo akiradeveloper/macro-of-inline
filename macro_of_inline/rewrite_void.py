@@ -88,11 +88,9 @@ class Main:
 
 	def applyPreprocess(self):
 		fn = "/tmp/%s.c" % utils.randstr(16)
-		fp = open(fn, "w")
-		fp.write(ext_pycparser.CGenerator().visit(self.ast))
-		fp.close()
-		# print(cppwrap.cpp(fn))
-		self.ast = ext_pycparser.ast_of(cppwrap.cpp(fn))
+		with open(fn, "w") as fp:
+			fp.write(ext_pycparser.CGenerator().visit(self.ast))
+		self.ast = ext_pycparser.ast_of(utils.cpp(fn))
 		os.remove(fn)
 
 	class NormalizeLabels(ext_pycparser.NodeVisitor):
