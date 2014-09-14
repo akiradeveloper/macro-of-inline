@@ -142,13 +142,11 @@ class Main:
 			if cfg.t.cpp_mode == 'gcc':
 				output = utils.cpp(self.filename)
 			else:
-				print "hogehoge"
 				output = cppwrap.Apply(f).on(self.filename)
 		else:
 			with open(self.filename, "r") as fp:
 				cpped_txt = fp.read()
 			output = ext_pycparser.CGenerator().visit(f(ext_pycparser.ast_of(cpped_txt)))
-			print output
 		return ext_pycparser.CGenerator.cleanUp(output)
 
 if __name__ == "__main__":

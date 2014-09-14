@@ -1,4 +1,5 @@
 require "parallel"
+require "thread_safe"
 require "securerandom"
 
 RUBY_SRC = "ruby-src"
@@ -24,12 +25,12 @@ task "ruby" do
       cfiles << f
     end
 
-    success_list = []
-    failure_list = []
+    success_list = ThreadSafe::Array.new
+    failure_list = ThreadSafe::Array.new
     Parallel.each(cfiles, in_threads: N) do |f|
       # Looked at the Makefile
       tmpfile = "/tmp/#{SecureRandom.random_number(10**32)}.c"
-      `macro-of-inline #{f} -o #{tmpfile} -I .ext/include/x86_64-linux ./include . --macroize-static-funs`
+      `macro-of-inline #{f} -o #{tmpfile} -I .ext/include/x86_64-linux ./include . --macroize-static-funs --with-cpp=gcc`
       e = $?.exitstatus
       if e == 0
         success_list << f
@@ -74,7 +75,7 @@ Dir.chdir(RUBY_DIR) do
     task "ruby#{testno}" do
       Dir.chdir(RUBY_DIR) do
         sh "cp #{File.join("../#{RUBY_SRC}", f)} #{f}"
-        sh "macro-of-inline #{f} -I .ext/include/x86_64-linux ./include . --macroize-static-funs --record ../record-macro-of-inline"
+        sh "macro-of-inline #{f} -I .ext/include/x86_64-linux ./include . --macroize-static-funs --record ../record-macro-of-inline --with-cpp=gcc"
       end
     end
   end

@@ -2,7 +2,6 @@ from pycparser import c_ast
 
 import enum
 import os
-
 import cfg
 import ext_pycparser
 import pycparser
