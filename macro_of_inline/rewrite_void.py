@@ -42,9 +42,19 @@ class RewriteCaller(compound.CompoundVisitor):
 	f(rand_label_2); // won't conflict
 	"""
 	def __init__(self, func, macroizables):
-		name = ext_pycparser.FuncDef(func).name()
+		self.current_table = compound.SymbolTable()
+		self.current_table.register_args(func)
 		self.macroizables = macroizables
+		name = ext_pycparser.FuncDef(func).name()
 		self.called_in_macro = True if name in macroizables else False
+
+	def visit_Compound(self, n):
+		self.current_table = self.current_table.switch()
+		ext_pycparser.NodeVisitor.generic_visit(self, n)
+		self.current_table = self.current_table.prev_table
+
+	def visit_Decl(self, n):
+		self.current_table.register(n.name)
 
 	def visit_FuncCall(self, n):
 		# Only consider basic function call
@@ -52,7 +62,7 @@ class RewriteCaller(compound.CompoundVisitor):
 			return
 
 		name = ext_pycparser.Result(ext_pycparser.FuncCallName()).visit(n.name) # FIXME
-		if not name in self.macroizables: # FIXME
+		if not name in self.macroizables - self.current_table.names:
 			return
 
 		# We only macroize basic function call f(...).
@@ -125,12 +135,12 @@ class Main:
 		recorder.t.file_record("macroize", ext_pycparser.CGenerator().visit(self.ast))
 
 	def run(self):
-		macroizables = []
+		macroizables = set()
 
 		for name in rewrite.t.macroizables:
 			_, func = rewrite.t.all_funcs[name]
 			if ext_pycparser.FuncDef(func).returnVoid():
-				macroizables.append(name)
+				macroizables.add(name)
 
 		# We keep the original FuncDefs and revive them after the
 		# corresponding functions and their callers are transformed.
