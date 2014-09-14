@@ -5,6 +5,7 @@ import copy
 import compound
 import cppwrap
 import ext_pycparser
+import recorder
 import rewrite_void
 import rewrite_non_void
 import utils

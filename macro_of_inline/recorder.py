@@ -20,7 +20,7 @@ class Recorder:
 			os.makedirs(self.rec_dir)
 
 	def file_record(self, title, contents):
-		if cfg.t.record_enabled:
+		if not cfg.t.record_enabled:
 			return
 
 		self.file_rewrite_level += 1
@@ -30,7 +30,7 @@ class Recorder:
 		f.close()
 
 	def fun_record(self, title, ast):
-		if cfg.t.record_enabled:
+		if not cfg.t.record_enabled:
 			return
 
 		if not isinstance(ast, ext_pycparser.Any):
