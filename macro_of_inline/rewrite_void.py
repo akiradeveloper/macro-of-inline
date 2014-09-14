@@ -47,9 +47,12 @@ class RewriteCaller(compound.CompoundVisitor):
 		self.called_in_macro = True if name in macroizables else False
 
 	def visit_FuncCall(self, n):
-		# FIXME
-		name = ext_pycparser.Result(ext_pycparser.FuncCallName()).visit(n.name)
-		if not name in self.macroizables:
+		# Only consider basic function call
+		if not isinstance(n.name, c_ast.ID):
+			return
+
+		name = ext_pycparser.Result(ext_pycparser.FuncCallName()).visit(n.name) # FIXME
+		if not name in self.macroizables: # FIXME
 			return
 
 		# We only macroize basic function call f(...).
