@@ -138,7 +138,6 @@ class Main:
 
 	def run(self):
 		f = lambda ast: AST(ast).run().returnAST() # AST -> AST
-		print cfg.t.with_cpp
 		if cfg.t.with_cpp:
 			if cfg.t.cpp_mode == 'gcc':
 				output = utils.cpp(self.filename)
