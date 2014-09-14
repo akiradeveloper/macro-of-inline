@@ -41,22 +41,21 @@ class RewriteCaller(compound.CompoundVisitor):
 	f(rand_label_1);
 	f(rand_label_2); // won't conflict
 	"""
-	def __init__(self, macroizables):
+	def __init__(self, func, macroizables):
+		name = ext_pycparser.FuncDef(func).name()
 		self.macroizables = macroizables
-		self.called_in_macro = False
-
-	def visit_FuncDef(self, n):
-		if n.decl.name in self.macroizables:
-			self.called_in_macro = True
-		ext_pycparser.NodeVisitor.generic_visit(self, n)
-		self.called_in_macro = False
+		self.called_in_macro = True if name in macroizables else False
 
 	def visit_FuncCall(self, n):
+		# FIXME
 		name = ext_pycparser.Result(ext_pycparser.FuncCallName()).visit(n.name)
 		if not name in self.macroizables:
 			return
 
-		n.name.name = "macro_%s" % n.name.name
+		# We only macroize basic function call f(...).
+		# We don't need to consider complex call t->f(...) or (*f)(...)
+		# thus n.name.name always works.
+		n.name.name = "macro_%s" % n.name.name # macro_f(...)
 
 		namespace = rewrite.newrandstr()
 		if self.called_in_macro:
@@ -64,7 +63,7 @@ class RewriteCaller(compound.CompoundVisitor):
 
 		if n.args == None:
 			n.args = c_ast.ExprList([])
-		n.args.exprs.insert(0, c_ast.ID(namespace))
+		n.args.exprs.insert(0, c_ast.ID(namespace)) # macro_f(namespace, ...)
 
 class Main:
 	"""
@@ -102,8 +101,9 @@ class Main:
 		self.NormalizeLabels().visit(self.ast)
 
 	def rewriteCallers(self, macroizables):
-		RewriteCaller(macroizables).visit(self.ast)
-		recorder.t.file_record("labelize_func_call", ext_pycparser.CGenerator().visit(self.ast))
+		for (_, func) in rewrite.t.all_funcs.values():
+			RewriteCaller(func, macroizables).visit(func)
+		recorder.t.file_record("rewrite_func_call", ext_pycparser.CGenerator().visit(self.ast))
 
 	def rewriteDefs(self, macroizables):
 		runners = []
