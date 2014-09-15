@@ -154,8 +154,9 @@ class Main:
 		# We need to rewrite callers before that.
 		self.rewriteDefs(macroizables)
 
-		for i, func in reversed(orig_funcs):
-			self.ast.ext.insert(i, func)
+		# FIXME Buggy comment for now
+		# for i, func in reversed(orig_funcs):
+		# 	self.ast.ext.insert(i, func)
 
 		# Apply preprocessor and normalize labels to fixed length
 		# Some compiler won't allow too-long lables.
