@@ -7,6 +7,7 @@ import compound
 import copy
 import cppwrap
 import ext_pycparser
+import pycparser
 import recorder
 import rewrite
 import rewrite_void_fun
@@ -90,7 +91,7 @@ class Main:
 		fn = "/tmp/%s.c" % utils.randstr(16)
 		with open(fn, "w") as fp:
 			fp.write(ext_pycparser.CGenerator().visit(self.ast))
-		self.ast = ext_pycparser.ast_of(utils.cpp(fn))
+		self.ast = ext_pycparser.ast_of(pycparser.preprocess_file(fn, cpp_path='gcc', cpp_args=['-E']))
 		os.remove(fn)
 
 	class NormalizeLabels(ext_pycparser.NodeVisitor):
