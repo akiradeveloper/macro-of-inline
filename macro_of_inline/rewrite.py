@@ -9,6 +9,7 @@ import os
 import recorder
 import rewrite_void
 import rewrite_non_void
+import sys
 import utils
 
 class DeclSplit(c_ast.NodeVisitor):
@@ -147,7 +148,10 @@ class Main:
 		else:
 			with open(self.filename, "r") as fp:
 				cpped_txt = fp.read()
-			output = ext_pycparser.CGenerator().visit(f(ext_pycparser.ast_of(cpped_txt)))
+			try:
+				output = ext_pycparser.CGenerator().visit(f(ext_pycparser.ast_of(cpped_txt)))
+			except:
+				sys.stderr.write("[ERROR] %s failed to parse. Is this file preprocessed? Do you forget --with-cpp?\n" % self.filename)
 		return ext_pycparser.CGenerator.cleanUp(output)
 
 if __name__ == "__main__":
