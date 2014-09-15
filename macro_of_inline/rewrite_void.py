@@ -11,6 +11,7 @@ import pycparser
 import recorder
 import rewrite
 import rewrite_void_fun
+import sys
 import utils
 
 NORMALIZE_LABEL = True
@@ -91,8 +92,12 @@ class Main:
 		fn = "/tmp/%s.c" % utils.randstr(16)
 		with open(fn, "w") as fp:
 			fp.write(ext_pycparser.CGenerator().visit(self.ast))
-		self.ast = ext_pycparser.ast_of(pycparser.preprocess_file(fn, cpp_path='gcc', cpp_args=['-E']))
-		os.remove(fn)
+		try:
+			self.ast = ext_pycparser.ast_of(pycparser.preprocess_file(fn, cpp_path='gcc', cpp_args=['-E']))
+		except:
+			sys.exit(1)
+		finally:
+			os.remove(fn)
 
 	class NormalizeLabels(ext_pycparser.NodeVisitor):
 		def __init__(self):
