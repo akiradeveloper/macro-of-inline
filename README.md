@@ -14,56 +14,75 @@ This **macro-of-inline** provides function inlining as preprocessing.
 ## Usage
 
 ```
-$ macro-of-inline foo/bar/hoge.c
+$ macro-of-inline foo/bar/hoge.c --with-cpp
 ```
 
 will write to stdout and you can overwrite the file:
 
 
 ```
-$ macro-of-inline foo/bar/hoge.c -o foo/bar/hoge.c
+$ macro-of-inline foo/bar/hoge.c --with-cpp -o foo/bar/hoge.c
 ```
 
 To record the tracks of translation, add `--record` flag:
 
 ```
-$ macro-of-inline foo/bar/hoge.c --record
+$ macro-of-inline foo/bar/hoge.c --with-cpp --record
 ```
 
 Type '-h' for help:
 
 ```
-$ macro-of-inline -h
 usage: macro-of-inline [-h] [-v] [-o OUTFILE] [-I PATHS [PATHS ...]]
-                       [--record [DIR]] [--macroize-static-funs]
+                       [--with-cpp [{--,gcc}]] [--record [DIR]]
+                       [--macroize-static-funs]
                        INFILE
 
 C Preprocessor to translate inline functions to equivalent macros
 
 positional arguments:
-  INFILE                input filename. It does _not_ need to be preprocessed
+  INFILE                input file. by default, already preprocessed (see
+                        --with-cpp)
 
 optional arguments:
   -h, --help            show this help message and exit
   -v, --version         show program's version number and exit
   -o OUTFILE            output (default:-)
   -I PATHS [PATHS ...]  add paths to search
+  --with-cpp [{--,gcc}]
+                        without this flag, the input needs to be explicitly
+                        preprocessed. but with this flag, the input file will
+                        be implicitly preprocessed within this program. note
+                        that, the default mode works tricky thus it's not
+                        always work. it depends on how tedious the input file
+                        is. gcc mode is experimental and only for testing
   --record [DIR]        record the tracks of code translation. specify a
                         directory if you don't want to use the default
                         directory (default:record-macro-of-inline)
   --macroize-static-funs
-                        static functions, no matter they are with inline
-                        specifier, are to be macroized
+                        [deprecated] static functions, no matter they are with
+                        inline specifier, are to be macroized
 ```
 
 ## Requirements
 
-- mcpp: A well-designed preprocessor. In Debian, `aptitude install mcpp`
+- gcc: `gcc -E` preprocessing is used internally.
+- [--with-cpp] mcpp: A well-designed preprocessor. In Debian, `aptitude install mcpp`
 
 ## Limitation
 
-- Include directives will be moved to the head of the file. Make sure this transformation is OK.
-- GCC-extensions are ignored (input file will be preprocessed with -U\_\_GNUC\_\_). This is a limitation of pycparser.
+- [--with-cpp] Dealing with directives: `#define` directives will be purged after preprocessed and will not be recovered as the output of this program
+  while `#include` directives will be. Make sure the input code doesn't use `#define` in tricky manner. All `#include`
+  directives will be collected at the beginning with the order preserved. The following code will not probably be translated badly because
+  the output won't sandwitch `#include "mylib.h"` with the define/undef.
+
+```c
+#define DEBUG_LIB
+#include "mylib.h"
+#undef DEBUG_LIB
+```
+
+- GCC-extensions are ignored ([--with-cpp] input file will be preprocessed with -U\_\_GNUC\_\_). This is a limitation of pycparser.
 
 ## Installation
 

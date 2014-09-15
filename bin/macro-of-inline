@@ -6,10 +6,10 @@ import sys
 import argparse
 
 parser = argparse.ArgumentParser(version="0.9", description="C Preprocessor to translate inline functions to equivalent macros")
-parser.add_argument("i", metavar="INFILE", help="input file (see --with-cpp)")
+parser.add_argument("i", metavar="INFILE", help="input file. by default, already preprocessed (see --with-cpp)")
 parser.add_argument("-o", metavar="OUTFILE", help="output (default:-)", default="-")
 parser.add_argument("-I", nargs="+", metavar="PATHS", help="add paths to search", default=[])
-parser.add_argument("--with-cpp", nargs='?', help="without this flag, the input needs to be explicitly preprocessed. but with this flag, the input file will be implicitly preprocessed within this program. note that, the default mode works tricky thus it's not always work. it depends on how tedious the input file is", const='--', choices=['gcc', '--'])
+parser.add_argument("--with-cpp", nargs='?', help="without this flag, the input needs to be explicitly preprocessed. but with this flag, the input file will be implicitly preprocessed within this program. note that, the default mode works tricky thus it's not always work. it depends on how tedious the input file is. gcc mode is experimental and only for testing", const='--', choices=['--', 'gcc'])
 parser.add_argument("--record", nargs='?', metavar="DIR", help="record the tracks of code translation. specify a directory if you don't want to use the default directory (default:record-macro-of-inline)", const="record-macro-of-inline")
 parser.add_argument("--macroize-static-funs", action='store_true', help="[deprecated] static functions, no matter they are with inline specifier, are to be macroized")
 
