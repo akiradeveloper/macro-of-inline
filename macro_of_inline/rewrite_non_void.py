@@ -110,10 +110,12 @@ class Main:
 		for name in macroizables:
 			i, func = rewrite.t.all_funcs[name]
 			void_funcs.append((i, rewrite_non_void_fun.Main(copy.deepcopy(func)).run().returnAST()))
-		void_funcs.sort(key=lambda x: -x[0])
+		void_funcs.sort(key=lambda x: -x[0]) # reverse order
 		for i, vfunc in void_funcs:
 			self.ast.ext.insert(i, vfunc)
-		# TODO insert prototypes
+		for _, vfunc in void_funcs:
+			decl = copy.deepcopy(vfunc.decl)
+			self.ast.ext.insert(0, decl)
 		recorder.t.file_record("rewrite_func_defines", c_generator.CGenerator().visit(self.ast))
 
 	def run(self):
