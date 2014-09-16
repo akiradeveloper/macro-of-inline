@@ -24,7 +24,6 @@ def cpp(filename):
 	cpp_args = ['-U__GNUC__', r'-I%s' % p]
 
 	cpp_args.extend([r'%s' % f(option) for option in cfg.t.extra_options])
-	cpp_args.extend([r'-I%s' % path for path in cfg.t.additional_search_paths]) # FIXME purge
 
 	# The raw output of mcpp can contain _Pragma() lines that can't be parsed by pycparser.
 	# Now we remove these lines however, can't suppose this adhoc patch will work for any cases.

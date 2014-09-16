@@ -5,7 +5,6 @@ class Env:
 		self.with_cpp = False
 		self.cpp_mode = None
 		self.extra_options = []
-		self.additional_search_paths = []
 		self.macroize_static_funs = False
 
 t = Env()
