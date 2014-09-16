@@ -152,6 +152,7 @@ class Main:
 		for name in macroizables:
 			i, func = rewrite.t.all_funcs[name]
 			orig_funcs.append((i, copy.deepcopy(func)))
+		orig_funcs.sort(key=lambda x: -x[0]) # reversed order by lineno
 
 		self.rewriteCallers(macroizables)
 
@@ -159,9 +160,7 @@ class Main:
 		# We need to rewrite callers before that.
 		self.rewriteDefs(macroizables)
 
-		for i, func in sorted(orig_funcs, key=lambda x: -x[0]):
-			print "index %d" % i
-			func.show()
+		for i, func in orig_funcs:
 			self.ast.ext.insert(i, func)
 
 		# Apply preprocessor and normalize labels to fixed length
