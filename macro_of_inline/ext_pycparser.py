@@ -211,45 +211,6 @@ class ParamDecl:
 class FileAST:
 	pass
 
-class FuncCallName(c_ast.NodeVisitor):
-	"""
-	Usage: visit(FuncCall.name)
-
-	A call might be of form "(*f)(...)"
-	The AST is then
-
-	FuncCall
-	  UnaryOp
-		ID
-
-	While ordinary call is of
-
-	FuncCall
-	  ID
-
-	We need to find the ID node recursively.
-
-	Note:
-	The AST representation of f->f(hoge) is like this.
-	As a result, this function returns 'f' as the name of this call.
-	This works because 'f' shadows the non-void functions.
-	(We don't expect f->f(hoge) will be written to f->f(&retval, hoge))
-
-        FuncCall:
-          StructRef: ->
-            ID: f
-            ID: f
-          ExprList:
-            ID: hoge
-	"""
-	def __init__(self):
-		self.found = False
-
-	def visit_ID(self, n):
-		if self.found: return
-		self.result = n.name
-		self.found = True
-
 class AllFuncCall(NodeVisitor):
 	def __init__(self):
 		self.result = []

@@ -59,18 +59,13 @@ class RewriteCaller(compound.CompoundVisitor):
 		self.current_table.register(n.name)
 
 	def visit_FuncCall(self, n):
-		# Only consider basic function call
-		if not isinstance(n.name, c_ast.ID):
-			return
-
-		name = ext_pycparser.Result(ext_pycparser.FuncCallName()).visit(n.name) # FIXME
+		name = rewrite.FuncCallName(n)
 		if not name in self.macroizables - self.current_table.names:
 			return
 
-		# We only macroize basic function call f(...).
-		# We don't need to consider complex call t->f(...) or (*f)(...)
-		# thus n.name.name always works.
-		n.name.name = "macro_%s" % n.name.name # macro_f(...)
+		# Assignment to n.name.name always work because we only consider
+		# basic function call f(...).
+		n.name.name = "macro_%s" % rewrite.FuncCallName(n) # macro_f(...)
 
 		namespace = rewrite.newrandstr()
 		if self.called_in_macro:

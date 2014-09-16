@@ -56,7 +56,7 @@ class RewriteCaller:
 			var = f() => var = (f(&var), var)
 			f()       => (f(&randvar), randvar)
 			"""
-			name = ext_pycparser.Result(ext_pycparser.FuncCallName()).visit(n)
+			name = rewrite.FuncCallName(n)
 
 			# FIXME ONLY non-void funcs
 			unshadowed_names = rewrite.t.macroizables - self.cur_table.names
