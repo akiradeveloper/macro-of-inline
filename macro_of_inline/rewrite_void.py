@@ -86,10 +86,12 @@ class Main:
 	def applyPreprocess(self):
 		fn = "/tmp/%s.c" % utils.randstr(16)
 		with open(fn, "w") as fp:
-			fp.write(ext_pycparser.CGenerator().visit(self.ast))
+			txt = ext_pycparser.CGenerator().visit(self.ast)
+			fp.write(ext_pycparser.CGenerator.cleanUp(txt))
 		try:
 			self.ast = ext_pycparser.ast_of(pycparser.preprocess_file(fn, cpp_path='gcc', cpp_args=['-E']))
-		except:
+		except Exception as e:
+			sys.stderr.write(e.message)
 			sys.exit(1)
 		finally:
 			os.remove(fn)
@@ -155,8 +157,16 @@ class Main:
 		# We need to rewrite callers before that.
 		self.rewriteDefs(macroizables)
 
+		macro_funcs = []
+		for i, _ in orig_funcs:
+			macro_funcs.append((i, self.ast.ext[i])) # reversed order
+
 		for i, func in orig_funcs:
-			self.ast.ext.insert(i, func)
+			self.ast.ext[i] = func
+
+		for i, mfunc in macro_funcs:
+			self.ast.ext.insert(0, mfunc)
+		# print ext_pycparser.CGenerator().visit(self.ast)
 
 		# Apply preprocessor and normalize labels to fixed length
 		# Some compiler won't allow too-long lables.
@@ -172,6 +182,8 @@ class Main:
 
 testcase = r"""
 struct T { int x; };
+struct U { int x; };
+struct V { int x; };
 static int x = 0;
 inline void f1(void) { x = 1; }
 inline void f2(int
