@@ -42,7 +42,7 @@ class RewriteCaller:
 		def visit_Compound(self, n):
 			self.cur_table = self.cur_table.switch()
 			ext_pycparser.NodeVisitor.generic_visit(self, n)
-			self.cur_table = self.cur_table.prev_table;
+			self.cur_table = self.cur_table.revert();
 
 		def mkCommaOp(self, var, f):
 			proc = f

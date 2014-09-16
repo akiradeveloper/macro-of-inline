@@ -124,9 +124,20 @@ class SymbolTable:
 		return st
 
 	def switch(self):
+		"""
+		usage:
+		current_table = current_table.switch()
+		"""
 		new_table = self.clone()
 		new_table.prev_table = self
 		return new_table
+
+	def revert(self):
+		"""
+		usage:
+		current_table = current_table.revert()
+		"""
+		return self.prev_table
 
 	def show(self):
 		print(self.names)

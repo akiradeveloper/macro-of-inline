@@ -53,7 +53,7 @@ class RewriteCaller(compound.CompoundVisitor):
 	def visit_Compound(self, n):
 		self.current_table = self.current_table.switch()
 		ext_pycparser.NodeVisitor.generic_visit(self, n)
-		self.current_table = self.current_table.prev_table
+		self.current_table = self.current_table.revert()
 
 	def visit_Decl(self, n):
 		self.current_table.register(n.name)
