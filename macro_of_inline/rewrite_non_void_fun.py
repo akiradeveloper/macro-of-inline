@@ -25,6 +25,11 @@ class Main(ext_pycparser.FuncDef):
 
 	def addRetval(self):
 		funtype = self.func.decl.type
+
+		newname = "void_%s" % self.func.decl.name
+		self.func.decl.name = newname
+		ext_pycparser.RewriteTypeDecl(newname).visit(funtype.type)
+
 		rettype = copy.deepcopy(funtype.type)
 		ext_pycparser.RewriteTypeDecl("retval").visit(rettype)
 		newarg = c_ast.Decl("retval", [], [], [], c_ast.PtrDecl([], rettype), None, None)
@@ -109,4 +114,5 @@ if __name__ == "__main__":
 	fun = ext_pycparser.ast_of(test_fun2).ext[0]
 	fun.show()
 	ast = Main(fun).run().returnAST()
+	fun.show()
 	print ext_pycparser.CGenerator().visit(ast)

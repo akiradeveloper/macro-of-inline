@@ -106,9 +106,14 @@ class Main:
 		recorder.t.file_record("rewrite_all_callers", c_generator.CGenerator().visit(self.ast))
 
 	def rewriteDefs(self, macroizables):
+		void_funcs = []
 		for name in macroizables:
 			i, func = rewrite.t.all_funcs[name]
-			self.ast.ext[i] = rewrite_non_void_fun.Main(func).run().returnAST()
+			void_funcs.append((i, rewrite_non_void_fun.Main(copy.deepcopy(func)).run().returnAST()))
+		void_funcs.sort(key=lambda x: -x[0])
+		for i, vfunc in void_funcs:
+			self.ast.ext.insert(i, vfunc)
+		# TODO insert prototypes
 		recorder.t.file_record("rewrite_func_defines", c_generator.CGenerator().visit(self.ast))
 
 	def run(self):
