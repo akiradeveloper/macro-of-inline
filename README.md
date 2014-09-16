@@ -33,9 +33,9 @@ $ macro-of-inline foo/bar/hoge.c --with-cpp --record
 Type '-h' for help:
 
 ```
-usage: macro-of-inline [-h] [-v] [-o OUTFILE] [-I PATHS [PATHS ...]]
-                       [--with-cpp [{--,gcc}]] [--record [DIR]]
-                       [--macroize-static-funs]
+usage: macro-of-inline [-h] [-v] [-o OUTFILE] [--with-cpp [{--,gcc}]]
+                       [-X OPTIONS [OPTIONS ...]] [--record [DIR]]
+                       [-I PATHS [PATHS ...]] [--macroize-static-funs]
                        INFILE
 
 C Preprocessor to translate inline functions to equivalent macros
@@ -48,7 +48,6 @@ optional arguments:
   -h, --help            show this help message and exit
   -v, --version         show program's version number and exit
   -o OUTFILE            output (default:-)
-  -I PATHS [PATHS ...]  add paths to search
   --with-cpp [{--,gcc}]
                         without this flag, the input needs to be explicitly
                         preprocessed. but with this flag, the input file will
@@ -56,9 +55,13 @@ optional arguments:
                         that, the default mode works tricky thus it's not
                         always work. it depends on how tedious the input file
                         is. gcc mode is experimental and only for testing
+  -X OPTIONS [OPTIONS ...], --cpp-args OPTIONS [OPTIONS ...]
+                        [--with-cpp] extra options to preprocessor (e.g.
+                        _Ipath _DHOGE)
   --record [DIR]        record the tracks of code translation. specify a
                         directory if you don't want to use the default
                         directory (default:record-macro-of-inline)
+  -I PATHS [PATHS ...]  [deprecated][--with-cpp] add paths to search
   --macroize-static-funs
                         [deprecated] static functions, no matter they are with
                         inline specifier, are to be macroized
