@@ -7,6 +7,14 @@ import ext_pycparser
 import pycparser
 import recorder
 
+def f(x):
+		l = list(x)
+		i = 0
+		while (l[i] == '_'):
+			l[i] = '-'
+			i += 1
+		return ''.join(l)
+
 def cpp(filename):
 	"""
 	File -> Text
@@ -14,7 +22,9 @@ def cpp(filename):
 	# TODO Use pkg_resources or something that fits more.
 	p = os.path.join(os.path.dirname(__file__), 'fake_libc_include')
 	cpp_args = ['-U__GNUC__', r'-I%s' % p]
-	cpp_args.extend([r'-I%s' % path for path in cfg.t.additional_search_paths])
+
+	cpp_args.extend([r'%s' % f(option) for option in cfg.t.extra_options])
+	cpp_args.extend([r'-I%s' % path for path in cfg.t.additional_search_paths]) # FIXME purge
 
 	# The raw output of mcpp can contain _Pragma() lines that can't be parsed by pycparser.
 	# Now we remove these lines however, can't suppose this adhoc patch will work for any cases.
