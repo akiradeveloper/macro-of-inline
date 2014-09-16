@@ -77,9 +77,9 @@ optional arguments:
   the output won't sandwitch `#include "mylib.h"` with the define/undef.
 
 ```c
-#define DEBUG_LIB
+/* NG: Don't do this. MYLIB_SWITCH_A will be purged */
+#define MYLIB_SWITCH_A
 #include "mylib.h"
-#undef DEBUG_LIB
 ```
 
 - GCC-extensions are ignored ([--with-cpp] input file will be preprocessed with -U\_\_GNUC\_\_). This is a limitation of pycparser.
