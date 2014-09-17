@@ -19,6 +19,24 @@ def mkDecl(func, newname):
 	ext_pycparser.RewriteTypeDecl(newname).visit(decl)
 	return c_ast.Decl(newname, [], [], [], decl, None, None)
 
+class SymbolTableMixin:
+	def __init__(self, func, macroizables):
+		self.current_table = compound.SymbolTable()
+		self.macroizables = macroizables
+		self.current_table.register_args(func)
+
+	def canMacroize(self, name):
+		return name in self.macroizables - self.current_table.names
+
+	def register(self, decl):
+		self.current_table.register(decl.name)
+
+	def switch(self):
+		self.current_table = self.current_table.switch()
+
+	def revert(self):
+		self.current_table = self.current_table.revert()
+
 class RewriteCaller:
 	"""
 	Rewrite all functions
@@ -86,24 +104,22 @@ class RewriteCaller:
 
 			ext_pycparser.NodeVisitor.generic_visit(self, n)
 
-	class AssignRetVal(ext_pycparser.NodeVisitor):
+
+	class AssignRetVal(ext_pycparser.NodeVisitor, SymbolTableMixin):
 		"""
 		f() -> T t; t = f();
 		(void) f() -> T t; t = f();
 		return f() -> T t; t = f(); return t;
 		"""
 		def __init__(self, func, macroizables):
-			self.macroizables = macroizables
-			self.current_table = compound.SymbolTable()
-
-		def canMacroize(self, name):
-			return name in self.macroizables - self.current_table.names
+			SymbolTableMixin.__init__(self, func, macroizables)
 
 		def visit_Compound(self, n):
 			if not n.block_items:
 				return
 
-			self.current_table = self.current_table.switch()
+			self.switch()
+
 			insert_list = []
 
 			def onFuncCall(call):
@@ -118,7 +134,7 @@ class RewriteCaller:
 
 			for i, item in enumerate(n.block_items):
 				if isinstance(item, c_ast.Decl):
-					self.current_table.register(item.name)
+					self.register(item)
 				elif isinstance(item, c_ast.FuncCall):
 					onFuncCall(item)
 				elif isinstance(item, c_ast.Cast):
@@ -146,7 +162,7 @@ class RewriteCaller:
 			for i, m in insert_list:
 				n.block_items.insert(i, m)
 
-			self.current_table = self.current_table.revert()
+			self.revert()
 
 	class PopNested(ext_pycparser.NodeVisitor):
 		"""
