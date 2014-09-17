@@ -164,39 +164,39 @@ class RewriteCaller:
 
 			self.revert()
 
-	class PopNested(ext_pycparser.NodeVisitor):
+	class PopNested(ext_pycparser.NodeVisitor, SymbolTableMixin):
 		"""
 		r = f(g()) -> U u; u = g(); r = f(u);
 		"""
 		def __init__(self, func, macroizables):
-			self.current_table = compound.SymbolTable()
+			SymbolTableMixin.__init__(self, func, macroizables)
 			self.result = True # FIXME
 
 		def visit_Compound(self, n):
-			self.current_table = self.current_table.switch()
+			self.switch()
 			ext_pycparser.NodeVisitor.generic_visit(self, n)
-			self.current_table = self.current_table.revert()
+			self.revert()
 
 		def visit_Decl(self, n):
-			self.current_table.register(n.name)
+			self.register(n)
 
 		def visit_Assignment(self, n):
 			pass
 
-	class ToVoid(ext_pycparser.NodeVisitor):
+	class ToVoid(ext_pycparser.NodeVisitor, SymbolTableMixin):
 		"""
 		r = f(...) -> f(&r, ...)
 		"""
 		def __init__(self, func, macroizables):
-			self.current_table = compound.SymbolTable()
+			SymbolTableMixin.__init__(self, func, macroizables)
 
 		def visit_Compound(self, n):
-			self.current_table = self.current_table.switch()
+			self.switch()
 			ext_pycparser.NodeVisitor.generic_visit(self, n)
-			self.current_table = self.current_table.revert()
+			self.revert()
 
 		def visit_Decl(self, n):
-			self.current_table.register(n.name)
+			self.register(n)
 
 		def visit_Assignment(self, n):
 			pass
