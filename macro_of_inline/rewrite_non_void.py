@@ -193,6 +193,7 @@ class RewriteCaller:
 				name = rewrite.FuncCallName(call)
 				if not self.canMacroize(name):
 					continue
+				call.name.name = "void_%s" % name
 				_, func = rewrite.t.all_funcs[name]
 				if not call.args:
 					call.args = c_ast.ExprList([])
