@@ -87,13 +87,37 @@ class RewriteCaller:
 		def __init__(self, func, macroizables):
 			self.current_table = compound.SymbolTable()
 
-		def visit_Compound(self, n):
-			self.current_table = self.current_table.switch()
-			ext_pycparser.NodeVisitor.generic_visit(self, n)
-			self.current_table = self.current_table.revert()
+		def canMacroize(self, name):
+			return name in self.macroizables - self.current_table.names
 
-		def visit_Decl(self, n):
-			self.current_table.register(n.name)
+		def visit_Compound(self, n):
+			if not n.block_items:
+				return
+
+			self.current_table = self.current_table.switch()
+
+			for i, item in enumerate(n.block_items):
+				if isinstance(item, c_ast.Decl):
+					self.current_table.register(item.name)
+				elif isinstance(item, c_ast.FuncCall):
+					pass
+				elif isinstance(item, c_ast.Cast):
+					pass
+				elif isinstance(item, c_ast.Return):
+					if not isinstance(item, c_ast.FuncCall):
+						return
+					if not self.canMacroize(rewrite.FuncCallName(item)):
+						return
+					randvar = rewrite.newrandstr()
+					item.expr = c_ast.ID(randvar)
+
+			ext_pycparser.NodeVisitor.generic_visit(self, n)
+
+			insert_list.sort(key=lambda x: -x[0])
+			for i, n in insert_list:
+				n.block_items.insert(i, n)
+
+			self.current_table = self.current_table.revert()
 
 	class PopNested(ext_pycparser.NodeVisitor):
 		"""
@@ -161,14 +185,14 @@ class Main:
 		self.ast = ast
 
 	def rewriteCallers(self, macroizables):
-		for i, func in rewrite.t.all_funcs.values():
+		for i, func in rewrite.t.all_funcs.values(): # FIXME
 			self.ast.ext[i] = RewriteCaller(func, macroizables).run().returnAST()
 		recorder.t.file_record("rewrite_all_callers", c_generator.CGenerator().visit(self.ast))
 
 	def rewriteDefs(self, macroizables):
 		void_funcs = []
 		for name in macroizables:
-			i, func = rewrite.t.all_funcs[name]
+			i, func = rewrite.t.all_funcs[name] # FIXME
 			void_funcs.append((i, rewrite_non_void_fun.Main(copy.deepcopy(func)).run().returnAST()))
 		void_funcs.sort(key=lambda x: -x[0]) # reverse order
 		for i, vfunc in void_funcs:
@@ -181,7 +205,7 @@ class Main:
 	def run(self):
 		macroizables = []
 		for name in rewrite.t.macroizables:
-			i, func = rewrite.t.all_funcs[name]
+			i, func = rewrite.t.all_funcs[name] # FIXME
 			if not ext_pycparser.FuncDef(func).returnVoid():
 				macroizables.append(name)
 

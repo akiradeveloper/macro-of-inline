@@ -115,14 +115,14 @@ class Main:
 		self.NormalizeLabels().visit(self.ast)
 
 	def rewriteCallers(self, macroizables):
-		for (_, func) in rewrite.t.all_funcs.values():
+		for (_, func) in rewrite.t.all_funcs.values(): # FIXME
 			RewriteCaller(func, macroizables).visit(func)
 		recorder.t.file_record("rewrite_func_call", ext_pycparser.CGenerator().visit(self.ast))
 
 	def rewriteDefs(self, macroizables):
 		runners = []
 		for name in macroizables:
-			i, func = rewrite.t.all_funcs[name]
+			i, func = rewrite.t.all_funcs[name] # FIXME
 			runner = rewrite_void_fun.Main(func)
 			runners.append((i, runner))
 
@@ -139,7 +139,7 @@ class Main:
 		macroizables = set()
 
 		for name in rewrite.t.macroizables:
-			_, func = rewrite.t.all_funcs[name]
+			_, func = rewrite.t.all_funcs[name] # FIXME
 			if ext_pycparser.FuncDef(func).returnVoid():
 				macroizables.add(name)
 
@@ -147,7 +147,7 @@ class Main:
 		# corresponding functions and their callers are transformed.
 		orig_funcs = []
 		for name in macroizables:
-			i, func = rewrite.t.all_funcs[name]
+			i, func = rewrite.t.all_funcs[name] # FIXME
 			orig_funcs.append((i, copy.deepcopy(func)))
 		orig_funcs.sort(key=lambda x: -x[0]) # reversed order by lineno
 

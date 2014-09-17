@@ -69,6 +69,7 @@ class Context:
 
 		compound.Brace().visit(self.ast) # The statements always be surrounded by { and }
 
+		# FIXME I see no reason we need this misleading member. Don't use. Purge
 		for i, n in enumerate(ast.ext):
 			if isinstance(n, c_ast.FuncDef):
 				self.all_funcs[FuncDef(n).name()] = (i, n)
