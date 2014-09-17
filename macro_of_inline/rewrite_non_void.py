@@ -135,7 +135,8 @@ class RewriteCaller:
 			for i, item in enumerate(n.block_items):
 				if isinstance(item, c_ast.Decl):
 					self.register(item)
-				elif isinstance(item, c_ast.FuncCall):
+
+				if isinstance(item, c_ast.FuncCall):
 					onFuncCall(item)
 				elif isinstance(item, c_ast.Cast):
 					if not isinstance(item.expr, c_ast.FuncCall):
@@ -170,18 +171,45 @@ class RewriteCaller:
 		"""
 		def __init__(self, func, macroizables):
 			SymbolTableMixin.__init__(self, func, macroizables)
-			self.result = True # FIXME
+			self.result = False # found
 
 		def visit_Compound(self, n):
+			if self.result:
+				return
+
+			if not n.block_items:
+				return
+
 			self.switch()
+
+			for i, item in enumerate(n.block_items):
+				if isinstance(item, c_ast.Decl):
+					self.register(item)
+
+				if not isinstance(item, c_ast.Assignment):
+					continue
+
+				call = item.rvalue
+				if not isinstance(call, c_ast.FuncCall):
+					continue
+				if not self.canMacroize(rewrite.FuncCallName(call)):
+					continue
+
+				self.nestedCall = True
+				ext_pycparser.NodeVisitor.generic_visit(self, call)
+				self.nestedCall = False
+
 			ext_pycparser.NodeVisitor.generic_visit(self, n)
 			self.revert()
 
-		def visit_Decl(self, n):
-			self.register(n)
-
-		def visit_Assignment(self, n):
-			pass
+		def visit_FuncCall(self, n):
+			if not self.nestedCall:
+				return
+			self.current_parent.show()
+			print "**%s" % self.current_name
+			randvar = rewrite.newrandstr()
+			ext_pycparser.NodeVisitor.rewrite(self.current_parent, self.current_name, c_ast.ID(randvar))
+			self.result = True
 
 	class ToVoid(ext_pycparser.NodeVisitor, SymbolTableMixin):
 		"""
@@ -205,7 +233,7 @@ class RewriteCaller:
 		self.AssignRetVal(self.func, self.macroizables).visit(self.func)
 		self.phase_no += 1
 
-		while not ext_pycparser.Result(self.PopNested(self.func, self.macroizables)).visit(self.func):
+		while ext_pycparser.Result(self.PopNested(self.func, self.macroizables)).visit(self.func):
 			pass
 		self.phase_no += 1
 
