@@ -193,8 +193,6 @@ class RewriteCaller:
 				call = item.rvalue
 				if not isinstance(call, c_ast.FuncCall):
 					continue
-				# if not self.canMacroize(rewrite.FuncCallName(call)):
-				# 	continue
 
 				self.nestedCall = [i]
 				ext_pycparser.NodeVisitor.generic_visit(self, call)
@@ -232,7 +230,27 @@ class RewriteCaller:
 			SymbolTableMixin.__init__(self, func, macroizables)
 
 		def visit_Compound(self, n):
+			if not n.block_items:
+				return
+
 			self.switch()
+			for i, item in enumerate(n.block_items):
+				if isinstance(item, c_ast.Decl):
+					self.register(item)
+				if not isinstance(item, c_ast.Assignment):
+					continue
+				call = item.rvalue
+				if not isinstance(call, c_ast.FuncCall):
+					continue
+				name = rewrite.FuncCallName(call)
+				if not self.canMacroize(name):
+					continue
+				_, func = rewrite.t.all_funcs[name]
+				if not call.args:
+					call.args = c_ast.ExprList([])
+				call.args.exprs.insert(0, c_ast.UnaryOp("&", item.lvalue))
+				n.block_items[i] = call
+
 			ext_pycparser.NodeVisitor.generic_visit(self, n)
 			self.revert()
 
