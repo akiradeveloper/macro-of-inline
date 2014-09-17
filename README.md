@@ -34,8 +34,7 @@ Type '-h' for help:
 
 ```
 usage: macro-of-inline [-h] [-v] [-o OUTFILE] [--with-cpp [{--,gcc}]]
-                       [-X OPTIONS [OPTIONS ...]] [--record [DIR]]
-                       [--macroize-static-funs]
+                       [-X OPTIONS [OPTIONS ...]] [-O MASK] [--record [DIR]]
                        INFILE
 
 C Preprocessor to translate inline functions to equivalent macros
@@ -58,12 +57,11 @@ optional arguments:
   -X OPTIONS [OPTIONS ...], --cpp-args OPTIONS [OPTIONS ...]
                         [--with-cpp] extra options to preprocessor (e.g.
                         _Ipath _DHOGE)
+  -O MASK               mask to determine the chance of inlining. static
+                        inline = 1, inline = 2, static = 4 (default:7)
   --record [DIR]        record the tracks of code translation. specify a
                         directory if you don't want to use the default
                         directory (default:record-macro-of-inline)
-  --macroize-static-funs
-                        [deprecated] static functions, no matter they are with
-                        inline specifier, are to be macroized
 ```
 
 ## Requirements
