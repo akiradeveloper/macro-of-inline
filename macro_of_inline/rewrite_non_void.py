@@ -172,6 +172,7 @@ class RewriteCaller:
 		def __init__(self, func, macroizables):
 			SymbolTableMixin.__init__(self, func, macroizables)
 			self.result = False # found
+			self.insert_list = [] # [(i, AST)]
 
 		def visit_Compound(self, n):
 			if self.result:
@@ -192,12 +193,15 @@ class RewriteCaller:
 				call = item.rvalue
 				if not isinstance(call, c_ast.FuncCall):
 					continue
-				if not self.canMacroize(rewrite.FuncCallName(call)):
-					continue
+				# if not self.canMacroize(rewrite.FuncCallName(call)):
+				# 	continue
 
-				self.nestedCall = True
+				self.nestedCall = [i]
 				ext_pycparser.NodeVisitor.generic_visit(self, call)
-				self.nestedCall = False
+				self.nestedCall = None
+
+			for i, m in sorted(self.insert_list, key=lambda x: -x[0]):
+				n.block_items.insert(i, m)
 
 			ext_pycparser.NodeVisitor.generic_visit(self, n)
 			self.revert()
@@ -205,10 +209,19 @@ class RewriteCaller:
 		def visit_FuncCall(self, n):
 			if not self.nestedCall:
 				return
-			self.current_parent.show()
-			print "**%s" % self.current_name
+
+			name = rewrite.FuncCallName(n)
+			if not self.canMacroize(name):
+				ext_pycparser.NodeVisitor.generic_visit(self, n)
+				return
+
 			randvar = rewrite.newrandstr()
+
 			ext_pycparser.NodeVisitor.rewrite(self.current_parent, self.current_name, c_ast.ID(randvar))
+			_, func = rewrite.t.all_funcs[name]
+			self.insert_list.append((0, mkDecl(func, randvar)))
+			self.insert_list.append((self.nestedCall[0], c_ast.Assignment("=", c_ast.ID(randvar), n)))
+
 			self.result = True
 
 	class ToVoid(ext_pycparser.NodeVisitor, SymbolTableMixin):
@@ -314,7 +327,8 @@ int foo(int x, ...)
 	if (0)
 		return h1(h1(0));
 	do {
-		int hR = h1(h1(h2(h3(0))));
+		int hR;
+		hR = h1(h1(h2(h3(0))));
 		f();
 		if (0)
 			return h1(h1(0));
