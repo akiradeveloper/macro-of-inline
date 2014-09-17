@@ -121,6 +121,7 @@ class RewriteCaller:
 			SymbolTableMixin.__init__(self, func, macroizables)
 			self.result = False # found
 			self.insert_list = [] # [(i, AST)]
+			self.nestedCall = []
 
 		def visit_Compound(self, n):
 			if self.result:
@@ -144,7 +145,7 @@ class RewriteCaller:
 
 				self.nestedCall = [i]
 				ext_pycparser.NodeVisitor.generic_visit(self, call)
-				self.nestedCall = None
+				self.nestedCall = []
 
 			for i, m in sorted(self.insert_list, key=lambda x: -x[0]):
 				n.block_items.insert(i, m)
@@ -202,12 +203,6 @@ class RewriteCaller:
 
 			ext_pycparser.NodeVisitor.generic_visit(self, n)
 			self.revert()
-
-		def visit_Decl(self, n):
-			self.register(n)
-
-		def visit_Assignment(self, n):
-			pass
 
 	def run(self):
 		self.AssignRetVal(self.func, self.macroizables).visit(self.func)
@@ -307,6 +302,30 @@ int foo(int x, ...)
 }
 
 int bar() {}
+
+inline int ffff(void)
+{
+  if (0)
+  {
+    fff();
+    fff();
+    return 1;
+  }
+  else
+  {
+    {
+      if (0)
+      {
+        return 0;
+      }
+      else
+      {
+        return 0;
+      }
+
+    }
+  }
+}
 """
 
 if __name__ == "__main__":
