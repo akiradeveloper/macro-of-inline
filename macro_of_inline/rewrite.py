@@ -16,16 +16,26 @@ class FuncDef(ext_pycparser.FuncDef):
 	def __init__(self, func):
 		ext_pycparser.FuncDef.__init__(self, func)
 
+	def inline_bit(self):
+		if self.isStatic() and self.isInline():
+			return 1
+		if self.isInline():
+			return 2
+		if self.isStatic():
+			return 4
+		return 0
+
 	def doMacroize(self):
 		if self.hasVarArgs():
 			return False
 		# Recursive call can't be macroized in any safe ways.
 		if self.isRecursive():
 			return False
-		r = self.isInline()
-		if cfg.t.macroize_static_funs:
-			r |= self.isStatic()
-		return r
+
+		if self.inline_bit() & cfg.t.inline_mask:
+			return True
+
+		return False
 
 def FuncCallName(n):
 	"""

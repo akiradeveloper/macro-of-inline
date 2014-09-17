@@ -6,5 +6,6 @@ class Env:
 		self.cpp_mode = None
 		self.extra_options = []
 		self.macroize_static_funs = False
+		self.inline_mask = 7
 
 t = Env()
