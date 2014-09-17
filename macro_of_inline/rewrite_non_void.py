@@ -11,6 +11,14 @@ import rewrite_void_fun
 import rewrite_non_void_fun
 import utils
 
+def mkDecl(func, newname):
+	"""
+	int f(...) {}, name -> int name;
+	"""
+	decl = copy.deepcopy(func.decl.type.type)
+	ext_pycparser.RewriteTypeDecl(newname).visit(decl)
+	return c_ast.Decl(newname, [], [], [], decl, None, None)
+
 class RewriteCaller:
 	"""
 	Rewrite all functions
@@ -91,6 +99,7 @@ class RewriteCaller:
 		def canMacroize(self, name):
 			return name in self.macroizables - self.current_table.names
 
+
 		def visit_Compound(self, n):
 			if not n.block_items:
 				return
@@ -102,14 +111,21 @@ class RewriteCaller:
 				if isinstance(item, c_ast.Decl):
 					self.current_table.register(item.name)
 				elif isinstance(item, c_ast.FuncCall):
-					pass
+					if not self.canMacroize(rewrite.FuncCallName(item)):
+						continue
+
+					randvar = rewrite.newrandstr()
+					n.block_items[i] = c_ast.Assignment("=", c_ast.ID(randvar), item)
+
+					_, func = rewrite.t.all_funcs[rewrite.FuncCallName(item)]
+					insert_list.append((0, mkDecl(func, randvar)))
 				elif isinstance(item, c_ast.Cast):
 					pass
 				elif isinstance(item, c_ast.Return):
 					if not isinstance(item.expr, c_ast.FuncCall):
-						return
+						continue
 					if not self.canMacroize(rewrite.FuncCallName(item.expr)):
-						return
+						continue
 
 					name = rewrite.FuncCallName(item.expr)
 
@@ -118,9 +134,7 @@ class RewriteCaller:
 					item.expr = c_ast.ID(randvar)
 
 					_, func = rewrite.t.all_funcs[name]
-					decl = copy.deepcopy(func.decl.type.type)
-					ext_pycparser.RewriteTypeDecl(randvar).visit(decl)
-					insert_list.append((0, c_ast.Decl(randvar, [], [], [], decl, None, None)))
+					insert_list.append((0, mkDecl(func, randvar)))
 
 			ext_pycparser.NodeVisitor.generic_visit(self, n)
 
@@ -243,6 +257,7 @@ int foo(int x, ...)
 {
 	int x = f();
 	r(f());
+	f();
 	x += 1;
 	int y = g(z, g(y, (*f)()));
 	int z = 2;
@@ -251,6 +266,7 @@ int foo(int x, ...)
 		return h1(h1(0));
 	do {
 		int hR = h1(h1(h2(h3(0))));
+		f();
 		if (0)
 			return h1(h1(0));
 	} while(0);
