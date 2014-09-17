@@ -84,7 +84,7 @@ def newrandstr():
 	return utils.newrandstr(t.rand_names, utils.N)
 BLACKNAME = newrandstr()
 
-MACROIZE_NON_VOID = False
+MACROIZE_NON_VOID = True
 class AST:
 	"""
 	AST -> AST
