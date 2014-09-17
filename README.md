@@ -75,13 +75,14 @@ optional arguments:
 
 - [--with-cpp] Dealing with directives: `#define` directives will be purged after preprocessed and will not be recovered as the output of this program
   while `#include` directives will be. Make sure the input code doesn't use `#define` in tricky manner. All `#include`
-  directives will be collected at the beginning with the order preserved. The following code will not probably be translated badly because
+  directives will be prepended at the beginning with the order preserved. The following code will probably be badly translated because
   the output won't sandwitch `#include "mylib.h"` with the define/undef.
 
 ```c
 /* NG: Don't do this. MYLIB_SWITCH_A will be purged */
 #define MYLIB_SWITCH_A
 #include "mylib.h"
+#undef MYLIB_SWITCH_A
 ```
 
 - GCC-extensions are ignored ([--with-cpp] input file will be preprocessed with -U\_\_GNUC\_\_). This is a limitation of pycparser.
