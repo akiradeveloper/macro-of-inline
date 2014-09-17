@@ -78,10 +78,70 @@ class RewriteCaller:
 
 			ext_pycparser.NodeVisitor.generic_visit(self, n)
 
+	class AssignRetVal(ext_pycparser.NodeVisitor):
+		"""
+		f() -> T t; t = f();
+		(void) f() -> T t; t = f();
+		return f() -> T t; t = f(); return t;
+		"""
+		def __init__(self, func, macroizables):
+			self.current_table = compound.SymbolTable()
+
+		def visit_Compound(self, n):
+			self.current_table = self.current_table.switch()
+			ext_pycparser.NodeVisitor.generic_visit(self, n)
+			self.current_table = self.current_table.revert()
+
+		def visit_Decl(self, n):
+			self.current_table.register(n.name)
+
+	class PopNested(ext_pycparser.NodeVisitor):
+		"""
+		r = f(g()) -> U u; u = g(); r = f(u);
+		"""
+		def __init__(self, func, macroizables):
+			self.current_table = compound.SymbolTable()
+			self.result = True # FIXME
+
+		def visit_Compound(self, n):
+			self.current_table = self.current_table.switch()
+			ext_pycparser.NodeVisitor.generic_visit(self, n)
+			self.current_table = self.current_table.revert()
+
+		def visit_Decl(self, n):
+			self.current_table.register(n.name)
+
+		def visit_Assignment(self, n):
+			pass
+
+	class ToVoid(ext_pycparser.NodeVisitor):
+		"""
+		r = f(...) -> f(&r, ...)
+		"""
+		def __init__(self, func, macroizables):
+			self.current_table = compound.SymbolTable()
+
+		def visit_Compound(self, n):
+			self.current_table = self.current_table.switch()
+			ext_pycparser.NodeVisitor.generic_visit(self, n)
+			self.current_table = self.current_table.revert()
+
+		def visit_Decl(self, n):
+			self.current_table.register(n.name)
+
+		def visit_Assignment(self, n):
+			pass
+
 	def run(self):
+		self.AssignRetVal(self.func, self.macroizables).visit(self.func)
 		self.phase_no += 1
-		self.RewriteToCommaOp(self.func).visit(self.func)
-		self.show()
+
+		while not ext_pycparser.Result(self.PopNested(self.func, self.macroizables)).visit(self.func):
+			pass
+		self.phase_no += 1
+
+		self.ToVoid(self.func, self.macroizables).visit(self.func)
+		self.phase_no += 1
 
 		return self
 
