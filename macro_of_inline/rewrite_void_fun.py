@@ -411,6 +411,13 @@ testcase_10 = r"""
 inline void fun(int x, ...) {}
 """
 
+testcase_11 = r"""
+inline void fun() {
+	int attr;
+	t->attr->x = 0;
+}
+"""
+
 testcase_void1 = r"""
 inline void fun(void)
 {
@@ -447,7 +454,7 @@ def test(testcase):
 	rewrite_fun.renameFuncBody().show().renameArgs().show().insertDeclLines().show().insertGotoLabel().show().rewriteReturnToGoto().show().appendNamespaceToLabels().show().macroize().show().returnAST().show()
 
 if __name__ == "__main__":
-	test(testcase)
+	# test(testcase)
 	# test(testcase_2)
 	# test(testcase_3)
 	# test(testcase_4)
@@ -457,6 +464,7 @@ if __name__ == "__main__":
 	# test(testcase_8)
 	# test(testcase_9)
 	# test(testcase_10)
+	test(testcase_11)
 	# test(testcase_void1)
 	# test(testcase_void2)
 	# test(testcase_void3)
