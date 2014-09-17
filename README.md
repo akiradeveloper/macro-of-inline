@@ -35,7 +35,7 @@ Type '-h' for help:
 ```
 usage: macro-of-inline [-h] [-v] [-o OUTFILE] [--with-cpp [{--,gcc}]]
                        [-X OPTIONS [OPTIONS ...]] [--record [DIR]]
-                       [-I PATHS [PATHS ...]] [--macroize-static-funs]
+                       [--macroize-static-funs]
                        INFILE
 
 C Preprocessor to translate inline functions to equivalent macros
@@ -61,7 +61,6 @@ optional arguments:
   --record [DIR]        record the tracks of code translation. specify a
                         directory if you don't want to use the default
                         directory (default:record-macro-of-inline)
-  -I PATHS [PATHS ...]  [deprecated][--with-cpp] add paths to search
   --macroize-static-funs
                         [deprecated] static functions, no matter they are with
                         inline specifier, are to be macroized
