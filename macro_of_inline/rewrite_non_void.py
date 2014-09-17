@@ -99,7 +99,6 @@ class RewriteCaller:
 		def canMacroize(self, name):
 			return name in self.macroizables - self.current_table.names
 
-
 		def visit_Compound(self, n):
 			if not n.block_items:
 				return
@@ -107,20 +106,25 @@ class RewriteCaller:
 			self.current_table = self.current_table.switch()
 			insert_list = []
 
+			def onFuncCall(call):
+				if not self.canMacroize(rewrite.FuncCallName(call)):
+					return
+
+				randvar = rewrite.newrandstr()
+				n.block_items[i] = c_ast.Assignment("=", c_ast.ID(randvar), call)
+
+				_, func = rewrite.t.all_funcs[rewrite.FuncCallName(call)]
+				insert_list.append((0, mkDecl(func, randvar)))
+
 			for i, item in enumerate(n.block_items):
 				if isinstance(item, c_ast.Decl):
 					self.current_table.register(item.name)
 				elif isinstance(item, c_ast.FuncCall):
-					if not self.canMacroize(rewrite.FuncCallName(item)):
-						continue
-
-					randvar = rewrite.newrandstr()
-					n.block_items[i] = c_ast.Assignment("=", c_ast.ID(randvar), item)
-
-					_, func = rewrite.t.all_funcs[rewrite.FuncCallName(item)]
-					insert_list.append((0, mkDecl(func, randvar)))
+					onFuncCall(item)
 				elif isinstance(item, c_ast.Cast):
-					pass
+					if not isinstance(item.expr, c_ast.FuncCall):
+						continue
+					onFuncCall(item.expr)
 				elif isinstance(item, c_ast.Return):
 					if not isinstance(item.expr, c_ast.FuncCall):
 						continue
@@ -258,6 +262,7 @@ int foo(int x, ...)
 	int x = f();
 	r(f());
 	f();
+	(void)f();
 	x += 1;
 	int y = g(z, g(y, (*f)()));
 	int z = 2;
