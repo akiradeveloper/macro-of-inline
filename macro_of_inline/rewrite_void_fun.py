@@ -81,11 +81,10 @@ class RenameVars(ext_pycparser.NodeVisitor):
 		"field" node will never be renamed.
 		"""
 		self.visit(node.name)
-		ext_pycparser.NodeVisitor.generic_visit(self, node.name)
 
 	def visit_Cast(self, node):
 		self.visit(node.expr)
-		ext_pycparser.NodeVisitor.generic_visit(self, node.expr)
+		ext_pycparser.NodeVisitor.generic_visit(self, node.expr) # FIXME I don't think we need this line
 
 	def visit_ID(self, node):
 		alias = self.cur_table.alias(node.name)
@@ -447,7 +446,7 @@ inline void fun(void (*f)(void))
 def test(testcase):
 	parser = c_parser.CParser()
 	ast = parser.parse(testcase)
-	# ast.show()
+	ast.show()
 	rewrite_fun = Main(ast.ext[0])
 	# print rewrite_fun.returnVoid()
 	# print rewrite_fun.voidArgs()
