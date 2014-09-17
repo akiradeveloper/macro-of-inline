@@ -185,14 +185,14 @@ class Main:
 		self.ast = ast
 
 	def rewriteCallers(self, macroizables):
-		for i, func in rewrite.t.all_funcs.values(): # FIXME
+		for i, func in rewrite.t.all_funcs.values():
 			self.ast.ext[i] = RewriteCaller(func, macroizables).run().returnAST()
 		recorder.t.file_record("rewrite_all_callers", c_generator.CGenerator().visit(self.ast))
 
 	def rewriteDefs(self, macroizables):
 		void_funcs = []
 		for name in macroizables:
-			i, func = rewrite.t.all_funcs[name] # FIXME
+			i, func = rewrite.t.all_funcs[name]
 			void_funcs.append((i, rewrite_non_void_fun.Main(copy.deepcopy(func)).run().returnAST()))
 		void_funcs.sort(key=lambda x: -x[0]) # reverse order
 		for i, vfunc in void_funcs:
@@ -205,7 +205,7 @@ class Main:
 	def run(self):
 		macroizables = []
 		for name in rewrite.t.macroizables:
-			i, func = rewrite.t.all_funcs[name] # FIXME
+			i, func = rewrite.t.all_funcs[name]
 			if not ext_pycparser.FuncDef(func).returnVoid():
 				macroizables.append(name)
 

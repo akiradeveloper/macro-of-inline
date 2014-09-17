@@ -49,27 +49,21 @@ class Context:
 	def __init__(self):
 		self.rand_names = set()
 
-		self.ast = None
 		self.all_funcs = {} # name -> (i, ast)
 		self.macroizables = set() # set(name)
 
-	def blacklist(self):
+	def blacklist(self, ast):
 		f = lambda n: FuncCallName(n)
-		all_calls = utils.countMap(map(f, ext_pycparser.Result(ext_pycparser.AllFuncCall()).visit(self.ast)))
+		all_calls = utils.countMap(map(f, ext_pycparser.Result(ext_pycparser.AllFuncCall()).visit(ast)))
 		# print all_calls
-		incomp_calls = utils.countMap(map(f, ext_pycparser.Result(compound.AllFuncCall()).visit(self.ast)))
+		incomp_calls = utils.countMap(map(f, ext_pycparser.Result(compound.AllFuncCall()).visit(ast)))
 		# print incomp_calls
 		utils.countMapDiff(all_calls, incomp_calls)
 		return set([k for k, v in all_calls.items() if v > 0])
 
 	def setupAST(self, ast):
-		if self.ast == ast:
-			return
-		self.ast = ast
+		compound.Brace().visit(ast) # The statements always be surrounded by { and }
 
-		compound.Brace().visit(self.ast) # The statements always be surrounded by { and }
-
-		# FIXME I see no reason we need this misleading member. Don't use. Purge
 		for i, n in enumerate(ast.ext):
 			if isinstance(n, c_ast.FuncDef):
 				self.all_funcs[FuncDef(n).name()] = (i, n)
@@ -80,7 +74,7 @@ class Context:
 			self.macroizables.add(name)
 
 		# Exclude functions calls inside expressions
-		blacklist = self.blacklist()
+		blacklist = self.blacklist(ast)
 		# print blacklist
 		self.macroizables -= blacklist
 

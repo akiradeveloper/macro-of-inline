@@ -40,6 +40,15 @@ def countMapDiff(m1, m2):
 	for k in m2.keys():
 		m1[k] -= m2[k]
 
+# FIXME DRY
+def f(x):
+		l = list(x)
+		i = 0
+		while (l[i] == '_'):
+			l[i] = '-'
+			i += 1
+		return ''.join(l)
+
 def cpp(filename):
 	"""
 	File -> Text
@@ -48,7 +57,7 @@ def cpp(filename):
 	definition in header file. We redefine this for parsing.
 	"""
 	cpp_args = ['-U__GNUC__', '-E', '-D__builtin_va_list=void *']
-	cpp_args.extend([r'-I%s' % path for path in cfg.t.additional_search_paths])
+	cpp_args.extend([r'%s' % f(option) for option in cfg.t.extra_options])
 	return pycparser.preprocess_file(filename, cpp_path='gcc', cpp_args=cpp_args)
 
 if __name__ == "__main__":
