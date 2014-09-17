@@ -85,6 +85,7 @@ class RewriteCaller:
 		return f() -> T t; t = f(); return t;
 		"""
 		def __init__(self, func, macroizables):
+			self.macroizables = macroizables
 			self.current_table = compound.SymbolTable()
 
 		def canMacroize(self, name):
@@ -95,6 +96,7 @@ class RewriteCaller:
 				return
 
 			self.current_table = self.current_table.switch()
+			insert_list = []
 
 			for i, item in enumerate(n.block_items):
 				if isinstance(item, c_ast.Decl):
@@ -104,18 +106,27 @@ class RewriteCaller:
 				elif isinstance(item, c_ast.Cast):
 					pass
 				elif isinstance(item, c_ast.Return):
-					if not isinstance(item, c_ast.FuncCall):
+					if not isinstance(item.expr, c_ast.FuncCall):
 						return
-					if not self.canMacroize(rewrite.FuncCallName(item)):
+					if not self.canMacroize(rewrite.FuncCallName(item.expr)):
 						return
+
+					name = rewrite.FuncCallName(item.expr)
+
 					randvar = rewrite.newrandstr()
+					insert_list.append((i, c_ast.Assignment("=", c_ast.ID(randvar), item.expr)))
 					item.expr = c_ast.ID(randvar)
+
+					_, func = rewrite.t.all_funcs[name]
+					decl = copy.deepcopy(func.decl.type.type)
+					ext_pycparser.RewriteTypeDecl(randvar).visit(decl)
+					insert_list.append((0, c_ast.Decl(randvar, [], [], [], decl, None, None)))
 
 			ext_pycparser.NodeVisitor.generic_visit(self, n)
 
 			insert_list.sort(key=lambda x: -x[0])
-			for i, n in insert_list:
-				n.block_items.insert(i, n)
+			for i, m in insert_list:
+				n.block_items.insert(i, m)
 
 			self.current_table = self.current_table.revert()
 
@@ -203,11 +214,11 @@ class Main:
 		recorder.t.file_record("rewrite_func_defines", c_generator.CGenerator().visit(self.ast))
 
 	def run(self):
-		macroizables = []
+		macroizables = set()
 		for name in rewrite.t.macroizables:
 			i, func = rewrite.t.all_funcs[name]
 			if not ext_pycparser.FuncDef(func).returnVoid():
-				macroizables.append(name)
+				macroizables.add(name)
 
 		self.rewriteCallers(macroizables)
 
