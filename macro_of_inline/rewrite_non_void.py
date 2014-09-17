@@ -242,12 +242,22 @@ class Main:
 		for name in macroizables:
 			i, func = rewrite.t.all_funcs[name]
 			void_funcs.append((i, rewrite_non_void_fun.Main(copy.deepcopy(func)).run().returnAST()))
+
 		void_funcs.sort(key=lambda x: -x[0]) # reverse order
 		for i, vfunc in void_funcs:
 			self.ast.ext.insert(i, vfunc)
+
+		declLocs = {}
+		for i, n in enumerate(self.ast.ext):
+			if isinstance(n, c_ast.Decl):
+				declLocs[n.name] = i
+
 		for _, vfunc in void_funcs:
+			name = vfunc.decl.name[5:]
+			if not name in declLocs:
+				continue
 			decl = copy.deepcopy(vfunc.decl)
-			self.ast.ext.insert(0, decl) # FIXME Type not declared
+			self.ast.ext.insert(declLocs[name], decl)
 		recorder.t.file_record("rewrite_func_defines", c_generator.CGenerator().visit(self.ast))
 
 	def run(self):
@@ -269,6 +279,8 @@ class Main:
 test_file = r"""
 inline int f(void) { return 0; }
 inline int g(int a, int b) { return a * b; }
+
+inline int h3(int x);
 
 inline int h1(int x) { return x; }
 int h2(int x) { return x; }
@@ -301,6 +313,8 @@ int foo(int x, ...)
 	return g(x, f());
 }
 
+int foo(int x, ...);
+
 int bar() {}
 
 inline int ffff(void)
@@ -330,7 +344,7 @@ inline int ffff(void)
 
 if __name__ == "__main__":
 	ast = ext_pycparser.ast_of(test_file)
-	# ast.show()
+	ast.show()
 	ast = Main(ast).run().returnAST()
 	# ast.show()
 	print ext_pycparser.CGenerator().visit(ast)
