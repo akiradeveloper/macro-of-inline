@@ -247,7 +247,7 @@ class Main:
 			self.ast.ext.insert(i, vfunc)
 		for _, vfunc in void_funcs:
 			decl = copy.deepcopy(vfunc.decl)
-			self.ast.ext.insert(0, decl)
+			self.ast.ext.insert(0, decl) # FIXME Type not declared
 		recorder.t.file_record("rewrite_func_defines", c_generator.CGenerator().visit(self.ast))
 
 	def run(self):
