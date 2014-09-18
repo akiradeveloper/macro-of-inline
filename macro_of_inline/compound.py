@@ -142,6 +142,24 @@ class SymbolTable:
 	def show(self):
 		print(self.names)
 
+class SymbolTableMixin:
+	def __init__(self, func, macroizables):
+		self.current_table = SymbolTable()
+		self.macroizables = macroizables
+		self.current_table.register_args(func)
+
+	def canMacroize(self, name):
+		return name in self.macroizables - self.current_table.names
+
+	def register(self, decl):
+		self.current_table.register(decl.name)
+
+	def switch(self):
+		self.current_table = self.current_table.switch()
+
+	def revert(self):
+		self.current_table = self.current_table.revert()
+
 class AllFuncCall(CompoundVisitor):
 	def __init__(self):
 		self.result = []
