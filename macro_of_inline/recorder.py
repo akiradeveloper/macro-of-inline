@@ -1,8 +1,8 @@
-import os
-import shutil
-
 import cfg
 import ext_pycparser
+import os
+import shutil
+import time
 
 class Recorder:
 
@@ -13,11 +13,19 @@ class Recorder:
 		self.current_fun_name = None
 		self.fun_rewrite_level = {}
 
+		self.last_time = time.clock()
+
 		if os.path.exists(self.rec_dir):
 			shutil.rmtree(self.rec_dir)
 
 		if not os.path.exists(self.rec_dir):
 			os.makedirs(self.rec_dir)
+
+	def elapsedTime(self):
+		cur = time.clock()
+		ela = cur - self.last_time
+		self.last_time = cur
+		return str(ela * 1000) + "[ms]"
 
 	def file_record(self, title, contents):
 		if not cfg.t.record_enabled:
@@ -26,7 +34,7 @@ class Recorder:
 		self.file_rewrite_level += 1
 		fn = "%s/%d-%s.txt" % (self.rec_dir, self.file_rewrite_level, title)
 		f = open(fn, "w")
-		f.write(contents)
+		f.write("%s\n%s" % (self.elapsedTime(), contents))
 		f.close()
 
 	def fun_record(self, title, ast):
@@ -49,7 +57,7 @@ class Recorder:
 		fn = "%s/%d-%s.txt" % (dn, self.fun_rewrite_level[fun_name], title)
 
 		f = open(fn, "w")
-		f.write(ext_pycparser.CGenerator().visit(ast))
+		f.write("%s\n%s" % (self.elapsedTime(), ext_pycparser.CGenerator().visit(ast)))
 		f.close()
 
 t = Recorder()
