@@ -250,7 +250,8 @@ class Main:
 		declLocs = {}
 		for i, n in enumerate(self.ast.ext):
 			if isinstance(n, c_ast.Decl):
-				declLocs[n.name] = i
+				if not n.name in declLocs: # may have the same declarations at multiple locations
+					declLocs[n.name] = i
 
 		for _, vfunc in void_funcs:
 			name = vfunc.decl.name[5:]
@@ -280,6 +281,7 @@ test_file = r"""
 inline int f(void) { return 0; }
 inline int g(int a, int b) { return a * b; }
 
+inline int h3(int x);
 inline int h3(int x);
 
 inline int h1(int x) { return x; }
@@ -313,6 +315,7 @@ int foo(int x, ...)
 	return g(x, f());
 }
 
+inline int h3(int x);
 int foo(int x, ...);
 
 int bar() {}
