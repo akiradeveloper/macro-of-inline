@@ -65,7 +65,7 @@ optional arguments:
                         inline = 1, inline = 2, static = 4 (default:7)
   --record [DIR]        record the tracks of code translation. specify a
                         directory if you don't want to use the default
-                        directory (default:record-macro-of-inline)
+                        directory (default:/tmp/record-macro-of-inline)
 ```
 
 ## Requirements
@@ -73,7 +73,7 @@ optional arguments:
 - gcc: `gcc -E` preprocessing is used internally.
 - [--with-cpp] mcpp: A well-designed preprocessor.
 
-## Limitation
+## Limitations
 
 ### [--with-cpp] Directives
 

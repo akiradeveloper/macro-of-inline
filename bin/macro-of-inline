@@ -11,7 +11,7 @@ parser.add_argument("-o", metavar="OUTFILE", help="output (default:-)", default=
 parser.add_argument("--with-cpp", nargs='?', help="without this flag, the input needs to be explicitly preprocessed. but with this flag, the input file will be implicitly preprocessed within this program. note that, the default mode works tricky thus it's not always work. it depends on how tedious the input file is. gcc mode is experimental and only for testing", const='--', choices=['--', 'gcc'])
 parser.add_argument("-X", "--cpp-args", nargs="+", metavar="OPTION", help="[--with-cpp] extra options to preprocessor (e.g. _Ipath _DHOGE)", default=[])
 parser.add_argument("-O", metavar="MASK", help="mask to determine the chance of inlining. static inline = 1, inline = 2, static = 4 (default:7)", default=7)
-parser.add_argument("--record", nargs='?', metavar="DIR", help="record the tracks of code translation. specify a directory if you don't want to use the default directory (default:record-macro-of-inline)", const="record-macro-of-inline")
+parser.add_argument("--record", nargs='?', metavar="DIR", help="record the tracks of code translation. specify a directory if you don't want to use the default directory (default:/tmp/record-macro-of-inline)", const="/tmp/record-macro-of-inline")
 
 args = parser.parse_args()
 
