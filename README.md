@@ -1,15 +1,19 @@
 # macro-of-inline
 
-C-Preprocessor to translate inline functions to an equivalent macros.
+C-Preprocessor to translate functions to equivalent macros.
 
 ## Motivation
 
-Though function inlining is really an effective optimization in many cases
-but some immature compiler doesn't support it.
-They are often out of maintainance and there is no hope
-of the functionality available.
+ANSI-C doesn't have inilne specifier in its definition.
+So, strict ANSI C compiler doesn't inline functions although
+function inlining is often really an effective performance optimization.
 
-This **macro-of-inline** provides function inlining as preprocessing.
+People suffer from this restriction
+have been rewriting functions in macros **by hand** at the cost of
+losing readability.
+
+This **macro-of-inline** provides fully-automated
+code-level function inlining as preprocessing.
 
 ## Usage
 
@@ -34,10 +38,10 @@ Type '-h' for help:
 
 ```
 usage: macro-of-inline [-h] [-v] [-o OUTFILE] [--with-cpp [{--,gcc}]]
-                       [-X OPTIONS [OPTIONS ...]] [-O MASK] [--record [DIR]]
+                       [-X OPTION [OPTION ...]] [-O MASK] [--record [DIR]]
                        INFILE
 
-C Preprocessor to translate inline functions to equivalent macros
+C Preprocessor to translate functions to equivalent macros
 
 positional arguments:
   INFILE                input file. by default, already preprocessed (see
@@ -54,7 +58,7 @@ optional arguments:
                         that, the default mode works tricky thus it's not
                         always work. it depends on how tedious the input file
                         is. gcc mode is experimental and only for testing
-  -X OPTIONS [OPTIONS ...], --cpp-args OPTIONS [OPTIONS ...]
+  -X OPTION [OPTION ...], --cpp-args OPTION [OPTION ...]
                         [--with-cpp] extra options to preprocessor (e.g.
                         _Ipath _DHOGE)
   -O MASK               mask to determine the chance of inlining. static
@@ -67,23 +71,36 @@ optional arguments:
 ## Requirements
 
 - gcc: `gcc -E` preprocessing is used internally.
-- [--with-cpp] mcpp: A well-designed preprocessor. In Debian, `aptitude install mcpp`
+- [--with-cpp] mcpp: A well-designed preprocessor.
 
 ## Limitation
 
-- [--with-cpp] Dealing with directives: `#define` directives will be purged after preprocessed and will not be recovered as the output of this program
-  while `#include` directives will be. Make sure the input code doesn't use `#define` in tricky manner. All `#include`
-  directives will be prepended at the beginning with the order preserved. The following code will probably be badly translated because
-  the output won't sandwitch `#include "mylib.h"` with the define/undef.
+### [--with-cpp] Directives
+
+`#define` directives will be purged after processing
+while `#include` directives won't be. Make sure the input code doesn't use `#define` in unexpected manner.
+The following code will probably be badly translated.
+How this program preserves `#include` directives can be seen in cppwrap.py.
 
 ```c
-/* NG: Don't do this. MYLIB_SWITCH_A will be purged */
-#define MYLIB_SWITCH_A
-#include "mylib.h"
-#undef MYLIB_SWITCH_A
+/* NG: Don't do this. MYLIB_SWITCH_A will be purged after processing */
+#define MYLIB_SWITCH_A /* Will be purged */
+#include "mylib.h" /* Only this line will remain */
+#undef MYLIB_SWITCH_A /* Will be purged */
 ```
 
-- GCC-extensions are ignored ([--with-cpp] input file will be preprocessed with -U\_\_GNUC\_\_). This is a limitation of pycparser.
+The following code is preferred in style
+
+```c
+/* OK */
+#include "a.h"
+#include "b.h"
+...
+```
+
+### Others
+
+- Pycparser can't parser codes with GCC-extensions. Make sure that the input code doesn't have one after preprocessing.
 
 ## Installation
 
