@@ -16,7 +16,7 @@ import utils
 
 NORMALIZE_LABEL = True
 
-class RewriteCaller(compound.CompoundVisitor):
+class RewriteCaller(compound.CompoundVisitor, compound.SymbolTableMixin):
 	"""
 	Add random namespace macro calls.
 
@@ -44,28 +44,27 @@ class RewriteCaller(compound.CompoundVisitor):
 	f(rand_label_2); // won't conflict
 	"""
 	def __init__(self, func, macroizables):
-		self.current_table = compound.SymbolTable()
-		self.current_table.register_args(func)
-		self.macroizables = macroizables
+		compound.SymbolTableMixin.__init__(self, func, macroizables)
 		name = ext_pycparser.FuncDef(func).name()
 		self.called_in_macro = True if name in macroizables else False
 
 	def visit_Compound(self, n):
-		self.current_table = self.current_table.switch()
+		self.switch()
 		ext_pycparser.NodeVisitor.generic_visit(self, n)
-		self.current_table = self.current_table.revert()
+		self.revert()
 
 	def visit_Decl(self, n):
-		self.current_table.register(n.name)
+		self.register(n)
 
 	def visit_FuncCall(self, n):
 		name = rewrite.FuncCallName(n)
-		if not name in self.macroizables - self.current_table.names:
+
+		if not self.canMacroize(name):
 			return
 
 		# Assignment to n.name.name always work because we only consider
 		# basic function call f(...).
-		n.name.name = "macro_%s" % rewrite.FuncCallName(n) # macro_f(...)
+		n.name.name = "macro_%s" % name # macro_f(...)
 
 		namespace = rewrite.newrandstr()
 		if self.called_in_macro:
@@ -75,10 +74,6 @@ class RewriteCaller(compound.CompoundVisitor):
 			n.args = c_ast.ExprList([])
 		n.args.exprs.insert(0, c_ast.ID(namespace)) # macro_f(namespace, ...)
 
-class PurgeInlines(ext_pycparser.NodeVisitor):
-	def visit_Decl(self, n):
-		if "inline" in n.funcspec:
-			n.funcspec.remove("inline")
 
 class Main:
 	"""
@@ -140,6 +135,11 @@ class Main:
 			self.ast.ext[i] = runner.returnAST()
 		recorder.t.file_record("macroize", ext_pycparser.CGenerator().visit(self.ast))
 
+	class PurgeInlines(ext_pycparser.NodeVisitor):
+		def visit_Decl(self, n):
+			if "inline" in n.funcspec:
+				n.funcspec.remove("inline")
+
 	def run(self):
 		macroizables = set()
 
@@ -169,7 +169,7 @@ class Main:
 		for i, func in orig_funcs:
 			self.ast.ext[i] = func
 
-		PurgeInlines().visit(self.ast)
+		self.PurgeInlines().visit(self.ast)
 
 		for i, mfunc in macro_funcs:
 			self.ast.ext.insert(0, mfunc)
