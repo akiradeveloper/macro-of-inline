@@ -116,6 +116,20 @@ class QueryDeclType(NodeVisitor):
 	def visit_ArrayDecl(self, node):
 		self.result = ArgType.array
 
+class FuncType:
+	def __init__(self, decl):
+		"""
+		@decl FuncDef.decl (:: Decl)
+		"""
+		self.decl = decl
+
+	# -ansi doesn't allow inline specifier
+	def isInline(self):
+		return "inline" in self.decl.funcspec
+
+	def isStatic(self):
+		return "static" in self.decl.storage
+
 class FuncDef:
 	def __init__(self, func):
 		self.func = func
@@ -184,12 +198,11 @@ class FuncDef:
 	def isRecursive(self):
 		return False
 
-	# -ansi doesn't allow inline specifier
 	def isInline(self):
-		return "inline" in self.func.decl.funcspec
+		return FuncType(self.func.decl).isInline()
 
 	def isStatic(self):
-		return "static" in self.func.decl.storage
+		return FuncType(self.func.decl).isStatic()
 
 class ParamDecl:
 	"""
