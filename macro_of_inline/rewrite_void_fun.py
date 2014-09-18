@@ -91,9 +91,6 @@ class RenameVars(ext_pycparser.NodeVisitor):
 		utils.P("ID: %s -> %s" % (node.name, alias))
 		node.name = alias
 
-	# def visit_FuncCall(self, n):
-	# 	self.visit(n.args)
-
 	def switchTable(self):
 		utils.P("switch table")
 		self.cur_table.show()
@@ -417,7 +414,7 @@ testcase_11 = r"""
 inline void fun() {
 	struct T *t;
 	int attr;
-	(attr(t))->attr->x = t;
+	((struct T*)f(t))->attr->x = g(t);
 }
 """
 
