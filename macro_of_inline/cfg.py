@@ -6,6 +6,5 @@ class Env:
 		self.cpp_mode = None
 		self.extra_options = []
 		self.inline_mask = 7
-		self.purge_inlines = False
 
 t = Env()

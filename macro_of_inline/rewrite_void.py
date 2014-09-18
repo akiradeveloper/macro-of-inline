@@ -75,15 +75,10 @@ class RewriteCaller(compound.CompoundVisitor):
 			n.args = c_ast.ExprList([])
 		n.args.exprs.insert(0, c_ast.ID(namespace)) # macro_f(namespace, ...)
 
-def purge_inlines(ast):
-	l = []
-	for i, n in enumerate(ast.ext):
-		if isinstance(n, c_ast.FuncDef) and ext_pycparser.FuncDef(n).isInline():
-			l.append(i)
-		if isinstance(n, c_ast.Decl) and isinstance(n.type, c_ast.FuncDecl) and ext_pycparser.FuncType(n).isInline():
-			l.append(i)
-	for i in reversed(sorted(l)):
-		del ast.ext[i]
+class PurgeInlines(ext_pycparser.NodeVisitor):
+	def visit_Decl(self, n):
+		if "inline" in n.funcspec:
+			n.funcspec.remove("inline")
 
 class Main:
 	"""
@@ -174,8 +169,7 @@ class Main:
 		for i, func in orig_funcs:
 			self.ast.ext[i] = func
 
-		if cfg.t.purge_inlines:
-			purge_inlines(self.ast)
+		PurgeInlines().visit(self.ast)
 
 		for i, mfunc in macro_funcs:
 			self.ast.ext.insert(0, mfunc)
@@ -198,7 +192,7 @@ struct T { int x; };
 struct U { int x; };
 struct V { int x; };
 static int x = 0;
-inline void f4();
+static inline void f4();
 inline void f1(void) { x = 1; f4(); }
 inline void f2(int
   x) {   }
@@ -211,7 +205,7 @@ int f3(void)
   return x;
 }
 
-inline void f4() { return; }
+static inline void f4() { return; }
 inline void f5() { f4(); f4(); }
 int f6() { f5(); f5(); }
 
