@@ -6,6 +6,7 @@ import compound
 import cppwrap
 import ext_pycparser
 import os
+import pycparser
 import recorder
 import rewrite_void
 import rewrite_non_void
@@ -129,14 +130,14 @@ class Wrap:
 		fake_include = cfg.t.fake_include
 
 		if fake_include:
-			fn = "tmp/%s.c" % utils.randstr(16)
+			fn = "/tmp/%s.c" % utils.randstr(16)
 			with open(fn, "w") as fp:
 				fp.write(self.txt)
 
-
 			# TODO Ugly. Roan pattern
 			try:
-				cpped_txt = pycparser.preprocess_file(fn, cpp_path='gcc', cpp_args=[r'-include %s' % fake_include, '-E'])
+				cpp_args = ['-E', r'-include%s' % fake_include]
+				cpped_txt = pycparser.preprocess_file(fn, cpp_path='gcc', cpp_args=cpp_args)
 			except Exception as e:
 				sys.stderr.write(e.message)
 				sys.exit(1)
