@@ -126,9 +126,33 @@ class Wrap:
 		self.txt = txt
 
 	def run(self):
-		cpped_txt = self.txt # TODO
-		ast = ext_pycparser.ast_of(cpped_txt)
-		return AST(ast).run().returnAST()
+		fake_include = cfg.t.fake_include
+
+		if fake_include:
+			fn = "tmp/%s.c" % utils.randstr(16)
+			with open(fn, "w") as fp:
+				fp.write(self.txt)
+
+
+			# TODO Ugly. Roan pattern
+			try:
+				cpped_txt = pycparser.preprocess_file(fn, cpp_path='gcc', cpp_args=[r'-include %s' % fake_include, '-E'])
+			except Exception as e:
+				sys.stderr.write(e.message)
+				sys.exit(1)
+			finally:
+				os.remove(fn)
+		else:
+			cpped_txt = self.txt
+
+		ast = AST(ext_pycparser.ast_of(cpped_txt)).run().returnAST()
+
+		if fake_include:
+			with open(fake_include) as fp:
+				ast_b = ext_pycparser.ast_of(fp.read())
+			cppwrap.ast_delete(ast, ast_b)
+
+		return ast
 
 class Main:
 	"""
