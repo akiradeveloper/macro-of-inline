@@ -160,7 +160,7 @@ class SymbolTableMixin:
 	def revert(self):
 		self.current_table = self.current_table.revert()
 
-class AllFuncCall(NodeVisitor):
+class AllFuncCalls(NodeVisitor):
 	def __init__(self):
 		self.result = []
 

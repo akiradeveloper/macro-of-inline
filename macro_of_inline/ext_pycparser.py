@@ -224,7 +224,7 @@ class ParamDecl:
 class FileAST:
 	pass
 
-class AllFuncCall(NodeVisitor):
+class AllFuncCalls(NodeVisitor):
 	def __init__(self):
 		self.result = []
 

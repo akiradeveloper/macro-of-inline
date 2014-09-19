@@ -65,9 +65,9 @@ class Context:
 
 	def blacklist(self, ast):
 		f = lambda n: FuncCallName(n)
-		all_calls = utils.countMap(map(f, ext_pycparser.Result(ext_pycparser.AllFuncCall()).visit(ast)))
+		all_calls = utils.countMap(map(f, ext_pycparser.Result(ext_pycparser.AllFuncCalls()).visit(ast)))
 		# print all_calls
-		incomp_calls = utils.countMap(map(f, ext_pycparser.Result(compound.AllFuncCall()).visit(ast)))
+		incomp_calls = utils.countMap(map(f, ext_pycparser.Result(compound.AllFuncCalls()).visit(ast)))
 		# print incomp_calls
 		utils.countMapDiff(all_calls, incomp_calls)
 		return set([k for k, v in all_calls.items() if v > 0])
