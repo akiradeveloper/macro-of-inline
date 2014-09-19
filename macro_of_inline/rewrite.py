@@ -118,6 +118,18 @@ class AST:
 	def returnAST(self):
 		return self.ast
 
+class Wrap:
+	"""
+	Text -> AST
+	"""
+	def __init__(self, txt):
+		self.txt = txt
+
+	def run(self):
+		cpped_txt = self.txt # TODO
+		ast = ext_pycparser.ast_of(cpped_txt)
+		return AST(ast).run().returnAST()
+
 class Main:
 	"""
 	File -> Text
@@ -126,18 +138,18 @@ class Main:
 		self.filename = filename
 
 	def run(self):
-		f = lambda ast: AST(ast).run().returnAST() # AST -> AST
+		f = lambda text: Wrap(text).run() # Text -> AST
 		if cfg.t.with_cpp:
 			if cfg.t.cpp_mode == 'gcc':
 				cpped_txt = utils.cpp(self.filename)
-				output = ext_pycparser.CGenerator().visit(f(ext_pycparser.ast_of(cpped_txt)))
+				output = ext_pycparser.CGenerator().visit(f(cpped_txt))
 			else:
 				output = cppwrap.Apply(f).on(self.filename)
 		else:
 			with open(self.filename, "r") as fp:
 				cpped_txt = fp.read()
 			try:
-				output = ext_pycparser.CGenerator().visit(f(ext_pycparser.ast_of(cpped_txt)))
+				output = ext_pycparser.CGenerator().visit(f(cpped_txt))
 			except:
 				sys.stderr.write("[ERROR] %s failed to parse. Is this file preprocessed? Do you forget --with-cpp?\n" % self.filename)
 				sys.exit(1)
