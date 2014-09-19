@@ -269,6 +269,8 @@ inline void f8(int x)
 
 inline int f9(int x) { return x; }
 
+inline void f_rec() { f_rec(); }
+
 int main()
 {
   int x;

@@ -194,10 +194,6 @@ class FuncDef:
 				return True
 		return False
 
-	# TODO
-	def isRecursive(self):
-		return False
-
 	def isInline(self):
 		return FuncType(self.func.decl).isInline()
 

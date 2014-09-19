@@ -26,6 +26,31 @@ class FuncDef(ext_pycparser.FuncDef):
 			return 4
 		return 0
 
+	class IsRecursive(c_ast.NodeVisitor, compound.SymbolTableMixin):
+		def __init__(self, func):
+			compound.SymbolTableMixin.__init__(self, func, set())
+			self.result = False
+
+		def visit_Decl(self, n):
+			self.register(n)
+
+		def visit_Compound(self, n):
+			self.switch()
+			c_ast.NodeVisitor.generic_visit(self, n)
+			self.revert()
+
+		def visit_FuncCall(self, n):
+			if self.result:
+				return
+
+			funcName = FuncDef(self.func).name()
+			callName = FuncCallName(n)
+			if (not callName in self.currentSymbols()) and (callName == funcName):
+				self.result = True
+
+	def isRecursive(self):
+		return ext_pycparser.Result(self.IsRecursive(self.func)).visit(self.func)
+
 	def doMacroize(self):
 		if self.hasVarArgs():
 			return False

@@ -144,6 +144,7 @@ class SymbolTable:
 
 class SymbolTableMixin:
 	def __init__(self, func, macroizables):
+		self.func = func
 		self.current_table = SymbolTable()
 		self.macroizables = macroizables
 		self.current_table.register_args(func)
@@ -159,6 +160,9 @@ class SymbolTableMixin:
 
 	def revert(self):
 		self.current_table = self.current_table.revert()
+
+	def currentSymbols(self):
+		return self.current_table.names
 
 class AllFuncCalls(NodeVisitor):
 	def __init__(self):
