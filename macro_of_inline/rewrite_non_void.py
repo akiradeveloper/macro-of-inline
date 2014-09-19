@@ -35,7 +35,7 @@ class RewriteCaller:
 		self.phase_no = 0
 		self.macroizables = macroizables
 
-	class AssignRetVal(ext_pycparser.NodeVisitor, compound.SymbolTableMixin):
+	class AssignRetVal(compound.NodeVisitor, compound.SymbolTableMixin):
 		"""
 		f() -> T t; t = f();
 		(void) f() -> T t; t = f();
@@ -87,7 +87,7 @@ class RewriteCaller:
 					_, func = rewrite.t.all_funcs[name]
 					insert_list.append((0, mkDecl(func, randvar)))
 
-			ext_pycparser.NodeVisitor.generic_visit(self, n)
+			compound.NodeVisitor.generic_visit(self, n)
 
 			insert_list.sort(key=lambda x: -x[0])
 			for i, m in insert_list:
@@ -95,7 +95,7 @@ class RewriteCaller:
 
 			self.revert()
 
-	class PopNested(ext_pycparser.NodeVisitor, compound.SymbolTableMixin):
+	class PopNested(compound.NodeVisitor, compound.SymbolTableMixin):
 		"""
 		r = f(g()) -> U u; u = g(); r = f(u);
 		"""
@@ -126,13 +126,13 @@ class RewriteCaller:
 					continue
 
 				self.nestedCall = [i]
-				ext_pycparser.NodeVisitor.generic_visit(self, call)
+				compound.NodeVisitor.generic_visit(self, call)
 				self.nestedCall = []
 
 			for i, m in sorted(self.insert_list, key=lambda x: -x[0]):
 				n.block_items.insert(i, m)
 
-			ext_pycparser.NodeVisitor.generic_visit(self, n)
+			compound.NodeVisitor.generic_visit(self, n)
 			self.revert()
 
 		def visit_FuncCall(self, n):
@@ -141,7 +141,7 @@ class RewriteCaller:
 
 			name = rewrite.FuncCallName(n)
 			if not self.canMacroize(name):
-				ext_pycparser.NodeVisitor.generic_visit(self, n)
+				compound.NodeVisitor.generic_visit(self, n)
 				return
 
 			randvar = rewrite.newrandstr()
@@ -153,7 +153,7 @@ class RewriteCaller:
 
 			self.result = True
 
-	class ToVoid(ext_pycparser.NodeVisitor, compound.SymbolTableMixin):
+	class ToVoid(compound.NodeVisitor, compound.SymbolTableMixin):
 		"""
 		r = f(...) -> f(&r, ...)
 		"""
@@ -183,7 +183,7 @@ class RewriteCaller:
 				call.args.exprs.insert(0, c_ast.UnaryOp("&", item.lvalue))
 				n.block_items[i] = call
 
-			ext_pycparser.NodeVisitor.generic_visit(self, n)
+			compound.NodeVisitor.generic_visit(self, n)
 			self.revert()
 
 	def run(self):

@@ -16,7 +16,7 @@ import utils
 
 NORMALIZE_LABEL = True
 
-class RewriteCaller(compound.CompoundVisitor, compound.SymbolTableMixin):
+class RewriteCaller(compound.NodeVisitor, compound.SymbolTableMixin):
 	"""
 	Add random namespace macro calls.
 

@@ -67,7 +67,7 @@ class Brace(ext_pycparser.NodeVisitor):
 			n.stmt = comp
 		c_ast.NodeVisitor.generic_visit(self, n)
 
-class CompoundVisitor(ext_pycparser.NodeVisitor):
+class NodeVisitor(ext_pycparser.NodeVisitor):
 
 	def visit_If(self, n):
 		# print(type(n))
@@ -160,14 +160,14 @@ class SymbolTableMixin:
 	def revert(self):
 		self.current_table = self.current_table.revert()
 
-class AllFuncCall(CompoundVisitor):
+class AllFuncCall(NodeVisitor):
 	def __init__(self):
 		self.result = []
 
 	def visit_FuncCall(self, n):
 		self.result.append(n)
 
-class PrintCompound(CompoundVisitor):
+class PrintCompound(NodeVisitor):
 	"""
 	Test
 	"""
