@@ -82,6 +82,14 @@ class RenameVars(ext_pycparser.NodeVisitor):
 		"""
 		self.visit(node.name)
 
+	# FIXME
+	# If the block has declartion of struct or union which is not anonymous
+	# then the first visit is to Decl node. In there, it rewrites the members.
+	def visit_Struct(self, n):
+		pass
+	def visit_Union(self, n):
+		pass
+
 	def visit_Cast(self, node):
 		self.visit(node.expr)
 		ext_pycparser.NodeVisitor.generic_visit(self, node.expr) # FIXME I don't think we need this line
@@ -418,6 +426,33 @@ inline void fun() {
 }
 """
 
+testcase_12 = r"""
+inline void fun(void)
+{
+	int x;
+	union {
+		int x;
+		union {
+			int y;
+		} t;
+	} u;
+	u.x = 1;
+	u.t.y = 2;
+
+	struct T {
+		int x;
+	};
+	struct T t;
+	t.x = 0;
+
+	union U {
+		int x;
+	};
+	union U u2;
+	u2.x = 1;
+}
+"""
+
 testcase_void1 = r"""
 inline void fun(void)
 {
@@ -464,7 +499,8 @@ if __name__ == "__main__":
 	# test(testcase_8)
 	# test(testcase_9)
 	# test(testcase_10)
-	test(testcase_11)
+	#test(testcase_11)
+	test(testcase_12)
 	# test(testcase_void1)
 	# test(testcase_void2)
 	# test(testcase_void3)
