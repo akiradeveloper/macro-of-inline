@@ -8,7 +8,7 @@ RUBY_FAIL_LOG = "ruby-failure.log"
 
 N = 8 # TODO Asking the system ncpus
 
-RUBY_OPT = "-X _I.ext/include/x86_64-linux _I./include _I. --with-cpp=gcc"
+RUBY_OPT = "-X _I.ext/include/x86_64-linux _I./include _I. --with-cpp=gcc --fake-include=ruby_fake_include.h"
 
 desc "test with ruby source tree"
 task "ruby" do
