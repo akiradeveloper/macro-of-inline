@@ -103,7 +103,7 @@ The following code is preferred in style
 
 ### Other Limitations
 
-- Pycparser can't parser codes with GCC-extensions. Make sure that the input code doesn't have one after preprocessing.
+- Pycparser can't parse codes with GCC-extensions. Make sure that the input code doesn't have one after preprocessing.
 
 ## Installation
 

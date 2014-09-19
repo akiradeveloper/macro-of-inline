@@ -229,6 +229,9 @@ class Main:
 		for i, vfunc in void_funcs:
 			self.ast.ext.insert(i, vfunc)
 
+		# FIXME
+		# I don't see no reason why we need to insert prototypes?
+		# They will be macroized thus there won't be any references to the void functions.
 		declLocs = {}
 		for i, n in enumerate(self.ast.ext):
 			if isinstance(n, c_ast.Decl):
