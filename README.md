@@ -38,7 +38,8 @@ Type '-h' for help:
 
 ```
 usage: macro-of-inline [-h] [-v] [-o OUTFILE] [--with-cpp [{--,gcc}]]
-                       [-X OPTION [OPTION ...]] [-O MASK] [--record [DIR]]
+                       [-X OPTION [OPTION ...]] [-O MASK]
+                       [--fake-include FILE] [--record [DIR]]
                        INFILE
 
 C Preprocessor to translate functions to equivalent macros
@@ -63,6 +64,8 @@ optional arguments:
                         _Ipath _DHOGE)
   -O MASK               mask to determine the chance of inlining. static
                         inline = 1, inline = 2, static = 4 (default:7)
+  --fake-include FILE   fake include to deceive pycparser by adding fake
+                        typedefs
   --record [DIR]        record the tracks of code translation. specify a
                         directory if you don't want to use the default
                         directory (default:/tmp/record-macro-of-inline)
@@ -98,7 +101,7 @@ The following code is preferred in style
 ...
 ```
 
-### Others
+### Other Limitations
 
 - Pycparser can't parser codes with GCC-extensions. Make sure that the input code doesn't have one after preprocessing.
 
