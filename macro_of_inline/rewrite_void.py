@@ -140,6 +140,25 @@ class Main:
 			if "inline" in n.funcspec:
 				n.funcspec.remove("inline")
 
+	class AllFuncCalls(compound.NodeVisitor, compound.SymbolTableMixin):
+		def __init__(self, func, allFuncNames):
+			compound.SymbolTableMixin.__init__(self, func, allFuncNames)
+			self.result = set()
+
+		def visit_Compound(self, n):
+			self.switch()
+			compound.NodeVisitor.generic_visit(self, n)
+			self.revert()
+
+		def visit_Decl(self, n):
+			self.register(n)
+
+		def visit_FuncCall(self, n):
+			callName = rewrite.FuncCallName(n)
+			if self.canMacroize(callName):
+				self.result.add(callName)
+			compound.NodeVisitor.generic_visit(self, n)
+
 	def run(self):
 		macroizables = set()
 
@@ -175,12 +194,41 @@ class Main:
 			self.ast.ext.insert(0, mfunc)
 		# print ext_pycparser.CGenerator().visit(self.ast)
 
-		# Apply preprocessor and normalize labels to fixed length
-		# Some compiler won't allow too-long lables.
+		self.applyPreprocess() # Apply cpp is necessary for the later stages.
+
 		if NORMALIZE_LABEL:
-			self.applyPreprocess()
+			# Normalize labels to fixed length. Some compilers won't allow labels too long.
 			self.normalizeLabels()
 		recorder.t.file_record("normalize_labels", ext_pycparser.CGenerator().visit(self.ast))
+
+		# NOTE We can't sweep the old prototypes because they may be used as pointer reference
+		# FIXME Purge
+		# declLocs = {} # name -> lineno
+		# for i, n in enumerate(self.ast.ext):
+		# 	if isinstance(n, c_ast.Decl) and isinstance(n.type, c_ast.FuncDecl):
+		# 		funcName = n.name
+		# 		if not funcName in declLocs:
+		# 			declLocs[funcName] = i
+		# for i in sorted(declLocs.values(), key=lambda x: -x): # sweep all prototypes
+		# 	del self.ast.ext[i]
+
+		all_funcs = {} # name -> (i, ast)
+		for i, n in enumerate(self.ast.ext):
+			if isinstance(n, c_ast.FuncDef):
+				all_funcs[ext_pycparser.FuncDef(n).name()] = (i, n)
+
+		declLocs = {}
+		for i, n in enumerate(self.ast.ext):
+			if isinstance(n, c_ast.FuncDef):
+				callNames = ext_pycparser.Result(self.AllFuncCalls(n, set(all_funcs.keys()))).visit(n)
+				for callName in callNames:
+					if not callName in declLocs:
+						declLocs[callName] = i
+
+		for callName, i in sorted(declLocs.items(), key=lambda x: -x[1]):
+			func = all_funcs[callName][1]
+			decl = copy.deepcopy(func.decl)
+			self.ast.ext.insert(i, decl)
 
 		return self
 
