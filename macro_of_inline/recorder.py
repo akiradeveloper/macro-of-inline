@@ -2,6 +2,7 @@ import cfg
 import ext_pycparser
 import os
 import shutil
+import StringIO
 import time
 
 class Recorder:
@@ -34,7 +35,7 @@ class Recorder:
 		self.file_rewrite_level += 1
 		fn = "%s/%d-%s.txt" % (self.rec_dir, self.file_rewrite_level, title)
 		f = open(fn, "w")
-		f.write("%s\n%s" % (self.elapsedTime(), contents))
+		f.write("%s\n\n%s" % (self.elapsedTime(), contents))
 		f.close()
 
 	def fun_record(self, title, ast):
@@ -56,8 +57,12 @@ class Recorder:
 		self.fun_rewrite_level[fun_name] += 1
 		fn = "%s/%d-%s.txt" % (dn, self.fun_rewrite_level[fun_name], title)
 
+		ast_txt = StringIO.StringIO()
+		ast.show(buf=ast_txt)
+		ast_txt = ast_txt.getvalue()
+
 		f = open(fn, "w")
-		f.write("%s\n%s" % (self.elapsedTime(), ext_pycparser.CGenerator().visit(ast)))
+		f.write("%s\n\n%s%s" % (self.elapsedTime(), ext_pycparser.CGenerator().visit(ast), ast_txt))
 		f.close()
 
 t = Recorder()
