@@ -59,7 +59,7 @@ def cpp(filename):
 	__builtin_va_list is really built-in and we can't access the
 	definition in header file. We redefine this for parsing.
 	"""
-	cpp_args = ['-U__GNUC__', '-E', '-D__builtin_va_list=void *']
+	cpp_args = ['-E', '-U__GNUC__']
 	cpp_args.extend([r'%s' % to_option(option) for option in cfg.t.extra_options])
 	return pycparser.preprocess_file(filename, cpp_path='gcc', cpp_args=cpp_args)
 

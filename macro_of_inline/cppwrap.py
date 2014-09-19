@@ -154,8 +154,7 @@ class Apply:
 		# print(included_codes)
 		# print(included_headers)	
 
-		ast_a = ext_pycparser.ast_of(cpped_txt)
-		ast_a = self.f(ast_a)
+		ast_a = self.f(cpped_txt)
 
 		ast_b = ext_pycparser.ast_of('\n'.join(included_codes))
 		ast_delete(ast_a, ast_b)

@@ -8,6 +8,8 @@ RUBY_FAIL_LOG = "ruby-failure.log"
 
 N = 8 # TODO Asking the system ncpus
 
+RUBY_OPT = "-X _I.ext/include/x86_64-linux _I./include _I. --with-cpp=gcc --fake-include=../ruby_fake_include.h"
+
 desc "test with ruby source tree"
 task "ruby" do
   dir = "ruby-src"
@@ -30,7 +32,7 @@ task "ruby" do
     Parallel.each(cfiles, in_threads: N) do |f|
       # Looked at the Makefile
       tmpfile = "/tmp/#{SecureRandom.random_number(10**32)}.c"
-      `macro-of-inline #{f} -o #{tmpfile} -I .ext/include/x86_64-linux ./include . --macroize-static-funs --with-cpp=gcc`
+      `macro-of-inline #{f} #{RUBY_OPT} -o #{tmpfile}`
       e = $?.exitstatus
       if e == 0
         success_list << f
@@ -75,7 +77,7 @@ Dir.chdir(RUBY_DIR) do
     task "ruby#{testno}" do
       Dir.chdir(RUBY_DIR) do
         sh "cp #{File.join("../#{RUBY_SRC}", f)} #{f}"
-        sh "macro-of-inline #{f} -I .ext/include/x86_64-linux ./include . --macroize-static-funs --record ../record-macro-of-inline --with-cpp=gcc"
+        sh "macro-of-inline #{f} #{RUBY_OPT} --record ../record-macro-of-inline"
       end
     end
   end
