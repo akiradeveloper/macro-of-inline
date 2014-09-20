@@ -110,8 +110,15 @@ inline int f(int x, ...) {
 } 
 """
 
+test_fun3 = r"""
+inline int f(const void *ptr)
+{
+	return ptr ? 0 : 1;
+}
+"""
+
 if __name__ == "__main__":
-	fun = ext_pycparser.ast_of(test_fun2).ext[0]
+	fun = ext_pycparser.ast_of(test_fun3).ext[0]
 	fun.show()
 	ast = Main(fun).run().returnAST()
 	fun.show()
