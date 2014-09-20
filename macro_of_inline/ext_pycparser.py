@@ -141,7 +141,13 @@ class FuncDef:
 		def __init__(self):
 			self.result = False
 
-		def visit_ParamList(self, n):
+		def visit_ParamList(self, n): # FIXME No case to much I think. PtrDecl?
+			pass
+
+		def visit_PtrDecl(self, n):
+			"""
+			Avoid void *f()
+			"""
 			pass
 
 		def visit_TypeDecl(self, n):

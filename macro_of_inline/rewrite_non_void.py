@@ -273,6 +273,8 @@ inline int h1(int x) { return x; }
 int h2(int x) { return x; }
 inline int h3(int x) { return x; }
 
+inline void *h4(void *ptr) { return 0; }
+
 void r(int x) {}
 
 int foo(int x, ...)
