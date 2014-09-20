@@ -435,15 +435,15 @@ inline void fun(void)
 		union {
 			int y;
 		} t;
-	} u;
-	u.x = 1;
-	u.t.y = 2;
+	} *u;
+	u->x = 1;
+	u->t.y = 2;
 
 	struct T {
 		int x;
 		int y;
 		int z;
-	} t2 = { .x = u.x, u.t.y, .z = 0 };
+	} t2 = { .x = u->x, t2.x, .z = 0 };
 	struct T *t;
 	t->x = 0;
 
