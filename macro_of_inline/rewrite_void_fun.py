@@ -441,10 +441,15 @@ inline void fun(void)
 
 	struct T {
 		int x;
-	} t2 = { .x = 0 };
+		int y;
+		int z;
+	} t2 = { .x = u.x, u.t.y, .z = 0 };
 	struct T *t;
 	t->x = 0;
 
+	struct T {
+		int x;
+	};
 	union U {
 		int x;
 	};
