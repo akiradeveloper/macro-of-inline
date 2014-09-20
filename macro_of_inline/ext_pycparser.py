@@ -158,9 +158,7 @@ class FuncDef:
 
 	def returnVoid(self):
 		# void f(...)
-		f = self.ReturnVoid()
-		f.visit(self.func.decl)
-		return f.result
+		return Result(self.ReturnVoid()).visit(self.func.decl)
 
 	class VoidParam(NodeVisitor):
 		def __init__(self):
