@@ -160,6 +160,12 @@ class FuncDef:
 		def __init__(self):
 			self.result = False
 
+		def visit_PtrDecl(self, n):
+			"""
+			Avoid f(void *)
+			"""
+			pass
+
 		def visit_TypeDecl(self, n):
 			# Same as ReturnVoid
 			# We don't concern types other than IdentifierType
