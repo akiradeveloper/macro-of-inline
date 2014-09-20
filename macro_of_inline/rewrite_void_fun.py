@@ -99,6 +99,9 @@ class RenameVars(ext_pycparser.NodeVisitor):
 		utils.P("ID: %s -> %s" % (node.name, alias))
 		node.name = alias
 
+	def visit_NamedInitializer(self, n):
+		self.visit(n.expr)
+
 	def switchTable(self):
 		utils.P("switch table")
 		self.cur_table.show()
