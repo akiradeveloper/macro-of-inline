@@ -441,9 +441,9 @@ inline void fun(void)
 
 	struct T {
 		int x;
-	};
-	struct T t;
-	t.x = 0;
+	} t2 = { .x = 0 };
+	struct T *t;
+	t->x = 0;
 
 	union U {
 		int x;
