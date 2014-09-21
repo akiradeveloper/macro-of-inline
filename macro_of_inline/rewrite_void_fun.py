@@ -294,6 +294,7 @@ class Main(ext_pycparser.FuncDef):
 
 		def visit_Label(self, n):
 			n.name = "namespace ## %s" % n.name
+			ext_pycparser.NodeVisitor.generic_visit(self, n) # Label has its own statements as its decendant.
 
 	def appendNamespaceToLabels(self):
 		self.phase_no += 1
@@ -501,7 +502,7 @@ if __name__ == "__main__":
 	# test(testcase)
 	# test(testcase_2)
 	# test(testcase_3)
-	# test(testcase_4)
+	test(testcase_4)
 	# test(testcase_5)
 	# test(testcase_6)
 	# test(testcase_7)
@@ -509,7 +510,7 @@ if __name__ == "__main__":
 	# test(testcase_9)
 	# test(testcase_10)
 	#test(testcase_11)
-	test(testcase_12)
+	# test(testcase_12)
 	# test(testcase_void1)
 	# test(testcase_void2)
 	# test(testcase_void3)
