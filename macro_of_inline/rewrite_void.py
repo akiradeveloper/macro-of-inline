@@ -110,6 +110,7 @@ class Main:
 
 		def visit_Label(self, n):
 			self.do_visit(n)
+			ext_pycparser.NodeVisitor.generic_visit(self, n)
 
 	def normalizeLabels(self):
 		self.NormalizeLabels().visit(self.ast)
