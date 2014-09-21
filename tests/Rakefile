@@ -6,7 +6,7 @@ RUBY_SRC = "ruby-src"
 RUBY_DIR = "ruby-src-macroize"
 RUBY_FAIL_LOG = "ruby-failure.log"
 
-N = 8 # TODO Asking the system ncpus
+N = Parallel.processor_count
 
 RUBY_OPT = "-X _DRUBY_EXPORT _I.ext/include/x86_64-linux _I./include _I. --with-cpp=gcc --fake-include=../ruby_fake_include.h"
 
