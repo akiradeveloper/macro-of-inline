@@ -66,6 +66,9 @@ class RenameVars(ext_pycparser.NodeVisitor):
 		self.revertTable()
 
 	def visit_Decl(self, node):
+		if isinstance(node.type, c_ast.Struct) or isinstance(node.type, c_ast.Union):
+			return
+
 		self.cur_table.register(node.name)
 		alias = self.cur_table.alias(node.name)
 		utils.P("Decl: %s -> %s" % (node.name, alias))
@@ -82,11 +85,9 @@ class RenameVars(ext_pycparser.NodeVisitor):
 		"""
 		self.visit(node.name)
 
-	# FIXME
-	# If the block has declartion of struct or union which is not anonymous
-	# then the first visit is to Decl node. In there, it rewrites the members.
 	def visit_Struct(self, n):
 		pass
+
 	def visit_Union(self, n):
 		pass
 
@@ -98,6 +99,9 @@ class RenameVars(ext_pycparser.NodeVisitor):
 		alias = self.cur_table.alias(node.name)
 		utils.P("ID: %s -> %s" % (node.name, alias))
 		node.name = alias
+
+	def visit_NamedInitializer(self, n):
+		self.visit(n.expr)
 
 	def switchTable(self):
 		utils.P("switch table")
