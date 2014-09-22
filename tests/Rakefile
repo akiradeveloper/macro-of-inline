@@ -17,7 +17,7 @@ end
 
 def define_grub(name, &block)
   task "do_#{name}_grub" do
-    block.call(name) unless File.directory? paths(name)[:dir]
+    block.call(name) unless File.directory? paths(name)[:src]
     sh "rm -rf #{paths(name)[:dir]}" if File.directory? paths(name)[:dir]
     sh "cp -r #{paths(name)[:src]} #{paths(name)[:dir]}"
   end
@@ -53,7 +53,7 @@ def define_tests_for(name, cpp_opts)
       fail_mark = (failures.include? f) ? "[fail]" : ""
       testno += 1
       desc "#{fail_mark} (#{f})"
-      task "ruby#{testno}" do
+      task "#{name}#{testno}" do
         Dir.chdir(paths(name)[:dir]) do
           sh "cp #{File.join("../#{paths(name)[:src]}", f)} #{f}"
           sh "macro-of-inline #{f} #{cpp_opts} --record ../record-macro-of-inline"
@@ -111,7 +111,7 @@ end
 
 RUBY_CPP_OPTS = "-X _DRUBY_EXPORT _I.ext/include/x86_64-linux _I./include _I. --with-cpp=gcc --fake-include=../ruby_fake_include.h"
 define_grub("ruby") do |name|
-  sh "git clone https://github.com/ruby/ruby #{paths(name)[:src]}" unless File.directory? paths(name)[:src]
+  sh "git clone https://github.com/ruby/ruby #{paths(name)[:src]}"
 end
 define_pre("ruby") do
   sh "autoconf && ./configure"
@@ -122,3 +122,15 @@ define_post("ruby") do
   sh "./configure && make -j #{N} && make test"
 end
 define_test_for("ruby", RUBY_CPP_OPTS)
+
+FIO_CPP_OPTS = "-X _D_LARGEFILE_SOURCE _D_FILE_OFFSET_BITS=64 _DFIO_INTERNAL --with-cpp=gcc --fake-include=../fio_fake_include.h"
+define_grub("fio") do |name|
+  sh "git clone git://git.kernel.dk/fio.git #{paths(name)[:src]}"
+end
+define_pre("fio") do
+  sh "./configure"
+end
+define_post("fio") do
+  sh "make"
+end
+define_test_for("fio", FIO_CPP_OPTS)
