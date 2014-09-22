@@ -8,77 +8,117 @@ RUBY_FAIL_LOG = "ruby-failure.log"
 
 N = Parallel.processor_count
 
-RUBY_OPT = "-X _DRUBY_EXPORT _I.ext/include/x86_64-linux _I./include _I. --with-cpp=gcc --fake-include=../ruby_fake_include.h"
+def paths(name)
+  { :src         => "#{name}-src",
+    :dir         => "#{name}-src-macroize",
+    :failure_log => "#{name}-failure.log",
+    :info_log    => "#{name}-info.log" }
+end
 
-desc "test with ruby source tree"
-task "ruby" do
-  dir = "ruby-src"
-  sh "git clone https://github.com/ruby/ruby #{RUBY_SRC}" unless File.directory? dir
-  sh "rm -rf #{RUBY_DIR}" if File.directory? RUBY_DIR
-  sh "cp -r #{RUBY_SRC} #{RUBY_DIR}"
+def define_grub(name, &block)
+  task "do_#{name}_grub" do
+    block.call(name) unless File.directory? paths(name)[:dir]
+    sh "rm -rf #{paths(name)[:dir]}" if File.directory? paths(name)[:dir]
+    sh "cp -r #{paths(name)[:src]} #{paths(name)[:dir]}"
+  end
+end
 
-  Dir.chdir(RUBY_DIR) do
-    sh "autoconf && ./configure"
-    sh "make id.h"
-    sh "make probes.h"
+def define_pre(name, &block)
+  task "do_#{name}_pre" do
+    Dir.chdir(paths(name)[:dir]) do
+      block.call(name)
+    end
+  end
+end
 
-    cfiles = []
+def define_post(name, &block)
+  task "do_#{name}_post" do
+    Dir.chdir(paths(name)[:dir]) do
+      block.call(name)
+    end
+  end
+end
+
+def define_tests_for(name, cpp_opts)
+  failures = []
+  if File.exists? paths(name)[:failure_log]
+    File.open(paths(name)[:failure_log]).each do |line|
+      failures << line.chomp
+    end
+  end
+
+  Dir.chdir(paths(name)[:dir]) do
+    testno = 0
     Dir.glob("./**/*.c") do |f|
-      cfiles << f
-    end
-
-    success_list = ThreadSafe::Array.new
-    failure_list = ThreadSafe::Array.new
-    Parallel.each(cfiles, in_threads: N) do |f|
-      # Looked at the Makefile
-      tmpfile = "/tmp/#{SecureRandom.random_number(10**32)}.c"
-      `macro-of-inline #{f} #{RUBY_OPT} -o #{tmpfile}`
-      e = $?.exitstatus
-      if e == 0
-        success_list << f
-        `cp #{tmpfile} #{f}`
-      else
-        failure_list << f
-        puts "[macroize] failed: #{f}"
+      fail_mark = (failures.include? f) ? "[fail]" : ""
+      testno += 1
+      desc "#{fail_mark} (#{f})"
+      task "ruby#{testno}" do
+        Dir.chdir(paths(name)[:dir]) do
+          sh "cp #{File.join("../#{paths(name)[:src]}", f)} #{f}"
+          sh "macro-of-inline #{f} #{cpp_opts} --record ../record-macro-of-inline"
+        end
       end
-      `rm -r #{tmpfile}`
     end
+  end if File.directory? paths(name)[:dir]
+end
 
-    perc = success_list.size.to_f / (success_list.size + failure_list.size)
-    File.open("../ruby-info.log", "w") do |f|
-      f.write """\
+def define_test_for(name, cpp_opts)
+  task "do_#{name}" do
+    Dir.chdir(paths(name)[:dir]) do
+      cfiles = []
+      Dir.glob("./**/*.c") do |f|
+        cfiles << f
+      end
+
+      success_list = ThreadSafe::Array.new
+      failure_list = ThreadSafe::Array.new
+      Parallel.each(cfiles, in_threads: N) do |f|
+        # Looked at the Makefile
+        tmpfile = "/tmp/#{SecureRandom.random_number(10**32)}.c"
+        `macro-of-inline #{f} #{cpp_opts} -o #{tmpfile}`
+        e = $?.exitstatus
+        if e == 0
+          success_list << f
+          `cp #{tmpfile} #{f}`
+        else
+          failure_list << f
+          puts "[macroize] failed: #{f}"
+        end
+        `rm -r #{tmpfile}`
+      end
+
+      perc = success_list.size.to_f / (success_list.size + failure_list.size)
+      File.open("../#{paths(name)[:info_log]}", "w") do |f|
+        f.write """\
 success: #{perc}%
 """
-    end
+      end
 
-    File.open("../#{RUBY_FAIL_LOG}", "w") do |f|
-      f.write """\
+      File.open("../#{paths(name)[:failure_log]}", "w") do |f|
+        f.write """\
 #{failure_list.join("\n")}
-  """
-    end
-
-    sh "./configure && make -j #{N} && make test"
-  end
-end
-
-failures = []
-if File.exists? RUBY_FAIL_LOG
-  File.open(RUBY_FAIL_LOG).each do |line|
-    failures << line.chomp
-  end
-end
-
-Dir.chdir(RUBY_DIR) do
-  testno = 0
-  Dir.glob("./**/*.c") do |f|
-    fail_mark = (failures.include? f) ? "[fail]" : ""
-    testno += 1
-    desc "#{fail_mark} (#{f})"
-    task "ruby#{testno}" do
-      Dir.chdir(RUBY_DIR) do
-        sh "cp #{File.join("../#{RUBY_SRC}", f)} #{f}"
-        sh "macro-of-inline #{f} #{RUBY_OPT} --record ../record-macro-of-inline"
+"""
       end
     end
   end
-end if File.directory? RUBY_DIR
+
+  desc "test with #{name} source tree"
+  task name => ["do_#{name}_grub", "do_#{name}_pre", "do_#{name}", "do_#{name}_post"]
+
+  define_tests_for(name, cpp_opts)
+end
+
+RUBY_CPP_OPTS = "-X _DRUBY_EXPORT _I.ext/include/x86_64-linux _I./include _I. --with-cpp=gcc --fake-include=../ruby_fake_include.h"
+define_grub("ruby") do |name|
+  sh "git clone https://github.com/ruby/ruby #{paths(name)[:src]}" unless File.directory? paths(name)[:src]
+end
+define_pre("ruby") do
+  sh "autoconf && ./configure"
+  sh "make id.h"
+  sh "make probes.h"
+end
+define_post("ruby") do
+  sh "./configure && make -j #{N} && make test"
+end
+define_test_for("ruby", RUBY_CPP_OPTS)
