@@ -435,6 +435,7 @@ testcase_12 = r"""
 inline void fun(void)
 {
 	int x;
+	int y;
 	union {
 		int x;
 		union {
@@ -443,6 +444,7 @@ inline void fun(void)
 	} *u;
 	u->x = 1;
 	u->t.y = 2;
+	u->t.y = (int) u->t.y;
 
 	struct T {
 		int x;
@@ -502,7 +504,7 @@ if __name__ == "__main__":
 	# test(testcase)
 	# test(testcase_2)
 	# test(testcase_3)
-	test(testcase_4)
+	# test(testcase_4)
 	# test(testcase_5)
 	# test(testcase_6)
 	# test(testcase_7)
@@ -510,7 +512,7 @@ if __name__ == "__main__":
 	# test(testcase_9)
 	# test(testcase_10)
 	#test(testcase_11)
-	# test(testcase_12)
+	test(testcase_12)
 	# test(testcase_void1)
 	# test(testcase_void2)
 	# test(testcase_void3)
