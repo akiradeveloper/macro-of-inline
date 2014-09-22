@@ -63,13 +63,18 @@ def define_tests_for(name, cpp_opts)
   end if File.directory? paths(name)[:dir]
 end
 
-def define_test_for(name, cpp_opts)
+# options
+# ignore :: []
+def define_test_for(name, cpp_opts, options = {})
+  ignore_cfiles = options.fetch(:ignore, [])
+
   task "do_#{name}" do
     Dir.chdir(paths(name)[:dir]) do
       cfiles = []
       Dir.glob("./**/*.c") do |f|
         cfiles << f
       end
+      cfiles.delete_if { |e| ignore_cfiles.include? e }
 
       success_list = ThreadSafe::Array.new
       failure_list = ThreadSafe::Array.new
@@ -110,6 +115,8 @@ success: #{perc}%
 end
 
 RUBY_CPP_OPTS = "-X _DRUBY_EXPORT _I.ext/include/x86_64-linux _I./include _I. --with-cpp=gcc --fake-include=../ruby_fake_include.h"
+RUBY_IGNORE = [
+]
 define_grub("ruby") do |name|
   sh "git clone https://github.com/ruby/ruby #{paths(name)[:src]}"
 end
@@ -121,7 +128,7 @@ end
 define_post("ruby") do
   sh "./configure && make -j #{N} && make test"
 end
-define_test_for("ruby", RUBY_CPP_OPTS)
+define_test_for("ruby", RUBY_CPP_OPTS, :ignore => RUBY_IGNORE)
 
 FIO_CPP_OPTS = "-X _D_LARGEFILE_SOURCE _D_FILE_OFFSET_BITS=64 _DFIO_INTERNAL _D_FORTIFY_SOURCE_2 _DFIO_INC_DEBUG --with-cpp=gcc --fake-include=../fio_fake_include.h"
 define_grub("fio") do |name|
@@ -136,6 +143,15 @@ end
 define_test_for("fio", FIO_CPP_OPTS)
 
 PYTHON_CPP_OPTS = "-X _DNDEBUG _I. _IInclude _I./Include --with-cpp=gcc --fake-include=../python_fake_include.h"
+PYTHON_IGNORE = [
+  "./Parser/parsetok.c",
+  "./Parser/tokenizer.c",
+  "./Modules/expat/xmltok_impl.c",
+  "./Modules/expat/xmltok_ns.c",
+  "./Modules/_ctypes/libffi/src/dlmalloc.c",
+  "./Modules/getaddrinfo.c",
+  "./Modules/getnameinfo.c",
+]
 define_grub("python") do |name|
   sh "hg clone https://hg.python.org/cpython #{paths(name)[:src]}"
 end
@@ -145,4 +161,4 @@ end
 define_post("python") do
   sh "./configure && make -j #{N} && make test"
 end
-define_test_for("python", PYTHON_CPP_OPTS)
+define_test_for("python", PYTHON_CPP_OPTS, :ignore => PYTHON_IGNORE)
