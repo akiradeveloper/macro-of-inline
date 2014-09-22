@@ -115,7 +115,34 @@ success: #{perc}%
 end
 
 RUBY_CPP_OPTS = "-X _DRUBY_EXPORT _I.ext/include/x86_64-linux _I./include _I. --with-cpp=gcc --fake-include=../ruby_fake_include.h"
+# FIXME
+# Some files are not found in the source tree. Some of them are generated before compilation.
+# We need to add code into the "pre" hook to generate them. Mark (OK) if you add ones.
 RUBY_IGNORE = [
+  "./main.c",
+  "./vsnprintf.c",
+  "./dln_find.c",
+  "./missing/nextafter.c",
+  "./vm_insnhelper.c",
+  "./vm_exec.c",
+  "./vm_method.c",
+  "./vm_eval.c",
+  "./siphash.c",
+  "./thread_win32.c",
+  "./thread_pthread.c",
+  "./dln.c",
+  "./id.c", # not found (OK)
+  "./eval_error.c",
+  "./eval_jump.c",
+  "./eventids1.c", # not found
+  "./eventids2.c", # not found
+  "./lex.c", # not found (OK)
+  "./ext/socket/constdefs.c", # not found
+  "./ext/nkf/nkf-utf8/nkf8tbl.c",
+  "./ext/nkf/nkf-utf8/nkf.c",
+  "./ext/nkf/nkf-utf8/nkf32dll.c", # not found
+  "./ext/ripper/eventids2table.c", # not found
+  "./enc/shift_jis.c",
 ]
 define_grub("ruby") do |name|
   sh "git clone https://github.com/ruby/ruby #{paths(name)[:src]}"
@@ -123,6 +150,8 @@ end
 define_pre("ruby") do
   sh "autoconf && ./configure"
   sh "make id.h"
+  sh "make id.c"
+  sh "make lex.c"
   sh "make probes.h"
 end
 define_post("ruby") do
