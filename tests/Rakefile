@@ -131,6 +131,18 @@ define_pre("fio") do
   sh "./configure"
 end
 define_post("fio") do
-  sh "make"
+  sh "./configure && make"
 end
 define_test_for("fio", FIO_CPP_OPTS)
+
+PYTHON_CPP_OPTS = "-X _DNDEBUG _I. _IInclude _I./Include --with-cpp=gcc --fake-include=../python_fake_include.h"
+define_grub("python") do |name|
+  sh "hg clone https://hg.python.org/cpython #{paths(name)[:src]}"
+end
+define_pre("python") do
+  sh "./configure"
+end
+define_post("python") do
+  sh "./configure && make -j #{N} && make test"
+end
+define_test_for("python", PYTHON_CPP_OPTS)
