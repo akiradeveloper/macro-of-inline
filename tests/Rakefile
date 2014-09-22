@@ -123,7 +123,7 @@ define_post("ruby") do
 end
 define_test_for("ruby", RUBY_CPP_OPTS)
 
-FIO_CPP_OPTS = "-X _D_LARGEFILE_SOURCE _D_FILE_OFFSET_BITS=64 _DFIO_INTERNAL --with-cpp=gcc --fake-include=../fio_fake_include.h"
+FIO_CPP_OPTS = "-X _D_LARGEFILE_SOURCE _D_FILE_OFFSET_BITS=64 _DFIO_INTERNAL _D_FORTIFY_SOURCE_2 _DFIO_INC_DEBUG --with-cpp=gcc --fake-include=../fio_fake_include.h"
 define_grub("fio") do |name|
   sh "git clone git://git.kernel.dk/fio.git #{paths(name)[:src]}"
 end
