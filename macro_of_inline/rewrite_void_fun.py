@@ -93,7 +93,7 @@ class RenameVars(ext_pycparser.NodeVisitor):
 
 	def visit_Cast(self, node):
 		self.visit(node.expr)
-		ext_pycparser.NodeVisitor.generic_visit(self, node.expr) # FIXME I don't think we need this line
+		# ext_pycparser.NodeVisitor.generic_visit(self, node.expr) # FIXME I don't think we need this line
 
 	def visit_ID(self, node):
 		alias = self.cur_table.alias(node.name)
