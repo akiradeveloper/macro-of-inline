@@ -175,17 +175,22 @@ class Main:
 				self.result.add(name)
 			c_ast.NodeVisitor.generic_visit(self, n)
 
-	# FIXME
-	# anonymouns struct/union
-	# struct { int x; } t;
-	# appears twice fails compilation.
 	def prependDecls(self):
+		"""
+		Move declarations before its first caller.
+
+		Note:
+		Anonymous struct/union like
+		struct { int x; } t;
+		can't appear twice because it leads to compilation error.
+		So, unlike prependFuncDecls(), we just move the declaration.
+		"""
 		all_decls = {}
 		for i, n in enumerate(self.ast.ext):
 			if isinstance(n, c_ast.Decl):
 				all_decls[n.name] = (i, n)
 
-		declLocs = {}
+		declLocs = {} # name => i
 		for i, n in enumerate(self.ast.ext):
 			if isinstance(n, c_ast.FuncDef):
 				names = ext_pycparser.Result(self.AllIDs(n, set(all_decls.keys()))).visit(n)
@@ -194,10 +199,11 @@ class Main:
 						declLocs[name] = i
 
 		for name, i in sorted(declLocs.items(), key=lambda x: -x[1]):
-			decl = copy.deepcopy(all_decls[name][1])
-			decl.init = None
-			decl.bitsize = None
-			self.ast.ext.insert(i, decl)
+			j, decl = all_decls[name]
+			self.ast.ext.insert(i, decl) # Move the declaration before its first caller.
+			self.ast.ext[j] = None # And remove the declaration
+
+		# TODO Sweep None ext nodes
 
 	# FIXME Only inside compound?
 	class AllFuncCalls(compound.NodeVisitor, compound.SymbolTableMixin):
@@ -298,7 +304,7 @@ class Main:
 		recorder.t.file_record("normalize_labels", ext_pycparser.CGenerator().visit(self.ast))
 
 		# FIXME
-		# self.prependDecls()
+		self.prependDecls()
 		self.prependFuncDecls()
 
 		return self
