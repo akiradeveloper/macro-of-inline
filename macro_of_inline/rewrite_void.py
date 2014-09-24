@@ -168,6 +168,7 @@ class Main:
 
 		def visit_Decl(self, n):
 			self.register(n)
+			c_ast.NodeVisitor.generic_visit(self, n)
 
 		def visit_ID(self, n):
 			name = n.name
@@ -222,6 +223,7 @@ class Main:
 
 		def visit_Decl(self, n):
 			self.register(n)
+			# FIXME needs generic_visit
 
 		def visit_FuncCall(self, n):
 			callName = rewrite.FuncCallName(n)
