@@ -137,11 +137,30 @@ class Main:
 		recorder.t.file_record("macroize", ext_pycparser.CGenerator().visit(self.ast))
 
 	class PurgeInlines(ext_pycparser.NodeVisitor):
+		"""
+		Purge all "inline" specifiers in the source code.
+		"inline" specifier is possibly rejected by the compiler but the input file
+		may include it to ask macroizing the specified functions.
+
+		E.g.
+
+		static inline f();
+		static inline g() {}
+
+		=>
+
+		static f();
+		static g() {}
+		"""
 		def visit_Decl(self, n):
 			if "inline" in n.funcspec:
 				n.funcspec.remove("inline")
 
+	# FIXME Only inside compound?
 	class AllFuncCalls(compound.NodeVisitor, compound.SymbolTableMixin):
+		"""
+		Find out all the function calls in a function.
+		"""
 		def __init__(self, func, allFuncNames):
 			compound.SymbolTableMixin.__init__(self, func, allFuncNames)
 			self.result = set()
@@ -159,6 +178,39 @@ class Main:
 			if self.canMacroize(callName):
 				self.result.add(callName)
 			compound.NodeVisitor.generic_visit(self, n)
+
+	def prependFuncDecls(self):
+		"""
+		Prepend declarations of functions that are used in the function so the function
+		can find the declarations.
+
+		E.g.
+		void f() { g(); h(0); }
+
+		=>
+
+		void g();
+		void h(int);
+		void f() { g(); h(0); }
+		"""
+		# NOTE We can't sweep the old prototypes because they may be used as pointer reference
+		all_funcs = {} # name -> (i, ast)
+		for i, n in enumerate(self.ast.ext):
+			if isinstance(n, c_ast.FuncDef):
+				all_funcs[ext_pycparser.FuncDef(n).name()] = (i, n)
+
+		declLocs = {}
+		for i, n in enumerate(self.ast.ext):
+			if isinstance(n, c_ast.FuncDef):
+				callNames = ext_pycparser.Result(self.AllFuncCalls(n, set(all_funcs.keys()))).visit(n)
+				for callName in callNames:
+					if not callName in declLocs:
+						declLocs[callName] = i
+
+		for callName, i in sorted(declLocs.items(), key=lambda x: -x[1]):
+			func = all_funcs[callName][1]
+			decl = copy.deepcopy(func.decl)
+			self.ast.ext.insert(i, decl)
 
 	def run(self):
 		macroizables = set()
@@ -202,34 +254,7 @@ class Main:
 			self.normalizeLabels()
 		recorder.t.file_record("normalize_labels", ext_pycparser.CGenerator().visit(self.ast))
 
-		# NOTE We can't sweep the old prototypes because they may be used as pointer reference
-		# FIXME Purge
-		# declLocs = {} # name -> lineno
-		# for i, n in enumerate(self.ast.ext):
-		# 	if isinstance(n, c_ast.Decl) and isinstance(n.type, c_ast.FuncDecl):
-		# 		funcName = n.name
-		# 		if not funcName in declLocs:
-		# 			declLocs[funcName] = i
-		# for i in sorted(declLocs.values(), key=lambda x: -x): # sweep all prototypes
-		# 	del self.ast.ext[i]
-
-		all_funcs = {} # name -> (i, ast)
-		for i, n in enumerate(self.ast.ext):
-			if isinstance(n, c_ast.FuncDef):
-				all_funcs[ext_pycparser.FuncDef(n).name()] = (i, n)
-
-		declLocs = {}
-		for i, n in enumerate(self.ast.ext):
-			if isinstance(n, c_ast.FuncDef):
-				callNames = ext_pycparser.Result(self.AllFuncCalls(n, set(all_funcs.keys()))).visit(n)
-				for callName in callNames:
-					if not callName in declLocs:
-						declLocs[callName] = i
-
-		for callName, i in sorted(declLocs.items(), key=lambda x: -x[1]):
-			func = all_funcs[callName][1]
-			decl = copy.deepcopy(func.decl)
-			self.ast.ext.insert(i, decl)
+		self.prependFuncDecls()
 
 		return self
 
