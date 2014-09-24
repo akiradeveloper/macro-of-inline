@@ -115,6 +115,11 @@ class RewriteCaller:
 			self.switch()
 
 			for i, item in enumerate(n.block_items):
+				# We ignore Decls because inserting assignment (retval = g())
+				# before some variable declartion is rejected by compiler as
+				# mixed declaration (ISO C90).
+				# We can deal with it by popping out T retval = g() directly
+				# but it makes implementation so hard.
 				if isinstance(item, c_ast.Decl):
 					self.register(item)
 
