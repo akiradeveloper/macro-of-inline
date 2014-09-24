@@ -189,13 +189,16 @@ class RewriteCaller:
 	def run(self):
 		self.AssignRetVal(self.func, self.macroizables).visit(self.func)
 		self.phase_no += 1
+		recorder.t.fun_record("assign_retval", self.func)
 
 		while ext_pycparser.Result(self.PopNested(self.func, self.macroizables)).visit(self.func):
 			pass
 		self.phase_no += 1
+		recorder.t.fun_record("pop_nested", self.func)
 
 		self.ToVoid(self.func, self.macroizables).visit(self.func)
 		self.phase_no += 1
+		recorder.t.fun_record("to_void", self.func)
 
 		return self
 
