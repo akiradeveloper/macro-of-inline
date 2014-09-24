@@ -298,15 +298,18 @@ class Main:
 		# print ext_pycparser.CGenerator().visit(self.ast)
 
 		self.applyPreprocess() # Apply cpp is necessary for the later stages.
+		recorder.t.file_record("apply_preprocess", ext_pycparser.CGenerator().visit(self.ast))
 
 		if NORMALIZE_LABEL:
 			# Normalize labels to fixed length. Some compilers won't allow labels too long.
 			self.normalizeLabels()
 		recorder.t.file_record("normalize_labels", ext_pycparser.CGenerator().visit(self.ast))
 
-		# FIXME
 		self.prependDecls()
+		recorder.t.file_record("prepend_decls", ext_pycparser.CGenerator().visit(self.ast))
+
 		self.prependFuncDecls()
+		recorder.t.file_record("prepend_func_decls", ext_pycparser.CGenerator().visit(self.ast))
 
 		return self
 
