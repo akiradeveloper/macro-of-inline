@@ -73,6 +73,7 @@ optional arguments:
 
 ## Requirements
 
+- eliben/pycparser: Installing upstream version is recommended but pypi version is typically OK.
 - gcc: `gcc -E` preprocessing is used internally.
 - [--with-cpp] mcpp: A well-designed preprocessor.
 
