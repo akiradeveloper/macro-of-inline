@@ -200,11 +200,9 @@ class Main:
 
 		for name, i in sorted(declLocs.items(), key=lambda x: -x[1]):
 			j, decl = all_decls[name]
-			# FIXME Remove this if
-			# Should be woriking without this
 			if i < j:
-				self.ast.ext.insert(i, decl) # Move the declaration before its first caller.
-				self.ast.ext[j] = None # And remove the declaration
+				self.ast.ext.insert(i, copy.deepcopy(decl)) # Move the declaration before its first caller.
+				self.ast.ext[j+1] = None # And remove the declaration
 
 		# TODO Sweep None ext nodes
 
