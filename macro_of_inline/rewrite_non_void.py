@@ -153,8 +153,11 @@ class RewriteCaller:
 
 			ext_pycparser.NodeVisitor.rewrite(self.current_parent, self.current_name, c_ast.ID(randvar))
 			_, func = rewrite.t.all_funcs[name]
-			self.insert_list.append((0, mkDecl(func, randvar)))
+
+			# Order of these two lines is important.
+			# nestedCall[0] can be 0. function call must be placed after declaring retval.
 			self.insert_list.append((self.nestedCall[0], c_ast.Assignment("=", c_ast.ID(randvar), n)))
+			self.insert_list.append((0, mkDecl(func, randvar)))
 
 			self.result = True
 
