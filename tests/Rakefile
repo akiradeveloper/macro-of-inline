@@ -78,6 +78,10 @@ def define_test_for(name, cpp_opts, options = {})
 
       success_list = ThreadSafe::Array.new
       failure_list = ThreadSafe::Array.new
+
+      # ignore files are granted as failure
+      failure_list += ignore_cfiles
+
       Parallel.each(cfiles, in_threads: N) do |f|
         # Looked at the Makefile
         tmpfile = "/tmp/#{SecureRandom.random_number(10**32)}.c"
