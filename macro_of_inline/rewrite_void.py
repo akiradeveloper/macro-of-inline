@@ -156,6 +156,49 @@ class Main:
 			if "inline" in n.funcspec:
 				n.funcspec.remove("inline")
 
+	class AllIDs(c_ast.NodeVisitor, compound.SymbolTableMixin):
+		def __init__(self, func, allDeclNames):
+			compound.SymbolTableMixin.__init__(self, func, allDeclNames)
+			self.result = set()
+
+		def visit_Compound(self, n):
+			self.switch()
+			c_ast.NodeVisitor.generic_visit(self, n)
+			self.revert()
+
+		def visit_Decl(self, n):
+			self.register(n)
+
+		def visit_ID(self, n):
+			name = n.name
+			if self.canMacroize(name):
+				self.result.add(name)
+			c_ast.NodeVisitor.generic_visit(self, n)
+
+	# FIXME
+	# anonymouns struct/union
+	# struct { int x; } t;
+	# appears twice fails compilation.
+	def prependDecls(self):
+		all_decls = {}
+		for i, n in enumerate(self.ast.ext):
+			if isinstance(n, c_ast.Decl):
+				all_decls[n.name] = (i, n)
+
+		declLocs = {}
+		for i, n in enumerate(self.ast.ext):
+			if isinstance(n, c_ast.FuncDef):
+				names = ext_pycparser.Result(self.AllIDs(n, set(all_decls.keys()))).visit(n)
+				for name in names:
+					if not name in declLocs:
+						declLocs[name] = i
+
+		for name, i in sorted(declLocs.items(), key=lambda x: -x[1]):
+			decl = copy.deepcopy(all_decls[name][1])
+			decl.init = None
+			decl.bitsize = None
+			self.ast.ext.insert(i, decl)
+
 	# FIXME Only inside compound?
 	class AllFuncCalls(compound.NodeVisitor, compound.SymbolTableMixin):
 		"""
@@ -254,6 +297,8 @@ class Main:
 			self.normalizeLabels()
 		recorder.t.file_record("normalize_labels", ext_pycparser.CGenerator().visit(self.ast))
 
+		# FIXME
+		# self.prependDecls()
 		self.prependFuncDecls()
 
 		return self
