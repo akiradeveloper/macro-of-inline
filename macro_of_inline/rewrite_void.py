@@ -199,11 +199,17 @@ class Main:
 					if not name in declLocs:
 						declLocs[name] = i
 
+		inserted = []
 		for name, i in sorted(declLocs.items(), key=lambda x: -x[1]):
 			j, decl = all_decls[name]
 			if i < j:
 				self.ast.ext.insert(i, copy.deepcopy(decl)) # Move the declaration before its first caller.
-				self.ast.ext[j+1] = None # And remove the declaration
+				# TODO
+				# Need need to shift back the ast node to be nullified T times where
+				# T is the number of lines inserted before the ast node.
+				inserted.append(i)
+				shift = len([x for x in inserted if x < j])
+				self.ast.ext[j+shift] = None # And remove the declaration
 
 		# TODO Sweep None ext nodes
 
