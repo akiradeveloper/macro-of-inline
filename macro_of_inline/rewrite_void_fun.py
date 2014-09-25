@@ -348,6 +348,7 @@ inline void fun(int x, char *y, int (*f)(int), void (*g)(char c), struct T *t, i
 	int z = *y;
 	int *pz = &z;
 	int xs[3];
+	int alpha;
 	x = z;
 	while (x) {
 		int x;
@@ -359,7 +360,6 @@ inline void fun(int x, char *y, int (*f)(int), void (*g)(char c), struct T *t, i
 		} while (x);
 		x += x;
 	}
-	int alpha;
 	if (*y) {
 		t->x = f(*y);
 	} else {

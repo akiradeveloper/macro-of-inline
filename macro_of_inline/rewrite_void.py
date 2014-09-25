@@ -176,6 +176,19 @@ class Main:
 				self.result.add(name)
 			c_ast.NodeVisitor.generic_visit(self, n)
 
+	def moveDecls(self):
+		"""
+		Move all Decls and Typedefs to the head of the file in order
+		"""
+		all_decls = []
+		for i, n in enumerate(self.ast.ext):
+			if isinstance(n, c_ast.Decl) or isinstance(n, c_ast.Typedef):
+				all_decls.append((i, n))
+		all_decls.sort(key=lambda x: -x[0])
+		for k, (i, n) in enumerate(all_decls):
+			self.ast.ext.insert(0, n)
+			del self.ast.ext[i+k+1]
+
 	def prependDecls(self):
 		"""
 		Move declarations before its first caller.
@@ -300,8 +313,12 @@ class Main:
 
 		self.PurgeInlines().visit(self.ast)
 
-		for i, mfunc in macro_funcs:
+		self.moveDecls()
+		recorder.t.file_record("move_decls", ext_pycparser.CGenerator().visit(self.ast))
+
+		for _, mfunc in macro_funcs:
 			self.ast.ext.insert(0, mfunc)
+		recorder.t.file_record("insert_macros", ext_pycparser.CGenerator().visit(self.ast))
 		# print ext_pycparser.CGenerator().visit(self.ast)
 
 		self.applyPreprocess() # Apply cpp is necessary for the later stages.
@@ -312,6 +329,7 @@ class Main:
 			self.normalizeLabels()
 		recorder.t.file_record("normalize_labels", ext_pycparser.CGenerator().visit(self.ast))
 
+		# FIXME I think now this makes no sence at all because of moveDecls()
 		self.prependDecls()
 		recorder.t.file_record("prepend_decls", ext_pycparser.CGenerator().visit(self.ast))
 
