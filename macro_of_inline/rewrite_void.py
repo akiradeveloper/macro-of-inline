@@ -186,7 +186,7 @@ class Main:
 			if isinstance(n, c_ast.Typedef):
 				shouldMove = True
 			elif isinstance(n, c_ast.Decl):
-				if isinstance(n.type, (c_ast.Struct, c_ast.Union)):
+				if isinstance(n.type, (c_ast.Struct, c_ast.Union, c_ast.Enum)):
 					shouldMove = True
 			if shouldMove:
 				all_decls.append((i, n))
@@ -357,6 +357,13 @@ inline void f2(int
   x) {   }
 %s
 
+void f() {;}
+struct F {
+	void (*func)(void);
+} u = { f };
+
+enum E { APPLE };
+
 static int x = 0;
 int f3(void)
 {
@@ -402,6 +409,7 @@ int main()
 if __name__ == "__main__":
 	parser = c_parser.CParser()
 	ast = parser.parse(testcase)
+	# ast.show()
 
 	output = Main(ast).run().returnAST()
 
