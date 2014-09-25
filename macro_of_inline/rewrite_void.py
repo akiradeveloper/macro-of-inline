@@ -213,8 +213,7 @@ class Main:
 
 		# TODO Sweep None ext nodes
 
-	# FIXME Only inside compound?
-	class AllFuncCalls(compound.NodeVisitor, compound.SymbolTableMixin):
+	class AllFuncCalls(c_ast.NodeVisitor, compound.SymbolTableMixin):
 		"""
 		Find out all the function calls in a function.
 		"""
@@ -224,18 +223,18 @@ class Main:
 
 		def visit_Compound(self, n):
 			self.switch()
-			compound.NodeVisitor.generic_visit(self, n)
+			c_ast.NodeVisitor.generic_visit(self, n)
 			self.revert()
 
 		def visit_Decl(self, n):
 			self.register(n)
-			# FIXME needs generic_visit
+			c_ast.generic_visit(self, n)
 
 		def visit_FuncCall(self, n):
 			callName = rewrite.FuncCallName(n)
 			if self.canMacroize(callName):
 				self.result.add(callName)
-			compound.NodeVisitor.generic_visit(self, n)
+			c_ast.NodeVisitor.generic_visit(self, n)
 
 	def prependFuncDecls(self):
 		"""
