@@ -210,6 +210,13 @@ class FuncDef:
 	def isStatic(self):
 		return FuncType(self.func.decl).isStatic()
 
+class Typedef:
+	def __init__(self, node):
+		self.node = node
+
+	def queryType(self):
+		return Result(QueryDeclType()).visit(self.node)
+
 class ParamDecl:
 	"""
 	FuncDef.decl.type..args.params :: [ParamDecl]
@@ -219,6 +226,21 @@ class ParamDecl:
 
 	def queryType(self):
 		return Result(QueryDeclType()).visit(self.node)
+
+	def simpleType(self):
+		"""
+		T t -> T
+		"""
+		typedecl = self.node.type
+		if not isinstance(typedecl, c_ast.TypeDecl):
+			return None
+		ID = typedecl.type
+		if not isinstance(ID, c_ast.IdentifierType):
+			return None
+		names = ID.names
+		if len(names) > 1:
+			return None
+		return names[0]
 
 	def show(self):
 		if not DEBUG:

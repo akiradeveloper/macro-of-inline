@@ -87,6 +87,7 @@ class Context:
 
 		self.all_funcs = {} # name -> (i, ast)
 		self.macroizables = set() # set(name)
+		self.typedefs = {} # name -> ast
 
 	def blacklist(self, ast):
 		f = lambda n: FuncCallName(n)
@@ -103,6 +104,8 @@ class Context:
 		for i, n in enumerate(ast.ext):
 			if isinstance(n, c_ast.FuncDef):
 				self.all_funcs[FuncDef(n).name()] = (i, n)
+			if isinstance(n, c_ast.Typedef):
+				self.typedefs[n.name] = n
 
 		for name, (_, n) in self.all_funcs.items():
 			if not FuncDef(n).doMacroize():

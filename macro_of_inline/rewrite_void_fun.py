@@ -93,7 +93,6 @@ class RenameVars(ext_pycparser.NodeVisitor):
 
 	def visit_Cast(self, node):
 		self.visit(node.expr)
-		# ext_pycparser.NodeVisitor.generic_visit(self, node.expr) # FIXME I don't think we need this line
 
 	def visit_ID(self, node):
 		alias = self.cur_table.alias(node.name)
@@ -133,14 +132,27 @@ class Main(ext_pycparser.FuncDef):
 		def __init__(self, param):	
 			ext_pycparser.ParamDecl.__init__(self, param)
 
+		def isReassignable(self, argType):
+			return not (argType == ext_pycparser.ArgType.fun or argType == ext_pycparser.ArgType.array);
+
 		def shouldInsertDecl(self):
-			"""
-			Need to insert decl lines.
-			except func decl (function pointer) and array decl (e.g. int xs[])
-			which are immutable through the function body.
-			"""
 			t = self.queryType()
-			return not (t == ext_pycparser.ArgType.fun or t == ext_pycparser.ArgType.array)
+			if not self.isReassignable(t):
+				return False
+
+			simpleType = self.simpleType()
+			if (simpleType):
+				if not simpleType in rewrite.t.typedefs:
+					return True
+
+				# If the type is a typedef and it's not reassignable
+				# then we should return false
+				n = rewrite.t.typedefs[simpleType]
+				t = ext_pycparser.Typedef(n).queryType()
+				if not self.isReassignable(t):
+					return False
+
+			return True
 
 	def __init__(self, func):
 		self.phase_no = 0
