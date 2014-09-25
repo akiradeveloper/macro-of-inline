@@ -228,7 +228,7 @@ class Main:
 
 		def visit_Decl(self, n):
 			self.register(n)
-			c_ast.generic_visit(self, n)
+			c_ast.NodeVisitor.generic_visit(self, n)
 
 		def visit_FuncCall(self, n):
 			callName = rewrite.FuncCallName(n)
