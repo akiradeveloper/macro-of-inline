@@ -142,7 +142,7 @@ RUBY_IGNORE = [
   "./eventids2.c", # not found
   "./lex.c", # not found (OK)
   "./ext/socket/constdefs.c", # not found
-  "./ext/nkf/nkf-utf8/nkf8tbl.c",
+  "./ext/nkf/nkf-utf8/utf8tbl.c",
   "./ext/nkf/nkf-utf8/nkf.c",
   "./ext/nkf/nkf-utf8/nkf32dll.c", # not found
   "./ext/ripper/eventids2table.c", # not found
