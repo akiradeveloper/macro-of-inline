@@ -182,7 +182,13 @@ class Main:
 		"""
 		all_decls = []
 		for i, n in enumerate(self.ast.ext):
-			if isinstance(n, c_ast.Decl) or isinstance(n, c_ast.Typedef):
+			shouldMove = False
+			if isinstance(n, c_ast.Typedef):
+				shouldMove = True
+			elif isinstance(n, c_ast.Decl):
+				if isinstance(n.type, (c_ast.Struct, c_ast.Union)):
+					shouldMove = True
+			if shouldMove:
 				all_decls.append((i, n))
 		all_decls.sort(key=lambda x: -x[0])
 		for k, (i, n) in enumerate(all_decls):
@@ -344,14 +350,14 @@ class Main:
 testcase = r"""
 struct T { int x; };
 struct U { int x; };
-struct V { int x; };
-static int x = 0;
 static inline void f4();
+struct V { int x; };
 inline void f1(void) { x = 1; f4(); }
 inline void f2(int
   x) {   }
 %s
 
+static int x = 0;
 int f3(void)
 {
   x = 3;
