@@ -474,6 +474,10 @@ inline void fun(void)
 	};
 	union U u2;
 	u2.x = 1;
+
+	enum E {
+		x, y
+	};
 }
 """
 
@@ -532,8 +536,8 @@ if __name__ == "__main__":
 	# test(testcase_9)
 	# test(testcase_10)
 	#test(testcase_11)
-	#test(testcase_12)
-	test(testcase_13)
+	test(testcase_12)
+	# test(testcase_13)
 	# test(testcase_void1)
 	# test(testcase_void2)
 	# test(testcase_void3)
