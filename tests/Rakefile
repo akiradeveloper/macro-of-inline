@@ -123,6 +123,7 @@ RUBY_CPP_OPTS = "-X _DRUBY_EXPORT _I.ext/include/x86_64-linux _I./include _I. --
 # Some files are not found in the source tree. Some of them are generated before compilation.
 # We need to add code into the "pre" hook to generate them. Mark (OK) if you add ones.
 RUBY_IGNORE = [
+  "./regcomp.c", # Not preprocessed properly because too big?
   "./main.c",
   "./vsnprintf.c",
   "./dln_find.c",
