@@ -14,7 +14,7 @@ Symbol = collections.namedtuple('Symbol', 'alias, overwritable')
 
 # False -> ($oldname -> $randstr)
 # True  -> ($oldname -> ($oldname_$randstr))
-VERBOSE = False
+VERBOSE = True
 
 class NameTable:
 	def __init__(self):
