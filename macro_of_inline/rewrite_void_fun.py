@@ -480,6 +480,7 @@ inline void fun(void)
 testcase_13 = r"""
 inline void f()
 {
+	int x = 0;
 	int (*f)(int, int) = 0; 
 }
 """

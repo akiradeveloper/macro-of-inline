@@ -105,6 +105,9 @@ class RewriteTypeDecl(NodeVisitor):
 	def visit_TypeDecl(self, node):
 		node.declname = self.alias
 
+	def visit_FuncDecl(self, n):
+		self.visit(n.type)
+
 ArgType = enum.Enum("ArgType", "other fun array")
 class QueryDeclType(NodeVisitor):
 	def __init__(self):
