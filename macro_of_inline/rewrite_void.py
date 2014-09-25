@@ -388,6 +388,14 @@ inline void f8(int x)
 
 inline int f9(int x) { return x; }
 
+void f10() { f11(); }
+
+void g() {;}
+void run(void (*f)(void)) { f(); }
+inline void f11() {
+	run(g);
+}
+
 inline void f_rec() { f_rec(); }
 
 int main()
