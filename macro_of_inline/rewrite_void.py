@@ -278,7 +278,7 @@ class Main:
 		declLocs = {}
 		for i, n in enumerate(self.ast.ext):
 			if isinstance(n, c_ast.FuncDef):
-				callNames = ext_pycparser.Result(self.AllFuncCalls(n, set(all_funcs.keys()))).visit(n)
+				callNames = ext_pycparser.Result(self.AllIDs(n, set(all_funcs.keys()))).visit(n)
 				for callName in callNames:
 					if not callName in declLocs:
 						declLocs[callName] = i
