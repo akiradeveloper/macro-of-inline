@@ -176,6 +176,16 @@ class Main:
 				self.result.add(name)
 			c_ast.NodeVisitor.generic_visit(self, n)
 
+	def prependPrototypes(self):
+		all_funcdefs = []
+		for i, n in enumerate(self.ast.ext):
+			if isinstance(n, c_ast.FuncDef):
+				all_funcdefs.append((i, n))
+
+		for i, n in reversed(all_funcdefs):
+			decl = copy.deepcopy(n.decl)
+			self.ast.ext.insert(i, decl)
+
 	def moveDecls(self):
 		"""
 		Move all Decls and Typedefs to the head of the file in order
@@ -318,6 +328,9 @@ class Main:
 			self.ast.ext[i] = func
 
 		self.PurgeInlines().visit(self.ast)
+
+		self.prependPrototypes()
+		recorder.t.file_record("prepend_prototypes", ext_pycparser.CGenerator().visit(self.ast))
 
 		self.moveDecls()
 		recorder.t.file_record("move_decls", ext_pycparser.CGenerator().visit(self.ast))
