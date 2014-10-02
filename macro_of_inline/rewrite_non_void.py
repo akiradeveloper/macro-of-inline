@@ -241,20 +241,20 @@ class Main:
 			self.ast.ext.insert(i, vfunc)
 
 		# FIXME
-		# I don't see no reason why we need to insert prototypes?
+		# I see no reason why we need to insert prototypes.
 		# They will be macroized thus there won't be any references to the void functions.
-		declLocs = {}
-		for i, n in enumerate(self.ast.ext):
-			if isinstance(n, c_ast.Decl):
-				if not n.name in declLocs: # may have the same declarations at multiple locations
-					declLocs[n.name] = i
-
-		for _, vfunc in void_funcs:
-			name = vfunc.decl.name[5:]
-			if not name in declLocs:
-				continue
-			decl = copy.deepcopy(vfunc.decl)
-			self.ast.ext.insert(declLocs[name], decl)
+		# declLocs = {}
+		# for i, n in enumerate(self.ast.ext):
+		# 	if isinstance(n, c_ast.Decl):
+		# 		if not n.name in declLocs: # may have the same declarations at multiple locations
+		# 			declLocs[n.name] = i
+		#
+		# for _, vfunc in void_funcs:
+		# 	name = vfunc.decl.name[5:]
+		# 	if not name in declLocs:
+		# 		continue
+		# 	decl = copy.deepcopy(vfunc.decl)
+		# 	self.ast.ext.insert(declLocs[name], decl)
 		recorder.t.file_record("rewrite_func_defines", c_generator.CGenerator().visit(self.ast))
 
 	def run(self):

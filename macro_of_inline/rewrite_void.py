@@ -156,26 +156,6 @@ class Main:
 			if "inline" in n.funcspec:
 				n.funcspec.remove("inline")
 
-	class AllIDs(c_ast.NodeVisitor, compound.SymbolTableMixin):
-		def __init__(self, func, allDeclNames):
-			compound.SymbolTableMixin.__init__(self, func, allDeclNames)
-			self.result = set()
-
-		def visit_Compound(self, n):
-			self.switch()
-			c_ast.NodeVisitor.generic_visit(self, n)
-			self.revert()
-
-		def visit_Decl(self, n):
-			self.register(n)
-			c_ast.NodeVisitor.generic_visit(self, n)
-
-		def visit_ID(self, n):
-			name = n.name
-			if self.canMacroize(name):
-				self.result.add(name)
-			c_ast.NodeVisitor.generic_visit(self, n)
-
 	def prependPrototypes(self):
 		all_funcdefs = []
 		for i, n in enumerate(self.ast.ext):
@@ -193,11 +173,8 @@ class Main:
 		all_decls = []
 		for i, n in enumerate(self.ast.ext):
 			shouldMove = False
-			if isinstance(n, c_ast.Typedef):
+			if isinstance(n, (c_ast.Typedef, c_ast.Decl)):
 				shouldMove = True
-			elif isinstance(n, c_ast.Decl):
-				if isinstance(n.type, (c_ast.Struct, c_ast.Union, c_ast.Enum)):
-					shouldMove = True
 			if shouldMove:
 				all_decls.append((i, n))
 		all_decls.sort(key=lambda x: -x[0])
@@ -205,98 +182,118 @@ class Main:
 			self.ast.ext.insert(0, n)
 			del self.ast.ext[i+k+1]
 
-	def prependDecls(self):
-		"""
-		Move declarations before its first caller.
+	# class AllIDs(c_ast.NodeVisitor, compound.SymbolTableMixin):
+	# 	def __init__(self, func, allDeclNames):
+	# 		compound.SymbolTableMixin.__init__(self, func, allDeclNames)
+	# 		self.result = set()
+	#
+	# 	def visit_Compound(self, n):
+	# 		self.switch()
+	# 		c_ast.NodeVisitor.generic_visit(self, n)
+	# 		self.revert()
+	#
+	# 	def visit_Decl(self, n):
+	# 		self.register(n)
+	# 		c_ast.NodeVisitor.generic_visit(self, n)
+	#
+	# 	def visit_ID(self, n):
+	# 		name = n.name
+	# 		if self.canMacroize(name):
+	# 			self.result.add(name)
+	# 		c_ast.NodeVisitor.generic_visit(self, n)
 
-		Note:
-		Anonymous struct/union like
-		struct { int x; } t;
-		can't appear twice because it leads to compilation error.
-		So, unlike prependFuncDecls(), we just move the declaration.
-		"""
-		all_decls = {}
-		for i, n in enumerate(self.ast.ext):
-			if isinstance(n, c_ast.Decl):
-				all_decls[n.name] = (i, n)
+	# def prependDecls(self):
+	# 	"""
+	# 	Move declarations before its first caller.
+    #
+	# 	Note:
+	# 	Anonymous struct/union like
+	# 	struct { int x; } t;
+	# 	can't appear twice because it leads to compilation error.
+	# 	So, unlike prependFuncDecls(), we just move the declaration.
+	# 	"""
+	# 	all_decls = {}
+	# 	for i, n in enumerate(self.ast.ext):
+	# 		if isinstance(n, c_ast.Decl):
+	# 			all_decls[n.name] = (i, n)
+	#
+	# 	declLocs = {} # name => i
+	# 	for i, n in enumerate(self.ast.ext):
+	# 		if isinstance(n, c_ast.FuncDef):
+	# 			names = ext_pycparser.Result(self.AllIDs(n, set(all_decls.keys()))).visit(n)
+	# 			for name in names:
+	# 				if not name in declLocs:
+	# 					declLocs[name] = i
+	#
+	# 	inserted = []
+	# 	for name, i in sorted(declLocs.items(), key=lambda x: -x[1]):
+	# 		j, decl = all_decls[name]
+	# 		if i < j:
+	# 			self.ast.ext.insert(i, copy.deepcopy(decl)) # Move the declaration before its first caller.
+	# 			# TODO
+	# 			# Need need to shift back the ast node to be nullified T times where
+	# 			# T is the number of lines inserted before the ast node.
+	# 			inserted.append(i)
+	# 			shift = len([x for x in inserted if x < j])
+	# 			self.ast.ext[j+shift] = None # And remove the declaration
+	#
+	# 	# TODO Sweep None ext nodes
 
-		declLocs = {} # name => i
-		for i, n in enumerate(self.ast.ext):
-			if isinstance(n, c_ast.FuncDef):
-				names = ext_pycparser.Result(self.AllIDs(n, set(all_decls.keys()))).visit(n)
-				for name in names:
-					if not name in declLocs:
-						declLocs[name] = i
+	# class AllFuncCalls(c_ast.NodeVisitor, compound.SymbolTableMixin):
+	# 	"""
+	# 	Find out all the function calls in a function.
+	# 	"""
+	# 	def __init__(self, func, allFuncNames):
+	# 		compound.SymbolTableMixin.__init__(self, func, allFuncNames)
+	# 		self.result = set()
+	#
+	# 	def visit_Compound(self, n):
+	# 		self.switch()
+	# 		c_ast.NodeVisitor.generic_visit(self, n)
+	# 		self.revert()
+	#
+	# 	def visit_Decl(self, n):
+	# 		self.register(n)
+	# 		c_ast.NodeVisitor.generic_visit(self, n)
+	#
+	# 	def visit_FuncCall(self, n):
+	# 		callName = rewrite.FuncCallName(n)
+	# 		if self.canMacroize(callName):
+	# 			self.result.add(callName)
+	# 		c_ast.NodeVisitor.generic_visit(self, n)
 
-		inserted = []
-		for name, i in sorted(declLocs.items(), key=lambda x: -x[1]):
-			j, decl = all_decls[name]
-			if i < j:
-				self.ast.ext.insert(i, copy.deepcopy(decl)) # Move the declaration before its first caller.
-				# TODO
-				# Need need to shift back the ast node to be nullified T times where
-				# T is the number of lines inserted before the ast node.
-				inserted.append(i)
-				shift = len([x for x in inserted if x < j])
-				self.ast.ext[j+shift] = None # And remove the declaration
-
-		# TODO Sweep None ext nodes
-
-	class AllFuncCalls(c_ast.NodeVisitor, compound.SymbolTableMixin):
-		"""
-		Find out all the function calls in a function.
-		"""
-		def __init__(self, func, allFuncNames):
-			compound.SymbolTableMixin.__init__(self, func, allFuncNames)
-			self.result = set()
-
-		def visit_Compound(self, n):
-			self.switch()
-			c_ast.NodeVisitor.generic_visit(self, n)
-			self.revert()
-
-		def visit_Decl(self, n):
-			self.register(n)
-			c_ast.NodeVisitor.generic_visit(self, n)
-
-		def visit_FuncCall(self, n):
-			callName = rewrite.FuncCallName(n)
-			if self.canMacroize(callName):
-				self.result.add(callName)
-			c_ast.NodeVisitor.generic_visit(self, n)
-
-	def prependFuncDecls(self):
-		"""
-		Prepend declarations of functions that are used in the function so the function
-		can find the declarations.
-
-		E.g.
-		void f() { g(); h(0); }
-
-		=>
-
-		void g();
-		void h(int);
-		void f() { g(); h(0); }
-		"""
-		# NOTE We can't sweep the old prototypes because they may be used as pointer reference
-		all_funcs = {} # name -> (i, ast)
-		for i, n in enumerate(self.ast.ext):
-			if isinstance(n, c_ast.FuncDef):
-				all_funcs[ext_pycparser.FuncDef(n).name()] = (i, n)
-
-		declLocs = {}
-		for i, n in enumerate(self.ast.ext):
-			if isinstance(n, c_ast.FuncDef):
-				callNames = ext_pycparser.Result(self.AllIDs(n, set(all_funcs.keys()))).visit(n)
-				for callName in callNames:
-					if not callName in declLocs:
-						declLocs[callName] = i
-
-		for callName, i in sorted(declLocs.items(), key=lambda x: -x[1]):
-			func = all_funcs[callName][1]
-			decl = copy.deepcopy(func.decl)
-			self.ast.ext.insert(i, decl)
+	# def prependFuncDecls(self):
+	# 	"""
+	# 	Prepend declarations of functions that are used in the function so the function
+	# 	can find the declarations.
+    #
+	# 	E.g.
+	# 	void f() { g(); h(0); }
+    #
+	# 	=>
+    #
+	# 	void g();
+	# 	void h(int);
+	# 	void f() { g(); h(0); }
+	# 	"""
+	# 	# NOTE We can't sweep the old prototypes because they may be used as pointer reference
+	# 	all_funcs = {} # name -> (i, ast)
+	# 	for i, n in enumerate(self.ast.ext):
+	# 		if isinstance(n, c_ast.FuncDef):
+	# 			all_funcs[ext_pycparser.FuncDef(n).name()] = (i, n)
+	#
+	# 	declLocs = {}
+	# 	for i, n in enumerate(self.ast.ext):
+	# 		if isinstance(n, c_ast.FuncDef):
+	# 			callNames = ext_pycparser.Result(self.AllIDs(n, set(all_funcs.keys()))).visit(n)
+	# 			for callName in callNames:
+	# 				if not callName in declLocs:
+	# 					declLocs[callName] = i
+	#
+	# 	for callName, i in sorted(declLocs.items(), key=lambda x: -x[1]):
+	# 		func = all_funcs[callName][1]
+	# 		decl = copy.deepcopy(func.decl)
+	# 		self.ast.ext.insert(i, decl)
 
 	def run(self):
 		macroizables = set()
@@ -349,11 +346,11 @@ class Main:
 		recorder.t.file_record("normalize_labels", ext_pycparser.CGenerator().visit(self.ast))
 
 		# FIXME I think now this makes no sence at all because of moveDecls()
-		self.prependDecls()
-		recorder.t.file_record("prepend_decls", ext_pycparser.CGenerator().visit(self.ast))
+		# self.prependDecls()
+		# recorder.t.file_record("prepend_decls", ext_pycparser.CGenerator().visit(self.ast))
 
-		self.prependFuncDecls()
-		recorder.t.file_record("prepend_func_decls", ext_pycparser.CGenerator().visit(self.ast))
+		# self.prependFuncDecls()
+		# recorder.t.file_record("prepend_func_decls", ext_pycparser.CGenerator().visit(self.ast))
 
 		return self
 
