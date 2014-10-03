@@ -307,6 +307,12 @@ int foo(int x, ...)
 		if (0)
 			return h1(h1(0));
 	} while(0);
+	do {
+		z = h1(h1(0));
+		do {
+			z = h1(h1(0));
+		} while (0);
+	} while (0);
 	int p;
 	int q = 3;
 	int hRR = t->h1(h1(h2(h3(0))));
