@@ -364,6 +364,17 @@ inline int ffff(void)
 }
 """
 
+test_file_2 = r"""
+inline int f(int x) { return x; }
+int main()
+{
+	int r;
+	while (0) {
+		r = f(f(0));
+	}
+}
+"""
+
 if __name__ == "__main__":
 	ast = ext_pycparser.ast_of(test_file)
 	# ast.show()
