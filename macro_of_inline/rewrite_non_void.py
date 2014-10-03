@@ -307,6 +307,21 @@ int foo(int x, ...)
 		if (0)
 			return h1(h1(0));
 	} while(0);
+	z = h1(h1(0));
+	{
+		z = h1(h1(0));
+	}
+	if (0) {
+		z = h1(h1(0));
+	}
+	while (0) {
+		z = h1(h1(0));
+	}
+	while (0) {
+		{
+			z = h1(h1(0));
+		}
+	}
 	do {
 		z = h1(h1(0));
 		do {
@@ -351,7 +366,7 @@ inline int ffff(void)
 
 if __name__ == "__main__":
 	ast = ext_pycparser.ast_of(test_file)
-	ast.show()
+	# ast.show()
 	ast = Main(ast).run().returnAST()
 	# ast.show()
 	print ext_pycparser.CGenerator().visit(ast)
