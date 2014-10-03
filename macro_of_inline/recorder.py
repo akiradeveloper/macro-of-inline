@@ -33,9 +33,9 @@ class Recorder:
 			return
 
 		self.file_rewrite_level += 1
-		fn = "%s/%d-%s.txt" % (self.rec_dir, self.file_rewrite_level, title)
+		fn = "%s/%d-%s.c" % (self.rec_dir, self.file_rewrite_level, title)
 		f = open(fn, "w")
-		f.write("%s\n\n%s" % (self.elapsedTime(), contents))
+		f.write("/* %s */\n\n%s" % (self.elapsedTime(), contents))
 		f.close()
 
 	def fun_record(self, title, ast):
