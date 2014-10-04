@@ -162,10 +162,10 @@ class Wrap:
 			with open(fn, "w") as fp:
 				fp.write(self.txt)
 
-			# TODO Ugly. Roan pattern
+			# TODO Ugly. Loan pattern
 			try:
 				cpp_args = ['-E', r'-include%s' % fake_include]
-				cpped_txt = pycparser.preprocess_file(fn, cpp_path='gcc', cpp_args=cpp_args)
+				cpped_txt = utils.preprocess_file(fn, cpp_path='gcc', cpp_args=cpp_args)
 			except Exception as e:
 				sys.stderr.write(e.message)
 				sys.exit(1)

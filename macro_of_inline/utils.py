@@ -2,6 +2,7 @@ import cfg
 import pycparser
 import random
 import string
+import subprocess
 
 DEBUG = False
 
@@ -52,6 +53,25 @@ def to_option(x):
 		i += 1
 	return ''.join(l)
 
+def preprocess_file(filename, cpp_path, cpp_args=''):
+	path_list = [cpp_path]
+	if isinstance(cpp_args, list):
+		path_list += cpp_args
+	elif cpp_args != '':
+		path_list += [cpp_args]
+	path_list += [filename]
+	try:
+		pipe = subprocess.Popen(path_list, stdout=subprocess.PIPE, universal_newlines=True)
+		text = pipe.communicate()[0]
+		ret = pipe.returncode
+		if ret:
+			raise RuntimeError("[Error] Preprocessing failed. Code: %d\n" % ret)
+	except OSError as e:
+		raise RuntimeError("[Error] Unable to invoke 'cpp'.  " +
+			'Make sure its path was passed correctly\n' +
+			('Original error: %s' % e))
+	return text
+
 def cpp(filename):
 	"""
 	File -> Text
@@ -61,12 +81,11 @@ def cpp(filename):
 	"""
 	cpp_args = ['-E', '-U__GNUC__']
 	cpp_args.extend([r'%s' % to_option(option) for option in cfg.t.extra_options])
-	return pycparser.preprocess_file(filename, cpp_path='gcc', cpp_args=cpp_args)
+	return preprocess_file(filename, cpp_path='gcc', cpp_args=cpp_args)
 
 if __name__ == "__main__":
 	a = countMap([2,1,1,2,3])
 	b = countMap([3,1,2,2,2])
 	countMapDiff(a, b)
-	print(a)
 
 	print cpp("tests/proj/main.c")

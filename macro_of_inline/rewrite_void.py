@@ -74,7 +74,6 @@ class RewriteCaller(compound.NodeVisitor, compound.SymbolTableMixin):
 			n.args = c_ast.ExprList([])
 		n.args.exprs.insert(0, c_ast.ID(namespace)) # macro_f(namespace, ...)
 
-
 class Main:
 	"""
 	AST -> AST
@@ -89,7 +88,10 @@ class Main:
 			txt = ext_pycparser.CGenerator().visit(self.ast)
 			fp.write(ext_pycparser.CGenerator.cleanUp(txt))
 		try:
-			self.ast = ext_pycparser.ast_of(pycparser.preprocess_file(fn, cpp_path='gcc', cpp_args=['-E']))
+			cpped_txt = utils.preprocess_file(fn, cpp_path='gcc', cpp_args=['-E'])
+			if cpped_txt.find("macro_void_") != -1:
+				raise RuntimeError("[Error] Some macros weren't expanded")
+			self.ast = ext_pycparser.ast_of(cpped_txt)
 		except Exception as e:
 			sys.stderr.write(e.message)
 			sys.exit(1)
